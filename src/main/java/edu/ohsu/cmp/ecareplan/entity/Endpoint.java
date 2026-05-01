@@ -3,8 +3,8 @@ package edu.ohsu.cmp.ecareplan.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "fhir_endpoint")
-public class FhirEndpoint {
+@Table(name = "endpoint")
+public class Endpoint {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -1,10 +1,8 @@
-drop table if exists user;
 create table user (
     id int not null auto_increment primary key,
     patIdHash char(64) unique not null
 );
 
-drop table if exists audit_data;
 create table audit_data (
     id int not null auto_increment primary key,
     userId int not null references user(id),
@@ -14,7 +12,6 @@ create table audit_data (
     created datetime not null default current_timestamp
 );
 
-drop table if exists vsac_valueset;
 create table vsac_valueset (
     id int not null auto_increment primary key,
     oid varchar(255) not null,
@@ -31,7 +28,6 @@ create table vsac_valueset (
     constraint vv_c1 unique (oid, version)
 );
 
-drop table if exists vsac_concept;
 create table vsac_concept (
     id int not null auto_increment primary key,
     code varchar(255) not null,
@@ -44,7 +40,6 @@ create table vsac_concept (
     constraint vc_c1 unique (code, codeSystem, codeSystemVersion)
 );
 
-drop table if exists vsac_valueset_concept;
 create table vsac_valueset_concept (
     valueSetId int not null,
     conceptId int not null,
@@ -55,21 +50,18 @@ create table vsac_valueset_concept (
        on delete cascade
 );
 
-drop table if exists data_set;
 create table data_set (
     id int not null auto_increment primary key,
     name varchar(255) unique not null
 );
 
-drop table if exists default_fhir_query;
-create table default_fhir_query (
+create table default_query (
     id int not null auto_increment primary key,
     dataSetId int not null references data_set(id),
     query varchar(1000) not null
 );
 
-drop table if exists fhir_endpoint;
-create table fhir_endpoint (
+create table endpoint (
     id int not null auto_increment primary key,
     name varchar(255) unique not null,
     iss varchar(255) unique not null,
@@ -79,10 +71,9 @@ create table fhir_endpoint (
     scope varchar(1000) not null
 );
 
-drop table if exists endpoint_fhir_query;
-create table endpoint_fhir_query (
+create table endpoint_query (
     id int not null auto_increment primary key,
-    fhirEndpointId int not null references fhir_endpoint(id),
+    endpointId int not null references endpoint(id),
     dataSetId int not null references data_set(id),
     query varchar(1000) not null,
     created datetime not null default current_timestamp
