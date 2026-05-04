@@ -11,8 +11,12 @@ public class EndpointQuery {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long endpointId;
-    private Long dataSetId;
+
+    @ManyToOne
+    @JoinColumn(name = "dataSetId")
+    private DataSet dataSet;
     private String query;
+
     private Date created;
 
     public Long getId() {
@@ -31,12 +35,12 @@ public class EndpointQuery {
         this.endpointId = endpointId;
     }
 
-    public Long getDataSetId() {
-        return dataSetId;
+    public DataSet getDataSet() {
+        return dataSet;
     }
 
-    public void setDataSetId(Long dataSetId) {
-        this.dataSetId = dataSetId;
+    public void setDataSet(DataSet dataSet) {
+        this.dataSet = dataSet;
     }
 
     public String getQuery() {

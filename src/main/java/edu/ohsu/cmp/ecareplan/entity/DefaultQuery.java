@@ -8,7 +8,11 @@ public class DefaultQuery {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long dataSetId;
+
+    @ManyToOne
+    @JoinColumn(name = "dataSetId")
+    private DataSet dataSet;
+
     private String query;
 
     public Long getId() {
@@ -19,12 +23,12 @@ public class DefaultQuery {
         this.id = id;
     }
 
-    public Long getDataSetId() {
-        return dataSetId;
+    public DataSet getDataSet() {
+        return dataSet;
     }
 
-    public void setDataSetId(Long dataSetId) {
-        this.dataSetId = dataSetId;
+    public void setDataSet(DataSet dataSet) {
+        this.dataSet = dataSet;
     }
 
     public String getQuery() {
