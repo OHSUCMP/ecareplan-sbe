@@ -78,3 +78,11 @@ create table endpoint_query (
     query varchar(1000) not null,
     created datetime not null default current_timestamp
 );
+
+create table user_endpoint (
+    id int not null auto_increment primary key,
+    userId int not null references user(id),
+    endpointId int not null references endpoint(id),
+    lastSync datetime,
+    created datetime not null default current_timestamp
+);
