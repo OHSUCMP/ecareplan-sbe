@@ -13,7 +13,11 @@ public class UserEndpoint {
     private Long id;
 
     private Long userId;
-    private Long endpointId;
+
+    @ManyToOne
+    @JoinColumn(name = "endpointId")
+    private Endpoint endpoint;
+
     private Date lastSync;
     private Date created;
 
@@ -33,12 +37,12 @@ public class UserEndpoint {
         this.userId = userId;
     }
 
-    public Long getEndpointId() {
-        return endpointId;
+    public Endpoint getEndpoint() {
+        return endpoint;
     }
 
-    public void setEndpointId(Long endpointId) {
-        this.endpointId = endpointId;
+    public void setEndpoint(Endpoint endpoint) {
+        this.endpoint = endpoint;
     }
 
     public Date getLastSync() {
