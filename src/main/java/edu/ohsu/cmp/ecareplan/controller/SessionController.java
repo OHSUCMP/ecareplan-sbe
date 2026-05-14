@@ -4,7 +4,7 @@ import edu.ohsu.cmp.ecareplan.exception.CaseNotHandledException;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
-import edu.ohsu.cmp.ecareplan.model.fhir.FhirCredentials;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.service.SessionService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
@@ -52,7 +52,7 @@ public class SessionController extends BaseController {
 
     @GetMapping("launch-careteam")
     public String launchCareTeam(HttpSession session, Model model) {
-        sessionService.expireAll(session.getId());
+        sessionService.forceExpiration(session.getId());
         setCommonViewComponents(model);
         model.addAttribute("clientId", careTeamClientId);
         model.addAttribute("scope", careTeamScope);
@@ -63,7 +63,7 @@ public class SessionController extends BaseController {
 
     @GetMapping("launch-patient")
     public String launchPatient(HttpSession session, Model model) {
-        sessionService.expireAll(session.getId());
+        sessionService.forceExpiration(session.getId());
         setCommonViewComponents(model);
         model.addAttribute("clientId", patientClientId);
         model.addAttribute("scope", patientScope);
@@ -91,11 +91,11 @@ public class SessionController extends BaseController {
 
         logger.debug("preparing " + audience + " session " + session.getId());
 
-        FhirCredentials credentials = new FhirCredentials(clientId, serverUrl, bearerToken, patientId, userId);
+        FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
 
         if (Audience.PATIENT.equals(audience)) {
             sessionService.prepareSession(session.getId(), credentials, audience);
-            return ResponseEntity.ok("session configured successfully");
+            return ResponseEntity.ok("patient session established");
 
         } else if (Audience.CARE_TEAM.equals(audience)) {
             sessionService.prepareSession(session.getId(), credentials, audience);
@@ -122,20 +122,20 @@ public class SessionController extends BaseController {
     @GetMapping("logout")
     public String logout(HttpSession session) {
         auditService.doAudit(session.getId(), AuditSeverity.INFO, "logged out"); // must occur before expire action
-        sessionService.expireAll(session.getId());
+        sessionService.forceExpiration(session.getId());
         return "logout";
     }
 
     @GetMapping("inactivity-logout")
     public String inactivityLogout(HttpSession session) {
         auditService.doAudit(session.getId(), AuditSeverity.INFO, "logged out due to inactivity"); // must occur before expire action
-        sessionService.expireAll(session.getId());
+        sessionService.forceExpiration(session.getId());
         return "inactivity-logout";
     }
 
     @PostMapping("clear-session")
     public ResponseEntity<?> clearSession(HttpSession session) {
-        sessionService.expireAll(session.getId());
+        sessionService.forceExpiration(session.getId());
         return ResponseEntity.ok("session cleared");
     }
 
