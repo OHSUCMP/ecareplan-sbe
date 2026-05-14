@@ -10,6 +10,7 @@ public class EndpointModel {
     private String clientSecret;
     private String redirectUri;
     private String scope;
+    private EndpointProviderType providerType;
 
     public EndpointModel(Endpoint endpoint) {
         this.id = endpoint.getId();
@@ -19,6 +20,7 @@ public class EndpointModel {
         this.clientSecret = endpoint.getClientSecret();
         this.redirectUri = endpoint.getRedirectUri();
         this.scope = endpoint.getScope();
+        this.providerType = endpoint.getProviderType();
     }
 
     public Long getId() {
@@ -47,5 +49,9 @@ public class EndpointModel {
 
     public String getScope() {
         return scope;
+    }
+
+    public EndpointProviderType getProviderType() {
+        return providerType;
     }
 }
