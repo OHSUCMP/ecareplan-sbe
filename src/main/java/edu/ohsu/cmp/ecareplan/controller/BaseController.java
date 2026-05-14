@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.controller;
 
+import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.service.AuditService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspaceService;
 import org.slf4j.Logger;
@@ -34,5 +35,18 @@ public abstract class BaseController {
     protected void setCommonViewComponents(String sessionId, Model model) {
         model.addAttribute("applicationName", applicationName);
         model.addAttribute("idleTimeoutSeconds", idleTimeoutSeconds);
+
+        if (sessionId != null) {
+            if (userWorkspaceService.exists(sessionId)) {
+                model.addAttribute("sessionEstablished", true);
+
+                Audience audience = userWorkspaceService.get(sessionId).getAudience();
+                if (audience == Audience.PATIENT) {
+                    model.addAttribute("patientContext", true);
+                } else if (audience == Audience.CARE_TEAM) {
+                    model.addAttribute("careTeamContext", true);
+                }
+            }
+        }
     }
 }

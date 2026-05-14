@@ -1,0 +1,30 @@
+		</main>
+
+		<footer class="footer">
+			<div id="footer_container" class="container">
+				<hr>
+				<p id="app_version" class="text-right text-muted small">
+					{{appName}} {{appVersion}} &copy; {{currentYear}}
+				</p>
+			</div>
+		</footer>
+
+        <script type="text/javascript">
+            function doRefresh(_callback) {
+                $.ajax({
+                    method: "POST",
+                    url: "/refresh"
+                }).done(function() {
+                    _callback();
+                });
+            }
+            $(document).on('click', '#refresh', function() {
+                doRefresh(function() {
+                    // Direct to home
+                    window.location.href = "/";
+                });
+            });
+        </script>
+
+	</body>
+</html>

@@ -1,0 +1,174 @@
+main.container {
+	/* pad top to account for the navbar */
+	padding: 80px 10px 0;
+}
+
+img.logo {
+    height: 45px;
+}
+
+.color-primary {
+    color: #004466;
+}
+
+.bgd-primary {
+    background-color: #004466;
+}
+
+.color-secondary {
+    color: #b3fff0;
+}
+
+.bgd-secondary {
+    background-color: #b3fff0;
+}
+
+.hidden, .hidden * {
+    height: 0;
+    width: 0;
+    margin: 0;
+    padding: 0;
+    visibility: hidden;
+    display: none !important;
+}
+
+body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    height: 100%;
+}
+
+.heading {
+    display: block;
+    color: black;
+    font-size: large;
+    font-weight: bold;
+}
+
+.success {
+    color: green;
+}
+
+.error {
+    color: red;
+}
+
+.emphasized {
+    color: darkred
+}
+
+.hover {
+    cursor: pointer;
+}
+
+.disabled.hover {
+    cursor: not-allowed;
+}
+
+.button.disabled {
+    color: #000;
+    background-color: #888;
+}
+
+/* pulled from https://www.w3schools.com/howto/howto_css_modals.asp */
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modalContent {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+.shrink {
+    width: 1%;
+}
+
+.expand {
+    width: 100%;
+}
+
+.button-primary {
+    background-color: #2e6e9e;
+    color: white;
+}
+
+.button-primary:hover {
+    background-color: #7698a1;
+    color: black;
+}
+
+.button-secondary {
+    background-color: #7698a1;
+    color: black;
+}
+
+.button-secondary:hover {
+    background-color: #9bd0da;
+    color: black;
+}
+
+.link {
+    color: #004d99;
+    text-decoration: none;
+}
+
+.link.hover, a:hover, .anchor.hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.thick {
+    font-weight: bold;
+}
+
+.tip {
+    position: relative;
+    display: inline-block;
+}
+  
+.tip .tiptext {
+    visibility: hidden;
+    width: 300px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+  
+.tip .tiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+  
+.tip:hover .tiptext {
+    visibility: visible;
+    opacity: 1;
+}
