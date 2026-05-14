@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
+import edu.ohsu.cmp.ecareplan.model.EndpointProviderType;
 import jakarta.persistence.*;
 
 @Entity
@@ -14,6 +15,9 @@ public class Endpoint {
     private String clientSecret;
     private String redirectUri;
     private String scope;
+
+    @Enumerated(EnumType.STRING)
+    private EndpointProviderType providerType;
 
     public Long getId() {
         return id;
@@ -69,5 +73,13 @@ public class Endpoint {
 
     public void setScope(String scope) {
         this.scope = scope;
+    }
+
+    public EndpointProviderType getProviderType() {
+        return providerType;
+    }
+
+    public void setProviderType(EndpointProviderType providerType) {
+        this.providerType = providerType;
     }
 }
