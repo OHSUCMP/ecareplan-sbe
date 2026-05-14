@@ -1,0 +1,31 @@
+{{>layout/header}}
+
+<div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+
+<div class="container">
+    {{#systemStatusMessage}}
+        <div class="row align-items-center alert alert-teal" role="alert">
+            <div class="col-md-auto text-center">
+                <img src="/images/info-icon.png" alt="System Status" height="50px" />
+            </div>
+            <div class="col">
+                {{systemStatusMessage}}
+            </div>
+        </div>
+    {{/systemStatusMessage}}
+
+
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        let sessionEstablished = $('#sessionEstablished').text();
+        if (sessionEstablished !== 'true') {
+            return;
+        }
+
+        // todo : things that should happen once the home page is loaded
+    });
+</script>
+
+{{>layout/footer}}

@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @RequestMapping("/patient")
-public class PatientHomeController extends BaseController {
-    private static final Logger logger = LoggerFactory.getLogger(PatientHomeController.class);
+public class HomeController extends BaseController {
+    private static final Logger logger = LoggerFactory.getLogger(HomeController.class);
 
     // this is the home page for the MyCarePlanner patient-focused app
 
@@ -42,7 +42,7 @@ public class PatientHomeController extends BaseController {
 
             setCommonViewComponents(sessionId, model);
             model.addAttribute("sessionEstablished", true);
-            model.addAttribute("pageStyles", new String[] { "home.css" });
+            model.addAttribute("pageStyles", new String[] { "patient/home.css" });
             model.addAttribute("patient", workspace.getPatient());
 
             if (StringUtils.isNotBlank(systemStatusMessage)) {
@@ -51,12 +51,13 @@ public class PatientHomeController extends BaseController {
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited home page");
 
-            return "home";
+            return "patient/home";
 
         } else {
             logger.debug("no session exists.  completing SMART-on-FHIR handshake for session " + sessionId);
             setCommonViewComponents(model);
             model.addAttribute("cacheCredentials", cacheCredentials);
+            model.addAttribute("redirectUri", "/patient");
             return "fhir-complete-handshake";
         }
     }

@@ -9,7 +9,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/fhirclient@2.6.3/build/fhir-client.min.js"></script>
 
     <script type="text/javascript">
-        const REDIRECT_URL = "/";
+        const REDIRECT_URI = "{{redirectUri}}";
 
         function prepareSession(client) {
             let data = {
@@ -28,8 +28,8 @@
                 data: data
             }).done(function() {
                 // alert("useful debug checkpoint");
-                $('.response').html("Handshake completed, redirecting ...<br/>If you are not redirected, please <a href='" + REDIRECT_URL + "'>click here</a>.")
-                window.location.replace(REDIRECT_URL);
+                $('.response').html("Handshake completed, redirecting ...<br/>If you are not redirected, please <a href='" + REDIRECT_URI + "'>click here</a>.")
+                window.location.replace(REDIRECT_URI);
             }).fail(function (jqXHR) {
                 try {
                     let response = JSON.parse(jqXHR.responseText);
