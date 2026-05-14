@@ -1,4 +1,4 @@
-package edu.ohsu.cmp.ecareplan.model;
+package edu.ohsu.cmp.ecareplan.model.fhir;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
