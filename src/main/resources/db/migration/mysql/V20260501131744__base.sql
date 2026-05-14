@@ -68,7 +68,8 @@ create table endpoint (
     clientId varchar(255) not null,
     clientSecret varchar(255),
     redirectUri varchar(255) not null,
-    scope varchar(1000) not null
+    scope varchar(1000) not null,
+    providerType varchar(255)
 );
 
 create table endpoint_query (
