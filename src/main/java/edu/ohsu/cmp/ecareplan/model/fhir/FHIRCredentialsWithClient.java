@@ -4,16 +4,16 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 
 public class FHIRCredentialsWithClient {
-    private FhirCredentials credentials;
+    private FHIRCredentials credentials;
     private IGenericClient client;
     private CapabilityStatement metadata = null;
 
-    public FHIRCredentialsWithClient(FhirCredentials credentials, IGenericClient client) {
+    public FHIRCredentialsWithClient(FHIRCredentials credentials, IGenericClient client) {
         this.credentials = credentials;
         this.client = client;
     }
 
-    public FhirCredentials getCredentials() {
+    public FHIRCredentials getCredentials() {
         return credentials;
     }
 
