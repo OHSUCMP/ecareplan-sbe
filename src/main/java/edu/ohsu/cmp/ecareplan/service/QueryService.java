@@ -2,15 +2,14 @@ package edu.ohsu.cmp.ecareplan.service;
 
 import edu.ohsu.cmp.ecareplan.entity.DefaultQuery;
 import edu.ohsu.cmp.ecareplan.entity.EndpointQuery;
+import edu.ohsu.cmp.ecareplan.model.DataSetName;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.repository.DefaultQueryRepository;
 import edu.ohsu.cmp.ecareplan.repository.EndpointQueryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class QueryService extends BaseService {
@@ -20,18 +19,19 @@ public class QueryService extends BaseService {
     @Autowired
     private EndpointQueryRepository endpointQueryRepository;
 
-    public Collection<QueryModel> getQueriesForEndpoint(Long endpointId) {
-        Map<String, QueryModel> map = new LinkedHashMap<>();
-        for (DefaultQuery query : defaultQueryRepository.findAll()) {
-            QueryModel qm = new QueryModel(query);
-            map.put(qm.getDataSetName(), qm);
+    public Collection<QueryModel> getDataSetQueriesForEndpoint(DataSetName dataSetName, Long endpointId) {
+        List<QueryModel> list = new ArrayList<>();
+
+        for (EndpointQuery endpointQuery : endpointQueryRepository.findByEndpointIdAndDataSetName(endpointId, dataSetName)) {
+            list.add(new QueryModel(endpointQuery));
         }
 
-        // endpoint queries will overwrite defaults if any are specified
-        for (EndpointQuery endpointQuery : endpointQueryRepository.findByEndpointId(endpointId)) {
-            QueryModel qm = new QueryModel(endpointQuery);
-            map.put(qm.getDataSetName(), qm);
+        if (list.isEmpty()) {
+            for (DefaultQuery query : defaultQueryRepository.findByDataSetName(dataSetName)) {
+                list.add(new QueryModel(query));
+            }
         }
-        return map.values();
+
+        return list;
     }
 }
