@@ -58,7 +58,8 @@ create table data_set (
 create table default_query (
     id int not null auto_increment primary key,
     dataSetId int not null references data_set(id),
-    query varchar(1000) not null
+    query varchar(1000) not null,
+    strategy varchar(20) not null
 );
 
 create table endpoint (
@@ -77,6 +78,7 @@ create table endpoint_query (
     endpointId int not null references endpoint(id),
     dataSetId int not null references data_set(id),
     query varchar(1000) not null,
+    strategy varchar(20) not null,
     created datetime not null default current_timestamp
 );
 

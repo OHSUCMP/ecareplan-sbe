@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import jakarta.persistence.*;
 
 import java.util.Date;
@@ -16,6 +17,9 @@ public class EndpointQuery {
     @JoinColumn(name = "dataSetId")
     private DataSet dataSet;
     private String query;
+
+    @Enumerated(EnumType.STRING)
+    private FHIRStrategy strategy;
 
     private Date created;
 
@@ -49,6 +53,14 @@ public class EndpointQuery {
 
     public void setQuery(String query) {
         this.query = query;
+    }
+
+    public FHIRStrategy getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(FHIRStrategy strategy) {
+        this.strategy = strategy;
     }
 
     public Date getCreated() {

@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import jakarta.persistence.*;
 
 @Entity
@@ -14,6 +15,9 @@ public class DefaultQuery {
     private DataSet dataSet;
 
     private String query;
+
+    @Enumerated(EnumType.STRING)
+    private FHIRStrategy strategy;
 
     public Long getId() {
         return id;
@@ -37,5 +41,13 @@ public class DefaultQuery {
 
     public void setQuery(String query) {
         this.query = query;
+    }
+
+    public FHIRStrategy getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(FHIRStrategy strategy) {
+        this.strategy = strategy;
     }
 }
