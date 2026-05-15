@@ -5,7 +5,7 @@ import edu.ohsu.cmp.ecareplan.entity.EndpointQuery;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 
 public class QueryModel {
-    private String dataSetName;
+    private DataSetName dataSetName;
     private String query;
     private FHIRStrategy strategy;
 
@@ -21,7 +21,7 @@ public class QueryModel {
         this.strategy = endpointQuery.getStrategy();
     }
 
-    public String getDataSetName() {
+    public DataSetName getDataSetName() {
         return dataSetName;
     }
 
