@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
+import edu.ohsu.cmp.ecareplan.model.DataSetName;
 import jakarta.persistence.*;
 
 @Entity
@@ -8,7 +9,9 @@ public class DataSet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String name;
+
+    @Enumerated(EnumType.STRING)
+    private DataSetName name;
 
     public Long getId() {
         return id;
@@ -18,11 +21,11 @@ public class DataSet {
         this.id = id;
     }
 
-    public String getName() {
+    public DataSetName getName() {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(DataSetName name) {
         this.name = name;
     }
 }
