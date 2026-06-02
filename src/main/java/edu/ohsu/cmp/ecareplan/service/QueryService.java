@@ -19,7 +19,7 @@ public class QueryService extends BaseService {
     @Autowired
     private EndpointQueryRepository endpointQueryRepository;
 
-    public Collection<QueryModel> getDataSetQueriesForEndpoint(DataSetName dataSetName, Long endpointId) {
+    public List<QueryModel> getDataSetQueriesForEndpoint(DataSetName dataSetName, Long endpointId) {
         List<QueryModel> list = new ArrayList<>();
 
         for (EndpointQuery endpointQuery : endpointQueryRepository.findByEndpointIdAndDataSetName(endpointId, dataSetName)) {

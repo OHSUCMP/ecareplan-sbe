@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Collection;
 
 public interface DefaultQueryRepository extends JpaRepository<DefaultQuery, Long> {
-    @Query("select dq from DefaultQuery dq where dq.dataSet.name=:dataSetName")
+    @Query("select dq from DefaultQuery dq where dq.dataSetName=:dataSetName")
     Collection<DefaultQuery> findByDataSetName(DataSetName dataSetName);
 }

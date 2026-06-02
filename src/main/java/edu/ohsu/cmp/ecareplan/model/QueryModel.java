@@ -10,13 +10,13 @@ public class QueryModel {
     private FHIRStrategy strategy;
 
     public QueryModel(DefaultQuery defaultQuery) {
-        this.dataSetName = defaultQuery.getDataSet().getName();
+        this.dataSetName = defaultQuery.getDataSetName();
         this.query = defaultQuery.getQuery();
         this.strategy = defaultQuery.getStrategy();
     }
 
     public QueryModel(EndpointQuery endpointQuery) {
-        this.dataSetName = endpointQuery.getDataSet().getName();
+        this.dataSetName = endpointQuery.getDataSetName();
         this.query = endpointQuery.getQuery();
         this.strategy = endpointQuery.getStrategy();
     }

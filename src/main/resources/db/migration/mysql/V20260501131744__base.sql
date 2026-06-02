@@ -50,14 +50,9 @@ create table vsac_valueset_concept (
        on delete cascade
 );
 
-create table data_set (
-    id int not null auto_increment primary key,
-    name varchar(255) unique not null
-);
-
 create table default_query (
     id int not null auto_increment primary key,
-    dataSetId int not null references data_set(id),
+    dataSetName varchar(50) not null,
     query varchar(1000) not null,
     strategy varchar(20) not null
 );
@@ -76,7 +71,7 @@ create table endpoint (
 create table endpoint_query (
     id int not null auto_increment primary key,
     endpointId int not null references endpoint(id),
-    dataSetId int not null references data_set(id),
+    dataSetName varchar(50) not null,
     query varchar(1000) not null,
     strategy varchar(20) not null,
     created datetime not null default current_timestamp

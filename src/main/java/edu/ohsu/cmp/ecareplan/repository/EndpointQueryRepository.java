@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Collection;
 
 public interface EndpointQueryRepository extends JpaRepository<EndpointQuery, Long> {
-    @Query("select e from EndpointQuery e where e.endpointId=:endpointId and e.dataSet.name=:dataSetName")
+    @Query("select e from EndpointQuery e where e.endpointId=:endpointId and e.dataSetName=:dataSetName")
     Collection<EndpointQuery> findByEndpointIdAndDataSetName(Long endpointId, DataSetName dataSetName);
 }
