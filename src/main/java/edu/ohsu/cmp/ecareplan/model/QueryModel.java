@@ -2,6 +2,7 @@ package edu.ohsu.cmp.ecareplan.model;
 
 import edu.ohsu.cmp.ecareplan.entity.DefaultQuery;
 import edu.ohsu.cmp.ecareplan.entity.EndpointQuery;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSetName;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 
 public class QueryModel {

@@ -1,4 +1,4 @@
-package edu.ohsu.cmp.ecareplan.model;
+package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hl7.fhir.r4.model.*;

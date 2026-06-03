@@ -2,7 +2,7 @@ package edu.ohsu.cmp.ecareplan.service;
 
 import edu.ohsu.cmp.ecareplan.entity.DefaultQuery;
 import edu.ohsu.cmp.ecareplan.entity.EndpointQuery;
-import edu.ohsu.cmp.ecareplan.model.DataSetName;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSetName;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.repository.DefaultQueryRepository;
 import edu.ohsu.cmp.ecareplan.repository.EndpointQueryRepository;

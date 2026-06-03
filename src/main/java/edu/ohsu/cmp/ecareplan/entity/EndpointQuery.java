@@ -1,6 +1,6 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
-import edu.ohsu.cmp.ecareplan.model.DataSetName;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSetName;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import jakarta.persistence.*;
 
