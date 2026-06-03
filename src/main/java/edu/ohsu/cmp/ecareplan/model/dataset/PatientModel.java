@@ -9,28 +9,24 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-public class PatientModel {
+public class PatientModel extends BaseModel {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private static final String GENDER_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/patient-genderIdentity";
 
-    private Patient sourcePatient;
-
-    private String id;
     private String name;
     private Long age;
     private String gender;
 
-    public PatientModel(Patient p) {
-        this.sourcePatient = p;
-        this.id = p.getId();
+    public PatientModel(Patient patient) {
+        super(patient);
 
         String officialName = null;
         String usualName = null;
         String defaultName = null;
-        if (p.hasName()) {
-            defaultName = p.getNameFirstRep().getNameAsSingleString();
-            for (HumanName hn : p.getName()) {
+        if (patient.hasName()) {
+            defaultName = patient.getNameFirstRep().getNameAsSingleString();
+            for (HumanName hn : patient.getName()) {
                 if (officialName == null && hn.getUse() == HumanName.NameUse.OFFICIAL) {
                     officialName = buildName(hn);
                 } else if (usualName == null && hn.getUse() == HumanName.NameUse.USUAL) {
@@ -41,20 +37,20 @@ public class PatientModel {
         if      (usualName != null)     this.name = usualName;
         else if (officialName != null)  this.name = officialName;
         else {
-            logger.warn("no USUAL or OFFICIAL name for patient " + p.getId() + " - using default");
+            logger.warn("no USUAL or OFFICIAL name for patient " + patient.getId() + " - using default");
             this.name = defaultName;
         }
 
-        if (p.getBirthDate() != null) {
-            LocalDate start = p.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        if (patient.getBirthDate() != null) {
+            LocalDate start = patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             LocalDate stop = LocalDate.now(ZoneId.systemDefault());
             age = ChronoUnit.YEARS.between(start, stop);
         }
 
-        if (p.hasExtension(GENDER_EXTENSION_URL)) {
+        if (patient.hasExtension(GENDER_EXTENSION_URL)) {
             logger.debug("gender-identity extension found for Patient with id=" + id);
 
-            Extension ext = p.getExtensionByUrl(GENDER_EXTENSION_URL);
+            Extension ext = patient.getExtensionByUrl(GENDER_EXTENSION_URL);
             CodeableConcept cc = (CodeableConcept) ext.getValue();
             if (cc.hasCoding()) {
                 Coding c = cc.getCodingFirstRep();
@@ -75,18 +71,9 @@ public class PatientModel {
             }
         }
 
-        if (gender == null && p.hasGender()) {
-            gender = p.getGender().getDisplay();
+        if (gender == null && patient.hasGender()) {
+            gender = patient.getGender().getDisplay();
         }
-    }
-
-    @JsonIgnore
-    public Patient getSourcePatient() {
-        return sourcePatient;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public String getName() {

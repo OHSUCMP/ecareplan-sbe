@@ -1,4 +1,9 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
-public class SurveyObservationModel {
+import org.hl7.fhir.r4.model.Observation;
+
+public class SurveyObservationModel extends BaseModel {
+    public SurveyObservationModel(Observation observation) {
+        super(observation);
+    }
 }

@@ -1,4 +1,20 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
-public class MedicationModel {
+import org.hl7.fhir.r4.model.Medication;
+import org.hl7.fhir.r4.model.MedicationRequest;
+
+public class MedicationModel extends BaseModel {
+    private Medication sourceMedication;
+
+    public MedicationModel(MedicationRequest medicationRequest) {
+        super(medicationRequest);
+    }
+
+    public Medication getSourceMedication() {
+        return sourceMedication;
+    }
+
+    public void setSourceMedication(Medication sourceMedication) {
+        this.sourceMedication = sourceMedication;
+    }
 }

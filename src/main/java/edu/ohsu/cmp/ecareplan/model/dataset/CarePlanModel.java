@@ -1,4 +1,9 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
-public class CarePlanModel {
+import org.hl7.fhir.r4.model.CarePlan;
+
+public class CarePlanModel extends BaseModel {
+    public CarePlanModel(CarePlan carePlan) {
+        super(carePlan);
+    }
 }
