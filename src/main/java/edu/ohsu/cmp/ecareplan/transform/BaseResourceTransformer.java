@@ -15,8 +15,7 @@ public abstract class BaseResourceTransformer implements ResourceTransformer {
 
         Map<String, Provenance> map = new LinkedHashMap<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
-            if (entry.hasResource() && entry.getResource().getResourceType().name().equals("Provenance")) {
-                Provenance provenance = (Provenance) entry.getResource();
+            if (entry.hasResource() && entry.getResource() instanceof Provenance provenance) {
                 String referenceId = provenance.getTargetFirstRep().getReferenceElement().getIdPart();
                 map.put(referenceId, provenance);
             }
