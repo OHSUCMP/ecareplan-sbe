@@ -1,6 +1,6 @@
 package edu.ohsu.cmp.ecareplan.transform;
 
-import edu.ohsu.cmp.ecareplan.model.*;
+import edu.ohsu.cmp.ecareplan.model.dataset.*;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 
@@ -18,6 +18,11 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
+    public List<CarePlanModel> transformCarePlans(Bundle bundle) {
+        return List.of();
+    }
+
+    @Override
     public List<CareTeamModel> transformCareTeams(Bundle bundle) {
         return List.of();
     }
@@ -28,12 +33,17 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<GoalModel> transformGoals(Bundle bundle) {
+    public List<ConcernModel> transformConcerns(Bundle bundle) {
         return List.of();
     }
 
     @Override
-    public List<HealthConcernModel> transformHealthConcerns(Bundle bundle) {
+    public List<DiagnosticReportModel> transformDiagnosticReports(Bundle bundle) {
+        return List.of();
+    }
+
+    @Override
+    public List<GoalModel> transformGoals(Bundle bundle) {
         return List.of();
     }
 
@@ -48,12 +58,32 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<LabTestModel> transformLabTests(Bundle bundle) {
+    public List<MedicationModel> transformMedications(Bundle bundle) {
         return List.of();
     }
 
     @Override
-    public List<MedicationModel> transformMedications(Bundle bundle) {
+    public List<ProcedureModel> transformProcedures(Bundle bundle) {
+        return List.of();
+    }
+
+    @Override
+    public List<ServiceRequestModel> transformServiceRequests(Bundle bundle) {
+        return List.of();
+    }
+
+    @Override
+    public List<SocialHistoryModel> transformSocialHistories(Bundle bundle) {
+        return List.of();
+    }
+
+    @Override
+    public List<SurveyObservationModel> transformSurveyObservations(Bundle bundle) {
+        return List.of();
+    }
+
+    @Override
+    public List<TestModel> transformTests(Bundle bundle) {
         return List.of();
     }
 
