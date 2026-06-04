@@ -6,24 +6,24 @@ import org.hl7.fhir.r4.model.Provenance;
 
 public abstract class BaseDataSetModel {
     @JsonIgnore
-    private IDomainResource sourceResource;
+    private final IDomainResource sourceResource;
+
+    protected final String id;
 
     @JsonIgnore
     private Provenance provenance;
-
-    private String id;
 
     protected BaseDataSetModel(IDomainResource resource) {
         this.sourceResource = resource;
         this.id = resource.getId();
     }
 
-    public String getId() {
-        return id;
-    }
-
     public IDomainResource getSourceResource() {
         return sourceResource;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public Provenance getProvenance() {
