@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hl7.fhir.instance.model.api.IDomainResource;
 import org.hl7.fhir.r4.model.Provenance;
 
-public abstract class BaseModel {
+public abstract class BaseDataSetModel {
     @JsonIgnore
     private IDomainResource sourceResource;
 
@@ -13,7 +13,7 @@ public abstract class BaseModel {
 
     private String id;
 
-    protected BaseModel(IDomainResource resource) {
+    protected BaseDataSetModel(IDomainResource resource) {
         this.sourceResource = resource;
         this.id = resource.getId();
     }

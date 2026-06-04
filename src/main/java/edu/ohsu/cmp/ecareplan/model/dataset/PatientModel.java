@@ -1,6 +1,5 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hl7.fhir.r4.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-public class PatientModel extends BaseModel {
+public class PatientModel extends BaseDataSetModel {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private static final String GENDER_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/patient-genderIdentity";

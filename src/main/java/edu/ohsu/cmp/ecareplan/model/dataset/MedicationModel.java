@@ -3,7 +3,7 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationRequest;
 
-public class MedicationModel extends BaseModel {
+public class MedicationModel extends BaseDataSetModel {
     private Medication sourceMedication;
 
     public MedicationModel(MedicationRequest medicationRequest) {
