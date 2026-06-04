@@ -4,9 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum DataSetName {
+    PATIENT("patient"),
     ASSESSMENTS("assessments"),
-    CARE_PLAN("carePlan"),
-    CARE_TEAM("careTeam"),
+    CARE_PLANS("carePlans"),
+    CARE_TEAMS("careTeams"),
     CLINICAL_NOTES("clinicalNotes"),
     CONCERNS("concerns"), // conditions
     DIAGNOSTIC_REPORTS("diagnosticReports"),
@@ -16,7 +17,7 @@ public enum DataSetName {
     MEDICATIONS("medications"), // all active plus the last 10 inactive
     PROCEDURES("procedures"),
     SERVICE_REQUESTS("serviceRequests"),
-    SOCIAL_HISTORY("socialHistory"),
+    SOCIAL_HISTORIES("socialHistories"),
     SURVEY_OBSERVATIONS("surveyObservations"),
     TESTS("tests"), // standard lab results plus EGFR
     VITALS("vitals");

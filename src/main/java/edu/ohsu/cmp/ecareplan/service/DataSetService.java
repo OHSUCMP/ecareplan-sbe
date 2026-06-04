@@ -41,6 +41,10 @@ public class DataSetService extends BaseService {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
+
+        // note : we don't store the Patient "query" in the database as we do with everything else, since we will always
+        //        read the Patient resource directly by reference.  this is so standard that we're able to safely hardcode it
+
         return rt.transformPatient(
                 fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Patient.class, "Patient/" + fcc.getCredentials().getPatientId())
         );
@@ -63,12 +67,12 @@ public class DataSetService extends BaseService {
     }
 
     public List<CarePlanModel> getCarePlan(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
-        logger.info("building Care Plan for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
+        logger.info("building Care Plans for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<CarePlanModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_PLAN, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_PLANS, ue.getEndpoint().getId())) {
             list.addAll(
                     rt.transformCarePlans(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -79,12 +83,12 @@ public class DataSetService extends BaseService {
     }
 
     public List<CareTeamModel> getCareTeam(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
-        logger.info("building Care Team for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
+        logger.info("building Care Teams for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<CareTeamModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_TEAM, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_TEAMS, ue.getEndpoint().getId())) {
             list.addAll(
                     rt.transformCareTeams(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -245,12 +249,12 @@ public class DataSetService extends BaseService {
     }
 
     public List<SocialHistoryModel> getSocialHistory(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
-        logger.info("building Social History for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
+        logger.info("building Social Histories for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<SocialHistoryModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SOCIAL_HISTORY, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SOCIAL_HISTORIES, ue.getEndpoint().getId())) {
             list.addAll(
                     rt.transformSocialHistories(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())

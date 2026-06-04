@@ -58,8 +58,8 @@ create table default_query (
 );
 
 insert into default_query (dataSetName, query, strategy) values ('assessments', 'QuestionnaireResponse?status=completed&_revinclude=Provenance:target', 'patient');
-insert into default_query (dataSetName, query, strategy) values ('carePlan', 'CarePlan?status=active&category=assess-plan&_revinclude=Provenance:target', 'patient');
-insert into default_query (dataSetName, query, strategy) values ('careTeam', 'CareTeam?_include=CareTeam:participant&_revinclude=Provenance:target', 'patient');
+insert into default_query (dataSetName, query, strategy) values ('carePlans', 'CarePlan?status=active&category=assess-plan&_revinclude=Provenance:target', 'patient');
+insert into default_query (dataSetName, query, strategy) values ('careTeams', 'CareTeam?_include=CareTeam:participant&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('clinicalNotes', 'DocumentReference?category=clinical-note&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('concerns', 'Condition?category=problem-list-item&clinical-status=active&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('concerns', 'Condition?category=health-concern&clinical-status=active&_revinclude=Provenance:target', 'patient');
@@ -74,7 +74,7 @@ insert into default_query (dataSetName, query, strategy) values ('medications', 
 insert into default_query (dataSetName, query, strategy) values ('medications', 'MedicationRequest?status=on-hold,cancelled,completed,stopped&_count=10&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('procedures', 'Procedure?date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('serviceRequests', 'ServiceRequest?status=active&authored=ge{TWO_YEARS_AGO}&_include=ServiceRequest:requester&_revinclude=Provenance:target', 'patient');
-insert into default_query (dataSetName, query, strategy) values ('socialHistory', 'Observation?category=social-history&_revinclude=Provenance:target', 'patient');
+insert into default_query (dataSetName, query, strategy) values ('socialHistories', 'Observation?category=social-history&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('surveyObservations', 'Observation?category=survey&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('vitals', 'Observation?code=http://loinc.org|8867-4&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'patient');
 insert into default_query (dataSetName, query, strategy) values ('vitals', 'Observation?code=http://loinc.org|59408-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'patient');
@@ -109,6 +109,8 @@ create table user_endpoint (
     id int not null auto_increment primary key,
     userId int not null references user(id),
     endpointId int not null references endpoint(id),
+    fhirPatientId varchar(255),
+    fhirUserId varchar(255),
     lastSync datetime,
     created datetime not null default current_timestamp
 );
