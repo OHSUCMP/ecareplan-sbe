@@ -6,7 +6,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.0.6</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>edu.ohsu.cmp</groupId>
     <artifactId>ecareplan-sbe</artifactId>
@@ -27,9 +27,9 @@
         <url/>
     </scm>
     <properties>
-        <java.version>17</java.version>
-        <maven.compiler.release>17</maven.compiler.release>
-        <hapi-fhir.version>8.8.1</hapi-fhir.version>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <hapi-fhir.version>8.10.0</hapi-fhir.version>
     </properties>
     <dependencies>
         <dependency>
