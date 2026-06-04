@@ -27,7 +27,7 @@ import java.util.List;
  * that only "good" resources are included in results.  No other filtering takes place here.
  */
 @Service
-public class DataSetService extends BaseService {
+public class DataSetBuilderService extends BaseService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -36,7 +36,7 @@ public class DataSetService extends BaseService {
     @Autowired
     private QueryService queryService;
 
-    public PatientModel getPatient(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public PatientModel buildPatient(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Patient for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -50,7 +50,7 @@ public class DataSetService extends BaseService {
         );
     }
 
-    public List<AssessmentModel> getAssessments(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<AssessmentModel> buildAssessments(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Assessments for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -66,7 +66,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<CarePlanModel> getCarePlan(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<CarePlanModel> buildCarePlans(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Care Plans for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -82,7 +82,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<CareTeamModel> getCareTeam(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<CareTeamModel> buildCareTeams(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Care Teams for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -98,7 +98,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<ClinicalNoteModel> getClinicalNotes(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<ClinicalNoteModel> buildClinicalNotes(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Clinical Notes for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -117,7 +117,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<ConcernModel> getConcerns(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<ConcernModel> buildConcerns(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Concerns for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -133,7 +133,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<DiagnosticReportModel> getDiagnosticReports(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<DiagnosticReportModel> buildDiagnosticReports(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Diagnostic Reports for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -149,7 +149,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<GoalModel> getGoals(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<GoalModel> buildGoals(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Goals for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -165,7 +165,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<ImmunizationModel> getImmunizations(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<ImmunizationModel> buildImmunizations(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Immunizations for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -181,7 +181,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<InteractionModel> getInteractions(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<InteractionModel> buildInteractions(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Interactions for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -197,7 +197,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<MedicationModel> getMedications(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<MedicationModel> buildMedications(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Medications for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -216,7 +216,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<ProcedureModel> getProcedures(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<ProcedureModel> buildProcedures(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Procedures for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -232,7 +232,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<ServiceRequestModel> getServiceRequests(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<ServiceRequestModel> buildServiceRequests(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Service Requests for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -248,7 +248,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<SocialHistoryModel> getSocialHistory(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<SocialHistoryModel> buildSocialHistories(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Social Histories for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -264,7 +264,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<SurveyObservationModel> getSurveyObservations(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<SurveyObservationModel> buildSurveyObservations(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Survey Observations for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -280,7 +280,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<TestModel> getTests(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<TestModel> buildTests(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Tests for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
@@ -296,7 +296,7 @@ public class DataSetService extends BaseService {
         return list;
     }
 
-    public List<VitalsModel> getVitals(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
+    public List<VitalsModel> buildVitals(String sessionId, UserEndpoint ue) throws DataException, ConfigurationException, IOException {
         logger.info("building Vitals for session={}, user={}, endpoint={}", sessionId, ue.getUserId(), ue.getEndpoint().getIss());
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
