@@ -8,6 +8,7 @@ import edu.ohsu.cmp.ecareplan.repository.UserEndpointRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -19,11 +20,25 @@ import java.util.List;
 public class EndpointService {
     private static final Logger logger = LoggerFactory.getLogger(EndpointService.class);
 
+    @Value("${launch.patient.endpointName}")
+    private String patientEndpointName;
+
+    @Value("${launch.careTeam.endpointName}")
+    private String careTeamEndpointName;
+
     @Autowired
     private EndpointRepository endpointRepository;
 
     @Autowired
     private UserEndpointRepository userEndpointRepository;
+
+    public Endpoint getPatientLaunchEndpoint() {
+        return endpointRepository.findOneByName(patientEndpointName);
+    }
+
+    public Endpoint getCareTeamLaunchEndpoint() {
+        return endpointRepository.findOneByName(careTeamEndpointName);
+    }
 
     public List<EndpointModel> getAllEndpoints() {
         List<EndpointModel> list = new ArrayList<>();

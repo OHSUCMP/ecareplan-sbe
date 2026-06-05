@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum EndpointProviderType {
-    GENERIC(null),
+    GENERIC("generic"),
     EPIC("epic"),
     ORACLE("oracle");
 

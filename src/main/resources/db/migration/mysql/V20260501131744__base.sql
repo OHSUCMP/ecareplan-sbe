@@ -88,13 +88,15 @@ insert into default_query (dataSetName, query, strategy) values ('vitals', 'Obse
 create table endpoint (
     id int not null auto_increment primary key,
     name varchar(255) unique not null,
-    iss varchar(255) unique not null,
+    iss varchar(255) not null,
     clientId varchar(255) not null,
     clientSecret varchar(255),
     redirectUri varchar(255) not null,
     scope varchar(1000) not null,
     providerType varchar(255)
 );
+
+insert into endpoint(name, iss, clientId, redirectUri, scope, providerType) values('Patient Launch', 'https://gw.interop.community/MCCOMPARE/data', 'GET_THIS_FROM_FHIR_APP_REGISTRATION', 'http://localhost:8088/', 'launch/patient launch patient/*.read user/*.read openid profile', 'generic');
 
 create table endpoint_query (
     id int not null auto_increment primary key,
