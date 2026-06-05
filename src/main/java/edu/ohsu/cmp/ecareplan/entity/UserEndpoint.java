@@ -18,6 +18,8 @@ public class UserEndpoint {
     @JoinColumn(name = "endpointId")
     private Endpoint endpoint;
 
+    private String fhirPatientId;
+    private String fhirUserId;
     private Date lastSync;
     private Date created;
 
@@ -43,6 +45,22 @@ public class UserEndpoint {
 
     public void setEndpoint(Endpoint endpoint) {
         this.endpoint = endpoint;
+    }
+
+    public String getFhirPatientId() {
+        return fhirPatientId;
+    }
+
+    public void setFhirPatientId(String fhirPatientId) {
+        this.fhirPatientId = fhirPatientId;
+    }
+
+    public String getFhirUserId() {
+        return fhirUserId;
+    }
+
+    public void setFhirUserId(String fhirUserId) {
+        this.fhirUserId = fhirUserId;
     }
 
     public Date getLastSync() {
