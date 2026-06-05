@@ -56,7 +56,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<AssessmentModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.ASSESSMENTS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.ASSESSMENTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformAssessments(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -72,7 +72,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<CarePlanModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_PLANS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_PLANS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformCarePlans(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -88,7 +88,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<CareTeamModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_TEAMS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CARE_TEAMS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformCareTeams(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -104,7 +104,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<ClinicalNoteModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CLINICAL_NOTES, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CLINICAL_NOTES, ue.getEndpoint())) {
 
             // todo : this needs to be augmented to read and integrate referenced Binary resources
 
@@ -123,7 +123,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<ConcernModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CONCERNS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CONCERNS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformConcerns(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -139,7 +139,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<DiagnosticReportModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.DIAGNOSTIC_REPORTS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.DIAGNOSTIC_REPORTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformDiagnosticReports(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -155,7 +155,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<GoalModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.GOALS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.GOALS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformGoals(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -171,7 +171,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<ImmunizationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.IMMUNIZATIONS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.IMMUNIZATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformImmunizations(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -187,7 +187,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<InteractionModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.INTERACTIONS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.INTERACTIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformInteractions(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -203,7 +203,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<MedicationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.MEDICATIONS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.MEDICATIONS, ue.getEndpoint())) {
 
             // todo : this needs to be augmented to read and integrate referenced Medication resources
 
@@ -222,7 +222,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<ProcedureModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.PROCEDURES, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.PROCEDURES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformProcedures(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -238,7 +238,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<ServiceRequestModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SERVICE_REQUESTS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SERVICE_REQUESTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformServiceRequests(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -254,7 +254,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<SocialHistoryModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SOCIAL_HISTORIES, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SOCIAL_HISTORIES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformSocialHistories(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -270,7 +270,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<SurveyObservationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SURVEY_OBSERVATIONS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.SURVEY_OBSERVATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformSurveyObservations(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -286,7 +286,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<TestModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.TESTS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.TESTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformTests(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
@@ -302,7 +302,7 @@ public class DataSetBuilderService extends BaseService {
         FHIRCredentialsWithClient fcc = workspace.getFhirCredentialsWithClient(ue);
         ResourceTransformer rt = workspace.getResourceTransformer(ue.getEndpoint().getProviderType());
         List<VitalsModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.VITALS, ue.getEndpoint().getId())) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.VITALS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformVitals(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
