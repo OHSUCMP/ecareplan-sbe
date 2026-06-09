@@ -24,7 +24,7 @@
 
             $.ajax({
                 method: "POST",
-                url: "/prepare-session",
+                url: REDIRECT_URI + "/prepare-session",
                 data: data
             }).done(function() {
                 // alert("useful debug checkpoint");
