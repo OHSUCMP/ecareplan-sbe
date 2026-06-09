@@ -20,11 +20,14 @@ import java.util.List;
 public class EndpointService {
     private static final Logger logger = LoggerFactory.getLogger(EndpointService.class);
 
-    @Value("${launch.patient.endpointName}")
+    @Value("${endpoint.patientLaunch.name}")
     private String patientEndpointName;
 
-    @Value("${launch.careTeam.endpointName}")
+    @Value("${endpoint.careTeamLaunch.name}")
     private String careTeamEndpointName;
+
+    @Value("${endpoint.sds.name}")
+    private String sdsEndpointName;
 
     @Autowired
     private EndpointRepository endpointRepository;
@@ -40,38 +43,34 @@ public class EndpointService {
         return endpointRepository.findOneByName(careTeamEndpointName);
     }
 
-    public List<EndpointModel> getAllEndpoints() {
+    public Endpoint getSDSEndpoint() { return endpointRepository.findOneByName(sdsEndpointName); }
+
+    public List<EndpointModel> getAllThirdPartyEndpoints() {
         List<EndpointModel> list = new ArrayList<>();
         for (Endpoint endpoint : endpointRepository.findAll(Sort.by("name").ascending())) {
+            if (endpoint.getName().equals(patientEndpointName) ||
+                    endpoint.getName().equals(careTeamEndpointName) ||
+                    endpoint.getName().equals(sdsEndpointName)) {
+                continue;
+            }
             list.add(new EndpointModel(endpoint));
         }
         return list;
     }
 
-    public List<EndpointModel> getEndpointsForUser(Long userId) {
-        List<EndpointModel> list = new ArrayList<>();
-        for (UserEndpoint ue : userEndpointRepository.findByUserId(userId)) {
-            list.add(new EndpointModel(ue.getEndpoint()));
+    public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
+        UserEndpoint ue = userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElse(null);
+        if (ue == null) {
+            ue = new UserEndpoint();
+            ue.setUserId(userId);
+            ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
+            userEndpointRepository.save(ue);
         }
-        return list;
-    }
-
-    public void addEndpointForUser(Long userId, Long endpointId) {
-        if (userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).isPresent()) {
-            logger.warn("UserEndpoint already exists for user {} and endpoint {}", userId, endpointId);
-            return;
-        }
-
-        UserEndpoint ue = new UserEndpoint();
-        ue.setUserId(userId);
-        ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
-        userEndpointRepository.save(ue);
+        return ue;
     }
 
     public void updateUserEndpointLastSync(Long userId, Long endpointId) {
-        UserEndpoint ue = userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId)
-                .orElseThrow(() -> new IllegalArgumentException("UserEndpoint not found"));
-
+        UserEndpoint ue = getUserEndpoint(userId, endpointId);
         ue.setLastSync(new Date());
         userEndpointRepository.save(ue);
     }
