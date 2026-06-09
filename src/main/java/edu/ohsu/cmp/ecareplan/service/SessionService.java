@@ -4,8 +4,8 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
-import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,7 @@ public class SessionService extends BaseService {
 
 
     public void prepareSession(String sessionId, FHIRCredentials credentials, Audience audience) throws ConfigurationException {
-        logger.debug("preparing session " + sessionId + " with credentials=" + credentials);
+        logger.debug("preparing session {} with credentials={}", sessionId, credentials);
         IGenericClient client = FhirUtil.buildClient(
                 credentials.getServerURL(),
                 credentials.getBearerToken(),
@@ -41,7 +41,7 @@ public class SessionService extends BaseService {
     }
 
     public void forceExpiration(String sessionId) {
-        logger.info("expiring credentials for session " + sessionId);
+        logger.info("expiring credentials for session {}", sessionId);
         auditService.doAudit(sessionId, AuditSeverity.INFO, "session expired", sessionId);
         userWorkspaceService.shutdown(sessionId);
     }
