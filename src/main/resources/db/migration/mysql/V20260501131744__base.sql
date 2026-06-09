@@ -96,8 +96,6 @@ create table endpoint (
     providerType varchar(255)
 );
 
-insert into endpoint(name, iss, clientId, redirectUri, scope, providerType) values('Patient Launch', 'https://gw.interop.community/MCCOMPARE/data', 'GET_THIS_FROM_FHIR_APP_REGISTRATION', 'http://localhost:8088/patient/complete-handshake', 'launch/patient launch patient/*.read user/*.read openid profile', 'generic');
-
 create table endpoint_query (
     id int not null auto_increment primary key,
     endpointId int not null references endpoint(id),
