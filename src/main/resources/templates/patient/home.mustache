@@ -14,7 +14,12 @@
         </div>
     {{/systemStatusMessage}}
 
-
+    Patient records:
+    <ol>
+        {{#patientModels}}
+        <li>{{name}} (age: {{age}}, gender: {{gender}})</li>
+        {{/patientModels}}
+    </ol>
 </div>
 
 <script type="text/javascript">
