@@ -1,6 +1,5 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
-import edu.ohsu.cmp.ecareplan.controller.BaseController;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
@@ -27,7 +26,7 @@ import java.io.IOException;
 
 @Controller
 @RequestMapping("/patient")
-public class PatientHomeController extends BaseController {
+public class PatientHomeController extends BasePatientController {
     private static final Logger logger = LoggerFactory.getLogger(PatientHomeController.class);
 
     // this is the home page for the MyCarePlanner patient-focused app
@@ -37,8 +36,6 @@ public class PatientHomeController extends BaseController {
 
     @Autowired
     private EndpointService endpointService;
-
-    private final Endpoint patientEndpoint = endpointService.getPatientLaunchEndpoint();
 
     @Value("#{new Boolean('${security.browser.cache-credentials}')}")
     private Boolean cacheCredentials;
@@ -50,6 +47,7 @@ public class PatientHomeController extends BaseController {
     public String launch(HttpSession session, Model model) {
         sessionService.forceExpiration(session.getId());
         setCommonViewComponents(model);
+        Endpoint patientEndpoint = endpointService.getPatientLaunchEndpoint();
         model.addAttribute("clientId", patientEndpoint.getClientId());
         model.addAttribute("scope", patientEndpoint.getScope());
         model.addAttribute("redirectUri", patientEndpoint.getRedirectUri()); // /patient/complete-handshake
@@ -73,6 +71,7 @@ public class PatientHomeController extends BaseController {
                                             @RequestParam String patientId,
                                             @RequestParam String userId) throws ConfigurationException, IOException {
 
+        Endpoint patientEndpoint = endpointService.getPatientLaunchEndpoint();
         if ( ! patientEndpoint.getClientId().equals(clientId) || ! patientEndpoint.getIss().equals(serverUrl) ) {
             logger.error("clientId or serverUrl do not match expected values for PATIENT context (clientId={}, serverUrl={})", clientId, serverUrl);
             auditService.doAudit(session.getId(), AuditSeverity.WARN, "invalid launch", "received invalid clientId or serverUrl for PATIENT context");

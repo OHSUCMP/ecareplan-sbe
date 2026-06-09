@@ -5,5 +5,5 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @RequestMapping("/patient/immunizations")
-public class ImmunizationsController {
+public class ImmunizationsController extends BasePatientController {
 }

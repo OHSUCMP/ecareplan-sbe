@@ -35,8 +35,6 @@ public class CareTeamHomeController extends BaseController {
     @Autowired
     private EndpointService endpointService;
 
-    private final Endpoint careTeamEndpoint = endpointService.getCareTeamLaunchEndpoint();
-
     @Value("#{new Boolean('${security.browser.cache-credentials}')}")
     private Boolean cacheCredentials;
 
@@ -47,6 +45,7 @@ public class CareTeamHomeController extends BaseController {
     public String launch(HttpSession session, Model model) {
         sessionService.forceExpiration(session.getId());
         setCommonViewComponents(model);
+        Endpoint careTeamEndpoint = endpointService.getCareTeamLaunchEndpoint();
         model.addAttribute("clientId", careTeamEndpoint.getClientId());
         model.addAttribute("scope", careTeamEndpoint.getScope());
         model.addAttribute("redirectUri", careTeamEndpoint.getRedirectUri()); // /care-team/complete-handshake
@@ -70,6 +69,7 @@ public class CareTeamHomeController extends BaseController {
                                             @RequestParam String patientId,
                                             @RequestParam String userId) throws ConfigurationException, IOException {
 
+        Endpoint careTeamEndpoint = endpointService.getCareTeamLaunchEndpoint();
         if ( ! careTeamEndpoint.getClientId().equals(clientId) || ! careTeamEndpoint.getIss().equals(serverUrl) ) {
             logger.error("clientId or serverUrl do not match expected values for CARE_TEAM context (clientId={}, serverUrl={})", clientId, serverUrl);
             auditService.doAudit(session.getId(), AuditSeverity.WARN, "invalid launch", "received invalid clientId or serverUrl for CARE_TEAM context");
