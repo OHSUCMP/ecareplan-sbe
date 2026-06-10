@@ -342,95 +342,98 @@ public class UserWorkspace {
 /// Data Set Caching Functions
 
     public PatientModel getPatient(Endpoint e) {
-        return (PatientModel) getCachedEndpointDataSet(e, DataSetName.PATIENT);
+        return (PatientModel) getCachedDataSetForEndpoint(DataSetName.PATIENT, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<AssessmentModel> getAssessments(Endpoint e) {
-        return (List<AssessmentModel>) getCachedEndpointDataSet(e, DataSetName.ASSESSMENTS);
+        return (List<AssessmentModel>) getCachedDataSetForEndpoint(DataSetName.ASSESSMENTS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<CarePlanModel> getCarePlans(Endpoint e) {
-        return (List<CarePlanModel>) getCachedEndpointDataSet(e, DataSetName.CARE_PLANS);
+        return (List<CarePlanModel>) getCachedDataSetForEndpoint(DataSetName.CARE_PLANS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<CareTeamModel> getCareTeams(Endpoint e) {
-        return (List<CareTeamModel>) getCachedEndpointDataSet(e, DataSetName.CARE_TEAMS);
+        return (List<CareTeamModel>) getCachedDataSetForEndpoint(DataSetName.CARE_TEAMS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<ClinicalNoteModel> getClinicalNotes(Endpoint e) {
-        return (List<ClinicalNoteModel>) getCachedEndpointDataSet(e, DataSetName.CLINICAL_NOTES);
+        return (List<ClinicalNoteModel>) getCachedDataSetForEndpoint(DataSetName.CLINICAL_NOTES, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<ConcernModel> getConcerns(Endpoint e) {
-        return (List<ConcernModel>) getCachedEndpointDataSet(e, DataSetName.CONCERNS);
+        return (List<ConcernModel>) getCachedDataSetForEndpoint(DataSetName.CONCERNS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<DiagnosticReportModel> getDiagnosticReports(Endpoint e) {
-        return (List<DiagnosticReportModel>) getCachedEndpointDataSet(e, DataSetName.DIAGNOSTIC_REPORTS);
+        return (List<DiagnosticReportModel>) getCachedDataSetForEndpoint(DataSetName.DIAGNOSTIC_REPORTS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<GoalModel> getGoals(Endpoint e) {
-        return (List<GoalModel>) getCachedEndpointDataSet(e, DataSetName.GOALS);
+        return (List<GoalModel>) getCachedDataSetForEndpoint(DataSetName.GOALS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<ImmunizationModel> getImmunizations(Endpoint e) {
-        return (List<ImmunizationModel>) getCachedEndpointDataSet(e, DataSetName.IMMUNIZATIONS);
+        return (List<ImmunizationModel>) getCachedDataSetForEndpoint(DataSetName.IMMUNIZATIONS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<InteractionModel> getInteractions(Endpoint e) {
-        return (List<InteractionModel>) getCachedEndpointDataSet(e, DataSetName.INTERACTIONS);
+        return (List<InteractionModel>) getCachedDataSetForEndpoint(DataSetName.INTERACTIONS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<MedicationModel> getMedications(Endpoint e) {
-        return (List<MedicationModel>) getCachedEndpointDataSet(e, DataSetName.MEDICATIONS);
+        return (List<MedicationModel>) getCachedDataSetForEndpoint(DataSetName.MEDICATIONS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<ProcedureModel> getProcedures(Endpoint e) {
-        return (List<ProcedureModel>) getCachedEndpointDataSet(e, DataSetName.PROCEDURES);
+        return (List<ProcedureModel>) getCachedDataSetForEndpoint(DataSetName.PROCEDURES, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<ServiceRequestModel> getServiceRequests(Endpoint e) {
-        return (List<ServiceRequestModel>) getCachedEndpointDataSet(e, DataSetName.SERVICE_REQUESTS);
+        return (List<ServiceRequestModel>) getCachedDataSetForEndpoint(DataSetName.SERVICE_REQUESTS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<SocialHistoryModel> getSocialHistories(Endpoint e) {
-        return (List<SocialHistoryModel>) getCachedEndpointDataSet(e, DataSetName.SOCIAL_HISTORIES);
+        return (List<SocialHistoryModel>) getCachedDataSetForEndpoint(DataSetName.SOCIAL_HISTORIES, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<SurveyObservationModel> getSurveyObservations(Endpoint e) {
-        return (List<SurveyObservationModel>) getCachedEndpointDataSet(e, DataSetName.SURVEY_OBSERVATIONS);
+        return (List<SurveyObservationModel>) getCachedDataSetForEndpoint(DataSetName.SURVEY_OBSERVATIONS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<TestModel> getTests(Endpoint e) {
-        return (List<TestModel>) getCachedEndpointDataSet(e, DataSetName.TESTS);
+        return (List<TestModel>) getCachedDataSetForEndpoint(DataSetName.TESTS, e);
     }
 
     @SuppressWarnings("unchecked")
     public List<VitalsModel> getVitals(Endpoint e) {
-        return (List<VitalsModel>) getCachedEndpointDataSet(e, DataSetName.VITALS);
+        return (List<VitalsModel>) getCachedDataSetForEndpoint(DataSetName.VITALS, e);
     }
 
-    private String buildDataSetCacheKey(Endpoint e, DataSetName dataSetName) {
-        return e.getName() + "-" + dataSetName.getTag();
+    private String buildCacheKey(DataSetName dataSetName, Endpoint e) {
+        return dataSetName.getTag() + "-" + e.getIss(); // use iss instead of name.  it's possible that multiple
+                                                        // data sets will have different names but point to the same
+                                                        // iss.  ultimately, it's the iss we care about, irrespective
+                                                        // of what the user sees.  this will help prevent duplicates.
     }
 
-    private Object getCachedEndpointDataSet(Endpoint endpoint, DataSetName dataSetName) {
-        return cache.get(buildDataSetCacheKey(endpoint, dataSetName), s -> {
+    private Object getCachedDataSetForEndpoint(DataSetName dataSetName, Endpoint endpoint) {
+        return cache.get(buildCacheKey(dataSetName, endpoint), s -> {
             long start = System.currentTimeMillis();
             logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSetName, sessionId, userId,
                     endpoint.getName());
