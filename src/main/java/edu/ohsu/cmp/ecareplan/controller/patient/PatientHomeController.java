@@ -107,7 +107,7 @@ public class PatientHomeController extends BasePatientController {
             return "patient/home";
 
         } else {
-            logger.debug("session does not exist.  redirecting to launch page");
+            logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
             return "redirect:/patient/launch";
         }
     }
