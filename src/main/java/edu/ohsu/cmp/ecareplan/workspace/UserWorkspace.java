@@ -444,10 +444,10 @@ public class UserWorkspace {
     }
 
     private String buildCacheKey(DataSetName dataSetName, Endpoint e) {
-        return dataSetName.getTag() + "-" + e.getIss(); // use iss instead of name.  it's possible that multiple
-                                                        // data sets will have different names but point to the same
-                                                        // iss.  ultimately, it's the iss we care about, irrespective
-                                                        // of what the user sees.  this will help prevent duplicates.
+        return dataSetName + "-" + e.getIss();  // use iss instead of name.  it's possible that multiple
+                                                // data sets will have different names but point to the same
+                                                // iss.  ultimately, it's the iss we care about, irrespective
+                                                // of what the user sees.  this will help prevent duplicates.
     }
 
     private Object getCachedDataSetForEndpoint(DataSetName dataSetName, Endpoint endpoint) {
