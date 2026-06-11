@@ -5,10 +5,10 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import edu.ohsu.cmp.ecareplan.exception.*;
-import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
-import edu.ohsu.cmp.ecareplan.model.fhir.ResourceWithBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.CompositeBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
+import edu.ohsu.cmp.ecareplan.model.fhir.ResourceWithBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.jwt.AccessToken;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import jakarta.validation.constraints.NotNull;
@@ -26,9 +26,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.function.Function;
 
 @Service
@@ -128,6 +128,8 @@ public class FHIRService {
             return null;
         }
 
+        fhirQuery = doTokenReplacements(fcc.getCredentials().getPatientId(), fhirQuery);
+
         logger.info("search: executing query: " + fhirQuery);
 
         IGenericClient client = buildClient(fcc, strategy);
@@ -177,6 +179,43 @@ public class FHIRService {
             filterInvalidResources(bundle, validityFunction);
         }
         return bundle;
+    }
+
+    private String doTokenReplacements(String patientId, String fhirQuery) {
+        if (fhirQuery == null) return null;
+
+        fhirQuery = fhirQuery.replaceAll("\\{PATIENT}", patientId);
+
+        if (fhirQuery.contains("{TWO_YEARS_AGO}")) {
+            fhirQuery = fhirQuery.replaceAll("\\{TWO_YEARS_AGO}", getDateParamForXYearsAgo(2));
+        }
+
+        if (fhirQuery.contains("{THREE_YEARS_AGO}")) {
+            fhirQuery = fhirQuery.replaceAll("\\{THREE_YEARS_AGO}", getDateParamForXYearsAgo(3));
+        }
+
+        if (fhirQuery.contains("{TEN_YEARS_AGO}")) {
+            fhirQuery = fhirQuery.replaceAll("\\{TEN_YEARS_AGO}", getDateParamForXYearsAgo(10));
+        }
+
+        return fhirQuery;
+    }
+
+    private static final DateFormat FHIR_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+    private String getDateParamForXYearsAgo(int x) {
+        return FHIR_DATE_FORMAT.format(getDateXYearsAgo(x));
+    }
+
+    private Date getDateXYearsAgo(int x) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new Date());
+        cal.add(Calendar.YEAR, -1 * x);
+        cal.set(Calendar.HOUR, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTime();
     }
 
     @SuppressWarnings("unchecked")

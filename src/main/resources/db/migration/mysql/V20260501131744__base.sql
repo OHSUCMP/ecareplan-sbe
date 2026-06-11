@@ -57,33 +57,33 @@ create table default_query (
     strategy varchar(20) not null
 );
 
-insert into default_query (dataSetName, query, strategy) values ('ASSESSMENTS', 'QuestionnaireResponse?status=completed&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('CARE_PLANS', 'CarePlan?status=active&category=assess-plan&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('CARE_TEAMS', 'CareTeam?_include=CareTeam:participant&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('CLINICAL_NOTES', 'DocumentReference?category=clinical-note&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('CONCERNS', 'Condition?category=problem-list-item&clinical-status=active&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('CONCERNS', 'Condition?category=health-concern&clinical-status=active&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('CONCERNS', 'Condition?category=encounter-diagnosis&clinical-status=active&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('DIAGNOSTIC_REPORTS', 'DiagnosticReport?date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('GOALS', 'Goal?lifecycle-status=active,completed,cancelled&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('IMMUNIZATIONS', 'Immunization?status=completed&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('INTERACTIONS', 'Encounter?date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('TESTS', 'Observation?category=laboratory&date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('TESTS', 'Observation?code=http://loinc.org|45066-8,http://loinc.org|48642-3,http://loinc.org|48643-1,http://loinc.org|50044-7,http://loinc.org|50210-4,http://loinc.org|50384-7,http://loinc.org|62238-1,http://loinc.org|69405-9,http://loinc.org|70969-1,http://loinc.org|77147-7,http://loinc.org|88293-6,http://loinc.org|88294-4,http://loinc.org|94677-2,http://loinc.org|98979-8,http://loinc.org|98980-6&date=ge{TEN_YEARS_AGO}&date=lt{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('MEDICATIONS', 'MedicationRequest?status=active&_include=MedicationRequest:requester&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('MEDICATIONS', 'MedicationRequest?status=on-hold,cancelled,completed,stopped&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('PROCEDURES', 'Procedure?date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('SERVICE_REQUESTS', 'ServiceRequest?status=active&authored=ge{TWO_YEARS_AGO}&_include=ServiceRequest:requester&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('SOCIAL_HISTORIES', 'Observation?category=social-history&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('SURVEY_OBSERVATIONS', 'Observation?category=survey&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|8867-4&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|59408-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|8310-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|29463-7&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|8302-2&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|39156-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|85354-9&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
-insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?code=http://loinc.org|72076-3&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('ASSESSMENTS', 'QuestionnaireResponse?patient={PATIENT}&status=completed&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('CARE_PLANS', 'CarePlan?patient={PATIENT}&status=active&category=assess-plan&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('CARE_TEAMS', 'CareTeam?patient={PATIENT}&_include=CareTeam:participant&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('CLINICAL_NOTES', 'DocumentReference?patient={PATIENT}&category=clinical-note&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('CONCERNS', 'Condition?patient={PATIENT}&category=problem-list-item&clinical-status=active&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('CONCERNS', 'Condition?patient={PATIENT}&category=health-concern&clinical-status=active&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('CONCERNS', 'Condition?patient={PATIENT}&category=encounter-diagnosis&clinical-status=active&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('DIAGNOSTIC_REPORTS', 'DiagnosticReport?patient={PATIENT}&date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('GOALS', 'Goal?patient={PATIENT}&lifecycle-status=active,completed,cancelled&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('IMMUNIZATIONS', 'Immunization?patient={PATIENT}&status=completed&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('INTERACTIONS', 'Encounter?patient={PATIENT}&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('TESTS', 'Observation?patient={PATIENT}&category=laboratory&date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('TESTS', 'Observation?patient={PATIENT}&code=http://loinc.org|45066-8,http://loinc.org|48642-3,http://loinc.org|48643-1,http://loinc.org|50044-7,http://loinc.org|50210-4,http://loinc.org|50384-7,http://loinc.org|62238-1,http://loinc.org|69405-9,http://loinc.org|70969-1,http://loinc.org|77147-7,http://loinc.org|88293-6,http://loinc.org|88294-4,http://loinc.org|94677-2,http://loinc.org|98979-8,http://loinc.org|98980-6&date=ge{TEN_YEARS_AGO}&date=lt{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('MEDICATIONS', 'MedicationRequest?patient={PATIENT}&status=active&_include=MedicationRequest:requester&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('MEDICATIONS', 'MedicationRequest?patient={PATIENT}&status=on-hold,cancelled,completed,stopped&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('PROCEDURES', 'Procedure?patient={PATIENT}&date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('SERVICE_REQUESTS', 'ServiceRequest?patient={PATIENT}&status=active&authored=ge{TWO_YEARS_AGO}&_include=ServiceRequest:requester&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('SOCIAL_HISTORIES', 'Observation?patient={PATIENT}&category=social-history&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('SURVEY_OBSERVATIONS', 'Observation?patient={PATIENT}&category=survey&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|8867-4&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|59408-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|8310-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|29463-7&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|8302-2&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|39156-5&date=ge{TWO_YEARS_AGO}&_count=10&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|85354-9&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('VITALS', 'Observation?patient={PATIENT}&code=http://loinc.org|72076-3&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
 
 create table endpoint (
     id int not null auto_increment primary key,

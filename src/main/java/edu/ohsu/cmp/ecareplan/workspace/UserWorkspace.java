@@ -461,38 +461,55 @@ public class UserWorkspace {
                 switch (dataSetName) {
                     case PATIENT:
                         obj = dataSetBuilderService.buildPatient(sessionId, endpoint);
+                        break;
                     case ASSESSMENTS:
                         obj = dataSetBuilderService.buildAssessments(sessionId, endpoint);
+                        break;
                     case CARE_PLANS:
                         obj = dataSetBuilderService.buildCarePlans(sessionId, endpoint);
+                        break;
                     case CARE_TEAMS:
                         obj = dataSetBuilderService.buildCareTeams(sessionId, endpoint);
+                        break;
                     case CLINICAL_NOTES:
                         obj = dataSetBuilderService.buildClinicalNotes(sessionId, endpoint);
+                        break;
                     case CONCERNS:
                         obj = dataSetBuilderService.buildConcerns(sessionId, endpoint);
+                        break;
                     case DIAGNOSTIC_REPORTS:
                         obj = dataSetBuilderService.buildDiagnosticReports(sessionId, endpoint);
+                        break;
                     case GOALS:
                         obj = dataSetBuilderService.buildGoals(sessionId, endpoint);
+                        break;
                     case IMMUNIZATIONS:
                         obj = dataSetBuilderService.buildImmunizations(sessionId, endpoint);
+                        break;
                     case INTERACTIONS:
                         obj = dataSetBuilderService.buildInteractions(sessionId, endpoint);
+                        break;
                     case MEDICATIONS:
                         obj = dataSetBuilderService.buildMedications(sessionId, endpoint);
+                        break;
                     case PROCEDURES:
                         obj = dataSetBuilderService.buildProcedures(sessionId, endpoint);
+                        break;
                     case SERVICE_REQUESTS:
                         obj = dataSetBuilderService.buildServiceRequests(sessionId, endpoint);
+                        break;
                     case SOCIAL_HISTORIES:
                         obj = dataSetBuilderService.buildSocialHistories(sessionId, endpoint);
+                        break;
                     case SURVEY_OBSERVATIONS:
                         obj = dataSetBuilderService.buildSurveyObservations(sessionId, endpoint);
+                        break;
                     case TESTS:
                         obj = dataSetBuilderService.buildTests(sessionId, endpoint);
+                        break;
                     case VITALS:
                         obj = dataSetBuilderService.buildVitals(sessionId, endpoint);
+                        break;
                     default:
                         throw new CaseNotHandledException("couldn't handle case for DataSetName=" + dataSetName);
                 }
