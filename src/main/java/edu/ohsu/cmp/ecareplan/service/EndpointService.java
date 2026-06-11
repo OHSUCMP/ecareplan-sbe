@@ -59,13 +59,17 @@ public class EndpointService {
     }
 
     public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
-        UserEndpoint ue = userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElse(null);
-        if (ue == null) {
-            ue = new UserEndpoint();
-            ue.setUserId(userId);
-            ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
-            userEndpointRepository.save(ue);
-        }
+        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElseThrow();
+    }
+
+    public UserEndpoint createUserEndpoint(Long userId, String fhirPatientId, String fhirUserId, Endpoint endpoint) {
+        UserEndpoint ue = new UserEndpoint();
+        ue.setUserId(userId);
+        ue.setEndpoint(endpoint);
+        ue.setFhirPatientId(fhirPatientId);
+        ue.setFhirUserId(fhirUserId);
+        ue.setCreated(new Date());
+        userEndpointRepository.save(ue);
         return ue;
     }
 

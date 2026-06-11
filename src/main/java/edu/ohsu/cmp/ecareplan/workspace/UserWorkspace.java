@@ -78,15 +78,7 @@ public class UserWorkspace {
         this.userId = user.getId();
 
         userEndpointCredentialsList = new ArrayList<>();
-        EndpointService endpointService = ctx.getBean(EndpointService.class);
-        UserEndpoint ue;
-        if (Audience.PATIENT.equals(audience)) {
-            ue = endpointService.getUserEndpoint(userId, endpointService.getPatientLaunchEndpoint().getId());
-        } else if (Audience.CARE_TEAM.equals(audience)) {
-            ue = endpointService.getUserEndpoint(userId, endpointService.getCareTeamLaunchEndpoint().getId());
-        } else {
-            throw new CaseNotHandledException("no case for audience: " + audience);
-        }
+        UserEndpoint ue = getOrCreateUserEndpointIfMissing();
         UserEndpointCredentials uec = new UserEndpointCredentials(ue, launchCredentialsWithClient);
         userEndpointCredentialsList.add(uec);
 
@@ -97,6 +89,32 @@ public class UserWorkspace {
         executorService = Executors.newFixedThreadPool(POOL_SIZE);
 
         setupAutoShutdownJob();
+    }
+
+    private UserEndpoint getOrCreateUserEndpointIfMissing() {
+        EndpointService endpointService = ctx.getBean(EndpointService.class);
+
+        Endpoint endpoint;
+        if (Audience.PATIENT.equals(audience)) {
+            endpoint = endpointService.getPatientLaunchEndpoint();
+        } else if (Audience.CARE_TEAM.equals(audience)) {
+            endpoint = endpointService.getCareTeamLaunchEndpoint();
+        } else {
+            throw new CaseNotHandledException("no case for audience: " + audience);
+        }
+
+        UserEndpoint ue;
+        try {
+            ue = endpointService.getUserEndpoint(userId, endpoint.getId());
+
+        } catch (NoSuchElementException nsee) {
+            ue = endpointService.createUserEndpoint(userId,
+                    launchCredentialsWithClient.getCredentials().getPatientId(),
+                    launchCredentialsWithClient.getCredentials().getUserId(),
+                    endpoint);
+        }
+
+        return ue;
     }
 
     public String getSessionId() {
