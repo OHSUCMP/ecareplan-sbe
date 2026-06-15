@@ -311,16 +311,6 @@ public class UserWorkspace {
         return new GenericResourceTransformer();
     }
 
-    public List<PatientModel> getAllPatientModels() {
-        List<PatientModel> list = new ArrayList<>();
-
-        for (UserEndpoint ue : getAllActiveEndpoints()) {
-            list.add(getPatient(ue.getEndpoint()));
-        }
-
-        return list;
-    }
-
     private List<UserEndpoint> getAllActiveEndpoints() {
         List<UserEndpoint> list = new ArrayList<>();
 
@@ -354,6 +344,142 @@ public class UserWorkspace {
         public FHIRCredentialsWithClient getCredentialsWithClient() {
             return credentialsWithClient;
         }
+    }
+
+    public List<PatientModel> getAllPatientModels() {
+        List<PatientModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.add(getPatient(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<AssessmentModel> getAllAssessmentModels() {
+        List<AssessmentModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getAssessments(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<CarePlanModel> getAllCarePlanModels() {
+        List<CarePlanModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getCarePlans(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<CareTeamModel> getAllCareTeamModels() {
+        List<CareTeamModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getCareTeams(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<ClinicalNoteModel> getAllClinicalNoteModels() {
+        List<ClinicalNoteModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getClinicalNotes(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<ConcernModel> getAllConcernModels() {
+        List<ConcernModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getConcerns(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<DiagnosticReportModel> getAllDiagnosticReportModels() {
+        List<DiagnosticReportModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getDiagnosticReports(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<GoalModel> getAllGoalModels() {
+        List<GoalModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getGoals(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<ImmunizationModel> getAllImmunizationModels() {
+        List<ImmunizationModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getImmunizations(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<InteractionModel> getAllInteractionModels() {
+        List<InteractionModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getInteractions(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<MedicationModel> getAllMedicationModels() {
+        List<MedicationModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getMedications(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<ProcedureModel> getAllProcedureModels() {
+        List<ProcedureModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getProcedures(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<ServiceRequestModel> getAllServiceRequestModels() {
+        List<ServiceRequestModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getServiceRequests(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<SocialHistoryModel> getAllSocialHistoryModels() {
+        List<SocialHistoryModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getSocialHistories(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<SurveyObservationModel> getAllSurveyObservationModels() {
+        List<SurveyObservationModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getSurveyObservations(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<TestModel> getAllTestModels() {
+        List<TestModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getTests(ue.getEndpoint()));
+        }
+        return list;
+    }
+
+    public List<VitalsModel> getAllVitalsModels() {
+        List<VitalsModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getVitals(ue.getEndpoint()));
+        }
+        return list;
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////

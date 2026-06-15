@@ -14,12 +14,39 @@
         </div>
     {{/systemStatusMessage}}
 
-    Patient records:
+    <h1>{{applicationName}}</h1>
+    <p>
+        <a href="https://www.ohsu.edu/school-of-medicine/care-management-plus/mycareplanner-tos-and-privacy-policy">Terms of Use and Privacy Policy</a>
+    </p>
+    <p>
+        My Care Planner is a tool to help you and your care team work together to keep you healthy. It is a completely
+        personalized way to see what steps you’ve already taken and what else you can do to check for and prevent illnesses.
+    </p>
+
+    <h2>Patient Records</h2>
     <ol>
         {{#patientModels}}
         <li>{{name}} (age: {{age}}, gender: {{gender}})</li>
         {{/patientModels}}
     </ol>
+
+    <h2>Add a Health Record Account</h2>
+    <p>
+        <a href="/patient/connect-account">Login to additional healthcare provider accounts</a>
+    </p>
+
+    <h2>Disclaimer</h2>
+    <p>
+        <em>This application is provided for informational purposes only and does not constitute medical advice or
+            professional services. The information provided should not be used for diagnosing or treating a health
+            problem or disease, and those seeking personal medical advice should consult with a licensed physician.
+            Always seek the advice of your doctor or other qualified health provider regarding a medical condition.
+            Never disregard professional medical advice or delay in seeking it because of something you have read in
+            this application. If you think you may have a medical emergency, call 911 or go to the nearest emergency
+            room immediately. No physician-patient relationship is created by this application or its use. Neither OHSU,
+            nor its employees, nor any contributor to this application, makes any representations, express or implied,
+            with respect to the information herein or to its use.</em>
+    </p>
 </div>
 
 <script type="text/javascript">

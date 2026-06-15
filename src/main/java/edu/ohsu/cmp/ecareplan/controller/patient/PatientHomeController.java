@@ -6,10 +6,8 @@ import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
-import edu.ohsu.cmp.ecareplan.service.SessionService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,21 +25,15 @@ import java.io.IOException;
 @Controller
 @RequestMapping("/patient")
 public class PatientHomeController extends BasePatientController {
-    private static final Logger logger = LoggerFactory.getLogger(PatientHomeController.class);
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     // this is the home page for the MyCarePlanner patient-focused app
-
-    @Autowired
-    private SessionService sessionService;
 
     @Autowired
     private EndpointService endpointService;
 
     @Value("#{new Boolean('${security.browser.cache-credentials}')}")
     private Boolean cacheCredentials;
-
-    @Value("${system.status-message}")
-    private String systemStatusMessage;
 
     @GetMapping("launch")
     public String launch(HttpSession session, Model model) {
@@ -89,20 +81,13 @@ public class PatientHomeController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            logger.info("session exists.  requesting data for session " + sessionId);
-
             UserWorkspace workspace = userWorkspaceService.get(sessionId);
 
             setCommonViewComponents(sessionId, model);
-            model.addAttribute("sessionEstablished", true);
-            model.addAttribute("pageStyles", new String[] { "patient/home.css" });
+
             model.addAttribute("patientModels", workspace.getAllPatientModels());
 
-            if (StringUtils.isNotBlank(systemStatusMessage)) {
-                model.addAttribute("systemStatusMessage", systemStatusMessage);
-            }
-
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited home page");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
 
             return "patient/home";
 

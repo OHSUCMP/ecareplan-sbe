@@ -1,0 +1,41 @@
+{{>layout/header}}
+
+<div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+
+<div class="container">
+    {{#systemStatusMessage}}
+        <div class="row align-items-center alert alert-teal" role="alert">
+            <div class="col-md-auto text-center">
+                <img src="/images/info-icon.png" alt="System Status" height="50px" />
+            </div>
+            <div class="col">
+                {{systemStatusMessage}}
+            </div>
+        </div>
+    {{/systemStatusMessage}}
+
+    <h1>Current Health Issues</h1>
+    <p>
+        <input type="button" value="Add a Health Concern" onclick="window.location.href='/patient/concerns/add'" />
+    </p>
+
+    <div class="cardContainer">
+        {{#concernModels}}
+            <div class="card">
+            </div>
+        {{/concernModels}}
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        let sessionEstablished = $('#sessionEstablished').text();
+        if (sessionEstablished !== 'true') {
+            return;
+        }
+
+        // todo : things that should happen once the home page is loaded
+    });
+</script>
+
+{{>layout/footer}}
