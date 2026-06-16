@@ -114,6 +114,18 @@ public class GoalModel extends BaseDataSetModel {
         return achievementStatus;
     }
 
+    public String getConsolidatedStatus() {
+        if (lifecycleStatus != null && achievementStatus != null) {
+            return lifecycleStatus + " - " + achievementStatus;
+        } else if (lifecycleStatus != null) {
+            return lifecycleStatus;
+        } else if (achievementStatus != null) {
+            return achievementStatus;
+        } else {
+            return null;
+        }
+    }
+
     public List<String> getNotes() {
         return notes;
     }

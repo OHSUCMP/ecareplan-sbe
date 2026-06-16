@@ -23,6 +23,32 @@
     <div class="cardContainer">
         {{#personalHealthGoalModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{#expressedBy}}{{expressedBy}}{{/expressedBy}}</td>
+                        <td>Start: {{startDate}}</td>
+                    </tr>
+                    {{#consolidatedStatus}}
+                        <tr>
+                            <td colspan="2">Status: {{consolidatedStatus}}</td>
+                        </tr>
+                    {{/consolidatedStatus}}
+                    {{#firstNote}}
+                        <tr>
+                            <td colspan="2">Note: {{firstNote}}</td>
+                        </tr>
+                    {{/firstNote}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/personalHealthGoalModels}}
     </div>
@@ -31,6 +57,32 @@
     <div class="cardContainer">
         {{#hospitalizationGoalModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{#expressedBy}}{{expressedBy}}{{/expressedBy}}</td>
+                        <td>Start: {{startDate}}</td>
+                    </tr>
+                    {{#consolidatedStatus}}
+                        <tr>
+                            <td colspan="2">Status: {{consolidatedStatus}}</td>
+                        </tr>
+                    {{/consolidatedStatus}}
+                    {{#firstNote}}
+                        <tr>
+                            <td colspan="2">Note: {{firstNote}}</td>
+                        </tr>
+                    {{/firstNote}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/hospitalizationGoalModels}}
     </div>
