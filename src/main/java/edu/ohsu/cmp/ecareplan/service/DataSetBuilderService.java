@@ -45,9 +45,14 @@ public class DataSetBuilderService extends BaseService {
         // note : we don't store the Patient "query" in the database as we do with everything else, since we will always
         //        read the Patient resource directly by reference.  this is so standard that we're able to safely hardcode it
 
-        return rt.transformPatient(
+        PatientModel patientModel = rt.transformPatient(
                 fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Patient.class, "Patient/" + fcc.getCredentials().getPatientId())
         );
+
+        patientModel.setSourceEndpointName(e.getName());
+        patientModel.setSourceEndpointIss(e.getIss());
+
+        return patientModel;
     }
 
     public List<AssessmentModel> buildAssessments(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
@@ -63,6 +68,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (AssessmentModel am : list) {
+            am.setSourceEndpointName(e.getName());
+            am.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -79,6 +90,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (CarePlanModel cp : list) {
+            cp.setSourceEndpointName(e.getName());
+            cp.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -95,6 +112,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (CareTeamModel ct : list) {
+            ct.setSourceEndpointName(e.getName());
+            ct.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -114,6 +137,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (ClinicalNoteModel cn : list) {
+            cn.setSourceEndpointName(e.getName());
+            cn.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -130,6 +159,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (ConcernModel cm : list) {
+            cm.setSourceEndpointName(e.getName());
+            cm.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -146,6 +181,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (DiagnosticReportModel dr : list) {
+            dr.setSourceEndpointName(e.getName());
+            dr.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -162,6 +203,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (GoalModel gm : list) {
+            gm.setSourceEndpointName(e.getName());
+            gm.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -178,6 +225,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (ImmunizationModel im : list) {
+            im.setSourceEndpointName(e.getName());
+            im.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -194,6 +247,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (InteractionModel im : list) {
+            im.setSourceEndpointName(e.getName());
+            im.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -213,6 +272,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (MedicationModel mm : list) {
+            mm.setSourceEndpointName(e.getName());
+            mm.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -229,6 +294,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (ProcedureModel pm : list) {
+            pm.setSourceEndpointName(e.getName());
+            pm.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -245,6 +316,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (ServiceRequestModel sr : list) {
+            sr.setSourceEndpointName(e.getName());
+            sr.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -261,6 +338,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (SocialHistoryModel sh : list) {
+            sh.setSourceEndpointName(e.getName());
+            sh.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -277,6 +360,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (SurveyObservationModel so : list) {
+            so.setSourceEndpointName(e.getName());
+            so.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -293,6 +382,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (TestModel tm : list) {
+            tm.setSourceEndpointName(e.getName());
+            tm.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 
@@ -309,6 +404,12 @@ public class DataSetBuilderService extends BaseService {
                     )
             );
         }
+
+        for (VitalsModel vm : list) {
+            vm.setSourceEndpointName(e.getName());
+            vm.setSourceEndpointIss(e.getIss());
+        }
+
         return list;
     }
 }

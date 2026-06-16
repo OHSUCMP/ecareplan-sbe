@@ -11,6 +11,9 @@ public abstract class BaseDataSetModel {
 
     protected final String id;
 
+    private String sourceEndpointName;
+    private String sourceEndpointIss;
+
     @JsonIgnore
     private Provenance provenance;
 
@@ -58,5 +61,21 @@ public abstract class BaseDataSetModel {
             }
         }
         return null;
+    }
+
+    public String getSourceEndpointName() {
+        return sourceEndpointName;
+    }
+
+    public void setSourceEndpointName(String sourceEndpointName) {
+        this.sourceEndpointName = sourceEndpointName;
+    }
+
+    public String getSourceEndpointIss() {
+        return sourceEndpointIss;
+    }
+
+    public void setSourceEndpointIss(String sourceEndpointIss) {
+        this.sourceEndpointIss = sourceEndpointIss;
     }
 }
