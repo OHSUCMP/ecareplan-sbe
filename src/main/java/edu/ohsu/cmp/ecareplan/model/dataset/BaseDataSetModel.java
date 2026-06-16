@@ -44,7 +44,7 @@ public abstract class BaseDataSetModel {
     }
 
     private String getProvenanceAgentWhoByCode(String code) {
-        if (provenance.hasAgent()) {
+        if (provenance != null && provenance.hasAgent()) {
             for (Provenance.ProvenanceAgentComponent agent : provenance.getAgent()) {
                 if (agent.hasType() && agent.getType().hasCoding()) {
                     for (Coding c : agent.getType().getCoding()) {
