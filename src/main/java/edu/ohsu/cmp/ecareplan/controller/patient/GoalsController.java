@@ -11,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -41,10 +42,24 @@ public class GoalsController extends BasePatientController {
     }
 
     private List<GoalModel> filterPersonalHealthGoals(List<GoalModel> goalModels) {
-        return null;
+        if (goalModels == null) return null;
+        List<GoalModel> list = new ArrayList<>();
+        for (GoalModel goalModel : goalModels) {
+            if (goalModel.getCategory() != null && ! goalModel.getCategory().toLowerCase().contains("inpatient")) {
+                list.add(goalModel);
+            }
+        }
+        return list;
     }
 
     private List<GoalModel> filterHospitalizationGoals(List<GoalModel> goalModels) {
-        return null;
+        if (goalModels == null) return null;
+        List<GoalModel> list = new ArrayList<>();
+        for (GoalModel goalModel : goalModels) {
+            if (goalModel.getCategory() != null && goalModel.getCategory().toLowerCase().contains("inpatient")) {
+                list.add(goalModel);
+            }
+        }
+        return list;
     }
 }
