@@ -5,11 +5,14 @@ import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
+import edu.ohsu.cmp.ecareplan.model.fhir.CompositeBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
+import edu.ohsu.cmp.ecareplan.model.fhir.ResourceWithBundle;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
+import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
-import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 
 /**
@@ -128,12 +132,35 @@ public class DataSetBuilderService extends BaseService {
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<ClinicalNoteModel> list = new ArrayList<>();
         for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CLINICAL_NOTES, e)) {
-
-            // todo : this needs to be augmented to read and integrate referenced Binary resources
-
             list.addAll(
                     rt.transformClinicalNotes(
-                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
+                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery(), null,
+                                    new Function<ResourceWithBundle, Bundle>() {
+                                        @Override
+                                        public Bundle apply(ResourceWithBundle resourceWithBundle) {
+                                            if (resourceWithBundle.getResource() instanceof DocumentReference) {
+                                                DocumentReference dr = (DocumentReference) resourceWithBundle.getResource();
+                                                CompositeBundle bundle = new CompositeBundle();
+                                                if (dr.hasContent()) {
+                                                    for (DocumentReference.DocumentReferenceContentComponent content : dr.getContent()) {
+                                                        if (content.hasAttachment() && content.getAttachment().hasUrl()) {
+                                                            if ( ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), content.getAttachment().getUrl()) ) {
+                                                                try {
+                                                                    bundle.consume(
+                                                                            fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Binary.class, content.getAttachment().getUrl())
+                                                                    );
+                                                                } catch (Exception e) {
+                                                                    logger.error("Error reading binary reference: " + content.getAttachment().getUrl(), e);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                return bundle.getBundle();
+                                            }
+                                            return null;
+                                        }
+                                    })
                     )
             );
         }
@@ -263,12 +290,29 @@ public class DataSetBuilderService extends BaseService {
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<MedicationModel> list = new ArrayList<>();
         for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.MEDICATIONS, e)) {
-
-            // todo : this needs to be augmented to read and integrate referenced Medication resources
-
             list.addAll(
                     rt.transformMedications(
-                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
+                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery(), null,
+                                    new Function<ResourceWithBundle, Bundle>() {
+                                        @Override
+                                        public Bundle apply(ResourceWithBundle resourceWithBundle) {
+                                            if (resourceWithBundle.getResource() instanceof MedicationRequest) {
+                                                MedicationRequest mr = (MedicationRequest) resourceWithBundle.getResource();
+                                                CompositeBundle bundle = new CompositeBundle();
+                                                if (mr.hasMedicationReference() && ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getMedicationReference())) {
+                                                    try {
+                                                        bundle.consume(
+                                                                fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Medication.class, mr.getMedicationReference())
+                                                        );
+                                                    } catch (Exception e) {
+                                                        logger.error("Error reading medication reference: " + mr.getMedicationReference().getReference(), e);
+                                                    }
+                                                }
+                                                return bundle.getBundle();
+                                            }
+                                            return null;
+                                        }
+                                    })
                     )
             );
         }

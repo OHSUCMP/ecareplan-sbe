@@ -118,11 +118,12 @@ public class FHIRService {
 
     // search function to facilitate getting large datasets involving multi-paginated queries
     public Bundle search(FHIRCredentialsWithClient fcc, FHIRStrategy strategy, String fhirQuery) throws DataException, ConfigurationException, IOException {
-        return search(fcc, strategy, fhirQuery, null);
+        return search(fcc, strategy, fhirQuery, null, null);
     }
 
     public Bundle search(FHIRCredentialsWithClient fcc, FHIRStrategy strategy, String fhirQuery,
-                         Function<ResourceWithBundle, Boolean> validityFunction) throws DataException, ConfigurationException, IOException {
+                         Function<ResourceWithBundle, Boolean> validityFunction,
+                         Function<ResourceWithBundle, Bundle> supplementalResourcesFunction) throws DataException, ConfigurationException, IOException {
 
         if (StringUtils.isBlank(fhirQuery) || strategy == FHIRStrategy.DISABLED) {
             return null;
@@ -178,6 +179,11 @@ public class FHIRService {
         if (validityFunction != null) {
             filterInvalidResources(bundle, validityFunction);
         }
+
+        if (supplementalResourcesFunction != null) {
+            appendSupplementalResources(bundle, supplementalResourcesFunction);
+        }
+
         return bundle;
     }
 
@@ -387,6 +393,24 @@ public class FHIRService {
                         iter.remove();
                     }
                 }
+            }
+        }
+    }
+
+    private void appendSupplementalResources(Bundle bundle, Function<ResourceWithBundle, Bundle> supplementalResourcesFunction) {
+        if (bundle != null && bundle.hasEntry()) {
+            CompositeBundle compositeBundle = new CompositeBundle();
+            for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
+                if (entry.hasResource()) {
+                    Bundle supplementalBundle = supplementalResourcesFunction.apply(new ResourceWithBundle(entry.getResource(), bundle));
+                    if (supplementalBundle != null && supplementalBundle.hasEntry()) {
+                        compositeBundle.consume(supplementalBundle);
+                    }
+                }
+            }
+
+            for (Bundle.BundleEntryComponent entry : compositeBundle.getBundle().getEntry()) {
+                bundle.addEntry(entry.copy());
             }
         }
     }
