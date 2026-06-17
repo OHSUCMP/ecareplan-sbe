@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
-import org.apache.commons.lang3.StringUtils;
+import edu.ohsu.cmp.ecareplan.util.CodeSystemUtil;
+import org.apache.commons.lang3.Strings;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationRequest;
@@ -35,5 +36,24 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
 
     public void setSourceMedication(Medication sourceMedication) {
         this.sourceMedication = sourceMedication;
+    }
+
+    public boolean matches(String system, String code) {
+        if (sourceResource.hasMedicationCodeableConcept()) {
+            for (Coding c : sourceResource.getMedicationCodeableConcept().getCoding()) {
+                if (CodeSystemUtil.matches(c.getSystem(), system) && Strings.CS.equals(c.getCode(), code)) {
+                    return true;
+                }
+            }
+
+        } else if (sourceResource.hasMedicationReference() && sourceMedication != null) {
+            for (Coding c : sourceMedication.getCode().getCoding()) {
+                if (CodeSystemUtil.matches(c.getSystem(), system) && Strings.CS.equals(c.getCode(), code)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
