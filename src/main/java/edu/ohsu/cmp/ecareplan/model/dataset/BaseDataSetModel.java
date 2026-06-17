@@ -7,7 +7,7 @@ import org.hl7.fhir.r4.model.Provenance;
 
 public abstract class BaseDataSetModel<T extends IDomainResource> {
     @JsonIgnore
-    private final T sourceResource;
+    protected final T sourceResource;
 
     protected final String id;
 
