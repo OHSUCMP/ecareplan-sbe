@@ -5,9 +5,9 @@ import org.hl7.fhir.instance.model.api.IDomainResource;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Provenance;
 
-public abstract class BaseDataSetModel {
+public abstract class BaseDataSetModel<T extends IDomainResource> {
     @JsonIgnore
-    private final IDomainResource sourceResource;
+    private final T sourceResource;
 
     protected final String id;
 
@@ -17,12 +17,12 @@ public abstract class BaseDataSetModel {
     @JsonIgnore
     private Provenance provenance;
 
-    protected BaseDataSetModel(IDomainResource resource) {
+    protected BaseDataSetModel(T resource) {
         this.sourceResource = resource;
         this.id = resource.getId();
     }
 
-    public IDomainResource getSourceResource() {
+    public T getSourceResource() {
         return sourceResource;
     }
 

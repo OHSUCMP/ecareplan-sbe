@@ -3,7 +3,7 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 import org.hl7.fhir.r4.model.Binary;
 import org.hl7.fhir.r4.model.DocumentReference;
 
-public class ClinicalNoteModel extends BaseDataSetModel {
+public class ClinicalNoteModel extends BaseDataSetModel<DocumentReference> {
     private Binary binary;
 
     public ClinicalNoteModel(DocumentReference documentReference) {

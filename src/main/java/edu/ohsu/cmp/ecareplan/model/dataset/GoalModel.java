@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class GoalModel extends BaseDataSetModel {
+public class GoalModel extends BaseDataSetModel<Goal> {
     private String category;            // concept text from goal.category[0]
     private String description;         // concept text from goal.description
     private String expressedBy;         // goal.expressedBy.display.value

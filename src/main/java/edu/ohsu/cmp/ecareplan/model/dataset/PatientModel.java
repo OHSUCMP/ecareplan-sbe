@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-public class PatientModel extends BaseDataSetModel {
+public class PatientModel extends BaseDataSetModel<Patient> {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private static final String GENDER_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/patient-genderIdentity";
