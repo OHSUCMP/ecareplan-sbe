@@ -14,6 +14,7 @@ public class ResourceCategorization {
     @Enumerated(EnumType.STRING)
     private DataSetName dataSetName;
 
+    private String valuesetName;
     private String valuesetOid;
     private String category;
     private String displayName;
@@ -32,6 +33,14 @@ public class ResourceCategorization {
 
     public void setDataSetName(DataSetName dataSetName) {
         this.dataSetName = dataSetName;
+    }
+
+    public String getValuesetName() {
+        return valuesetName;
+    }
+
+    public void setValuesetName(String valuesetName) {
+        this.valuesetName = valuesetName;
     }
 
     public String getValuesetOid() {
