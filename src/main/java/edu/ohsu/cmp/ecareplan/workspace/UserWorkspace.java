@@ -17,10 +17,7 @@ import edu.ohsu.cmp.ecareplan.model.EndpointProviderType;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
-import edu.ohsu.cmp.ecareplan.service.AuditService;
-import edu.ohsu.cmp.ecareplan.service.DataSetBuilderService;
-import edu.ohsu.cmp.ecareplan.service.EndpointService;
-import edu.ohsu.cmp.ecareplan.service.UserService;
+import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
@@ -308,7 +305,9 @@ public class UserWorkspace {
         // todo : this needs to return an appropriate transformer based on the endpoint provider type
         //        for now, just return GenericResourceTransformer
 
-        return new GenericResourceTransformer();
+        ResourceCategorizationService rcs = ctx.getBean(ResourceCategorizationService.class);
+
+        return new GenericResourceTransformer(rcs);
     }
 
     private List<UserEndpoint> getAllActiveEndpoints() {
