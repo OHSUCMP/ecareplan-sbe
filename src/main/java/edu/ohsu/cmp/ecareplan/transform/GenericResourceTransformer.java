@@ -1,12 +1,21 @@
 package edu.ohsu.cmp.ecareplan.transform;
 
+import edu.ohsu.cmp.ecareplan.entity.ResourceCategorization;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
+import edu.ohsu.cmp.ecareplan.service.ResourceCategorizationService;
+import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.hl7.fhir.r4.model.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class GenericResourceTransformer extends BaseResourceTransformer {
+    private ResourceCategorizationService resourceCategorizationService;
+
+    public GenericResourceTransformer(ResourceCategorizationService rcs) {
+        this.resourceCategorizationService = rcs;
+    }
+
     @Override
     public PatientModel transformPatient(Patient patient) {
         return new PatientModel(patient);
@@ -134,12 +143,34 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         if (bundle == null || bundle.getEntry() == null) return List.of();
         List<MedicationModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
-            if (entry.hasResource() && entry.getResource() instanceof MedicationRequest medicationRequest) {
-                list.add(new MedicationModel(medicationRequest));
+            if (entry.hasResource() && entry.getResource() instanceof MedicationRequest mr) {
+                Medication m = null;
+                CodeableConcept cc = null;
+                if (mr.hasMedicationCodeableConcept()) {
+                    cc = mr.getMedicationCodeableConcept();
+
+                } else if (mr.hasMedicationReference() && FhirUtil.bundleContainsReference(bundle, mr.getMedicationReference())) {
+                    m = FhirUtil.getResourceFromBundleByReference(bundle, Medication.class, mr.getMedicationReference().getReference());
+                    cc = m != null && m.hasCode() ?
+                            m.getCode() :
+                            null;
+                }
+                String category = getMedicationCategory(cc);
+
+                list.add(new MedicationModel(mr, m, category));
             }
         }
         appendProvenance(list, bundle);
         return list;
+    }
+
+    private String getMedicationCategory(CodeableConcept cc) {
+        if (cc == null) return null;
+
+        ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.MEDICATIONS, cc);
+        return rc != null ?
+                rc.getCategory() :
+                null;
     }
 
     @Override
