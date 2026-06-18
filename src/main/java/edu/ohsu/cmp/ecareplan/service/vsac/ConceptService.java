@@ -12,6 +12,10 @@ public class ConceptService extends BaseService {
     private ConceptRepository repository;
 
     public Concept getConcept(String code, String codeSystem, String codeSystemVersion) {
-        return repository.findConcept(code, codeSystem, codeSystemVersion);
+        return repository.findByCodeAndCodeSystemAndCodeSystemVersion(code, codeSystem, codeSystemVersion);
+    }
+
+    public Concept getConcept(String code, String codeSystemOid) {
+        return repository.findFirstByCodeAndCodeSystemOrderByCodeSystemVersionDesc(code, codeSystemOid);
     }
 }
