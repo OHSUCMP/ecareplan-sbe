@@ -2,8 +2,10 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hl7.fhir.instance.model.api.IDomainResource;
-import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Provenance;
+import org.hl7.fhir.r4.model.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class BaseDataSetModel<T extends IDomainResource> {
     @JsonIgnore
@@ -77,5 +79,54 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
 
     public void setSourceEndpointIss(String sourceEndpointIss) {
         this.sourceEndpointIss = sourceEndpointIss;
+    }
+
+    protected String getConceptNameFromCodeableConcept(CodeableConcept cc) {
+        if (cc != null) {
+            if (cc.hasText()) {
+                return cc.getText();
+            } else if (cc.hasCoding()) {
+                for (Coding c : cc.getCoding()) {
+                    if (c.hasDisplay()) {
+                        return c.getDisplay();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    protected String getPreferredName(List<HumanName> names) {
+        if (names != null && ! names.isEmpty()) {
+            HumanName n = getName(names, HumanName.NameUse.OFFICIAL);
+            if (n != null) return n.getNameAsSingleString();
+
+            n = getName(names, HumanName.NameUse.USUAL);
+            if (n != null) return n.getNameAsSingleString();
+
+            n = names.getFirst();
+            if (n != null) return n.getNameAsSingleString();
+        }
+        return null;
+    }
+
+    private HumanName getName(List<HumanName> list, HumanName.NameUse use) {
+        if (list != null) {
+            for (HumanName n : list) {
+                if (n.getUse() == use) return n;
+            }
+        }
+        return null;
+    }
+
+    protected List<String> buildNotes(List<Annotation> notes) {
+        if (notes == null) return null;
+        List<String> list = new ArrayList<>();
+        for (Annotation note : notes) {
+            if (note.hasText()) {
+                list.add(note.getText());
+            }
+        }
+        return list;
     }
 }
