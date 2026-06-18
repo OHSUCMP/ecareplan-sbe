@@ -28,6 +28,8 @@ create table vsac_valueset (
     constraint vv_c1 unique (oid, version)
 );
 
+create index idxOid on vsac_valueset(oid);
+
 create table vsac_concept (
     id int not null auto_increment primary key,
     code varchar(255) not null,
@@ -39,6 +41,8 @@ create table vsac_concept (
     updated datetime not null default current_timestamp on update current_timestamp,
     constraint vc_c1 unique (code, codeSystem, codeSystemVersion)
 );
+
+create index idxCode on vsac_concept(code);
 
 create table vsac_valueset_concept (
     valueSetId int not null,
@@ -114,3 +118,13 @@ create table user_endpoint (
     lastSync datetime,
     created datetime not null default current_timestamp
 );
+
+create table resource_categorization (
+    id int not null auto_increment primary key,
+    dataSetName varchar(50) not null,
+    valuesetOid varchar(255) not null,
+    category varchar(255),
+    displayName varchar(255)
+);
+
+create unique index idxDataSetOid on resource_categorization(dataSetName, valuesetOid);
