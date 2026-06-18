@@ -241,7 +241,7 @@ INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, cat
     ('CONCERNS', 'Interstitial lung disease Diagnosis', '2.16.840.1.113762.1.4.1222.1469', 'Respiratory Conditions', 'Interstitial Lung Damage'),
     ('CONCERNS', 'Pulmonary embolism Diagnosis', '2.16.840.1.113762.1.4.1222.1481', 'Respiratory Conditions', 'Lung Clot'),
     ('CONCERNS', 'Sleep Apnea Disorders', '2.16.840.1.113762.1.4.1222.102', 'Respiratory Conditions', 'Sleep Apnea'),
-    ('CONCERNS', 'Social Determinants of Health', '2.16.840.1.113762.1.4.1196.788', 'Other Health Risk Factors', NULL);
+    ('CONCERNS', 'Social Determinants of Health', '2.16.840.1.113762.1.4.1196.788', 'Other Health Risk Factors', 'Social Determinants of Health');
 
 INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, displayName) VALUES
     ('TESTS', '24 Hour Urine Protein Excretion', '2.16.840.1.113762.1.4.1222.792', '24 Hour Urine Protein Excretion'),
