@@ -3,7 +3,6 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 import edu.ohsu.cmp.ecareplan.util.DateUtil;
 import org.hl7.fhir.r4.model.*;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -65,12 +64,7 @@ public class GoalModel extends BaseDataSetModel<Goal> {
         }
 
         if (goal.hasNote()) {
-            notes = new ArrayList<>();
-            for (Annotation note : goal.getNote()) {
-                if (note.hasText()) {
-                    notes.add(note.getText());
-                }
-            }
+            notes = buildNotes(goal.getNote());
         }
 
         if (goal.hasTarget()) {
