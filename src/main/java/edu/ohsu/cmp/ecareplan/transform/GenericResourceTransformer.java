@@ -157,7 +157,12 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                 }
                 String category = getMedicationCategory(cc);
 
-                list.add(new MedicationModel(mr, m, category));
+                Practitioner p = null;
+                if (mr.hasRequester() && mr.getRequester().hasReference() && FhirUtil.bundleContainsReference(bundle, mr.getRequester().getReference())) {
+                    p = FhirUtil.getResourceFromBundleByReference(bundle, Practitioner.class, mr.getRequester().getReference());
+                }
+
+                list.add(new MedicationModel(mr, m, p, category));
             }
         }
         appendProvenance(list, bundle);
