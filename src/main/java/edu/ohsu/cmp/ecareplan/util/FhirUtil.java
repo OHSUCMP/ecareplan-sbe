@@ -445,7 +445,7 @@ public class FhirUtil {
 
     // identifies whether an id ('123') or reference ('Patient/123') matches a resource
     // if idOrReference is a reference, the resource type must match in addition to the id
-    private static boolean references(String idOrReference, Resource resource) {
+    public static boolean references(String idOrReference, Resource resource) {
         if (StringUtils.isBlank(idOrReference) || resource == null) return false;
 
         String[] parts = idOrReference.split("/");
