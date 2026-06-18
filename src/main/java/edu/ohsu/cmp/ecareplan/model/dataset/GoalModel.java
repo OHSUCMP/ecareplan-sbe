@@ -26,49 +26,49 @@ public class GoalModel extends BaseDataSetModel<Goal> {
         if (goal.hasCategory()) {
             CodeableConcept cc = goal.getCategoryFirstRep();
             if (cc.hasText()) {
-                this.category = cc.getText();
+                category = cc.getText();
             } else if (cc.hasCoding()) {
                 Coding c = cc.getCodingFirstRep();
                 if (c.hasDisplay()) {
-                    this.category = c.getDisplay();
+                    category = c.getDisplay();
                 }
             }
         }
 
         if (goal.hasDescription() && goal.getDescription().hasText()) {
-            this.description = goal.getDescription().getText();
+            description = goal.getDescription().getText();
         }
 
         if (goal.hasExpressedBy() && goal.getExpressedBy().hasDisplay()) {
-            this.expressedBy = goal.getExpressedBy().getDisplay();
+            expressedBy = goal.getExpressedBy().getDisplay();
         }
 
         if (goal.hasStartDateType() && goal.getStartDateType().hasValue()) {
-            this.startDate = goal.getStartDateType().getValue();
+            startDate = goal.getStartDateType().getValue();
         }
 
         if (goal.hasLifecycleStatus()) {
-            this.lifecycleStatus = goal.getLifecycleStatus().getDisplay();
+            lifecycleStatus = goal.getLifecycleStatus().getDisplay();
         }
 
         if (goal.hasAchievementStatus()) {
             if (goal.getAchievementStatus().hasText()) {
-                this.achievementStatus = goal.getAchievementStatus().getText();
+                achievementStatus = goal.getAchievementStatus().getText();
             } else if (goal.getAchievementStatus().hasCoding()) {
                 Coding c = goal.getAchievementStatus().getCodingFirstRep();
                 if (c.hasDisplay()) {
-                    this.achievementStatus = c.getDisplay();
+                    achievementStatus = c.getDisplay();
                 } else if (c.hasCode()) {
-                    this.achievementStatus = c.getCode();
+                    achievementStatus = c.getCode();
                 }
             }
         }
 
         if (goal.hasNote()) {
-            this.notes = new ArrayList<>();
+            notes = new ArrayList<>();
             for (Annotation note : goal.getNote()) {
                 if (note.hasText()) {
-                    this.notes.add(note.getText());
+                    notes.add(note.getText());
                 }
             }
         }
@@ -76,7 +76,7 @@ public class GoalModel extends BaseDataSetModel<Goal> {
         if (goal.hasTarget()) {
             for (Goal.GoalTargetComponent target : goal.getTarget()) {
                 if (target.hasDue() && target.getDue() instanceof DateType) {
-                    this.overdue = target.getDueDateType().getValue().before(DateUtil.startOfToday());
+                    overdue = target.getDueDateType().getValue().before(DateUtil.startOfToday());
                 }
             }
         }
