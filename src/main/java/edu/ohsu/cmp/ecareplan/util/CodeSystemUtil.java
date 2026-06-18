@@ -155,6 +155,14 @@ public class CodeSystemUtil {
         return false;
     }
 
+    public static String getOid(String system) {
+        if (system == null) return null;
+        List<CodeSystemInfo> codeSystems = getCodeSystems(system);
+        return codeSystems != null && ! codeSystems.isEmpty() ?
+                codeSystems.getFirst().getOid() :
+                null;
+    }
+
     private static final Pattern OID_PATTERN = Pattern.compile("^[0-9.]+$");
     private static final Pattern URL_PATTERN = Pattern.compile("^(https?://.*)|(urn:oid:[0-9.]+)$");
 
