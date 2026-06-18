@@ -182,7 +182,7 @@ public class FhirUtil {
             }
 
             if (reference.startsWith("http://") || reference.startsWith("https://")) {
-                String[] parts = s.split("\\/");
+                String[] parts = s.split("/");
                 return parts[parts.length - 2] + "/" + parts[parts.length - 1];
 
             } else {
@@ -441,6 +441,23 @@ public class FhirUtil {
                     reference.substring(index + 1) :
                     reference;
         }
+    }
+
+    // identifies whether an id ('123') or reference ('Patient/123') matches a resource
+    // if idOrReference is a reference, the resource type must match in addition to the id
+    private static boolean references(String idOrReference, Resource resource) {
+        if (StringUtils.isBlank(idOrReference) || resource == null) return false;
+
+        String[] parts = idOrReference.split("/");
+        if (parts.length == 1) {
+            return resource.getId().equals(parts[0]);
+
+        } else if (parts.length == 2) {
+            return parts[0].equals(resource.getResourceType().name()) &&
+                    parts[1].equals(resource.getId());
+        }
+
+        return false;
     }
 
     private static boolean identifiersMatch(Identifier a, Identifier b) {
