@@ -308,6 +308,16 @@ public class DataSetBuilderService extends BaseService {
                                                         logger.error("Error reading medication reference: " + mr.getMedicationReference().getReference(), e);
                                                     }
                                                 }
+
+                                                if (mr.hasRequester() && mr.getRequester().hasReference() && ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getRequester().getReference())) {
+                                                    try {
+                                                        bundle.consume(
+                                                                fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Practitioner.class, mr.getRequester().getReference())
+                                                        );
+                                                    } catch (Exception e) {
+                                                        logger.error("Error reading requester reference: " + mr.getRequester().getReference(), e);
+                                                    }
+                                                }
                                                 return bundle.getBundle();
                                             }
                                             return null;
