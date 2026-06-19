@@ -124,12 +124,6 @@ public class GoalModel extends BaseDataSetModel<Goal> {
         return notes;
     }
 
-    public String getFirstNote() {
-        return notes != null && ! notes.isEmpty() ?
-                notes.getFirst() :
-                null;
-    }
-
     public String getLearnMore() {
         return learnMore;
     }
