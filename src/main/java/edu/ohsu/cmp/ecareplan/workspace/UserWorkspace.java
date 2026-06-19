@@ -203,6 +203,13 @@ public class UserWorkspace {
         userEndpointCredentialsList.clear();
     }
 
+    public void clearCache() {
+        logger.info("clearing cache for session={}", sessionId);
+
+        cache.invalidateAll();
+        cache.cleanUp();
+    }
+
     public void shutdown() {
         logger.info("shutting down workspace for session={}", sessionId);
         executorService.shutdown();

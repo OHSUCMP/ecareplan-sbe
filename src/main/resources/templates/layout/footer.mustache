@@ -20,8 +20,7 @@
             }
             $(document).on('click', '#refresh', function() {
                 doRefresh(function() {
-                    // Direct to home
-                    window.location.href = "/";
+                    window.location.reload();
                 });
             });
         </script>
