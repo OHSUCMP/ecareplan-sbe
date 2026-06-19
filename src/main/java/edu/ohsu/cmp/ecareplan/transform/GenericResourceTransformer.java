@@ -244,7 +244,15 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         List<LabResultsModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
-                list.add(new LabResultsModel(observation));
+                String commonName = null;
+                if (observation.hasCode()) {
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.LAB_RESULTS, observation.getCode());
+                    if (rc != null) {
+                        commonName = rc.getCommonName();
+                    }
+                }
+
+                list.add(new LabResultsModel(observation, commonName));
             }
         }
         appendProvenance(list, bundle);

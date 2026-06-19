@@ -16,10 +16,36 @@
 
     <h1>Lab Results</h1>
     <div class="cardContainer">
-        {{#testModels}}
+        {{#labResultModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
+                        <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
+                    </tr>
+                    {{#referenceRange}}
+                        <tr>
+                            <td colspan="2">{{referenceRange}}</td>
+                        </tr>
+                    {{/referenceRange}}
+                    {{#notes}}
+                        <tr>
+                            <td colspan="2">Note: {{.}}</td>
+                        </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-        {{/testModels}}
+        {{/labResultModels}}
     </div>
 </div>
 
