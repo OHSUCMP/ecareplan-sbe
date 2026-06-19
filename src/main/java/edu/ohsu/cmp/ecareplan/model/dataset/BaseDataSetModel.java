@@ -4,10 +4,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hl7.fhir.instance.model.api.IDomainResource;
 import org.hl7.fhir.r4.model.*;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BaseDataSetModel<T extends IDomainResource> {
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("MMM d, yyyy");
+
     @JsonIgnore
     protected final T sourceResource;
 
@@ -128,5 +132,21 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
             }
         }
         return list;
+    }
+
+    protected String formatPeriod(Period period) {
+        if (period == null) return null;
+
+        if (period.hasStart() && period.hasEnd()) {
+            return DATE_FORMAT.format(period.getStart()) + " - " + DATE_FORMAT.format(period.getEnd());
+
+        } else if (period.hasStart()) {
+            return "Began " + DATE_FORMAT.format(period.getStart());
+
+        } else if (period.hasEnd()) {
+            return "Ended " + DATE_FORMAT.format(period.getEnd());
+        }
+
+        return null;
     }
 }

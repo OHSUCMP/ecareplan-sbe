@@ -16,18 +16,44 @@
 
     <h1>Visits</h1>
     <div class="cardContainer">
-        {{#historicInteractionModels}}
+        {{#encounterModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{#serviceType}}Type: {{serviceType}}{{/serviceType}}</td>
+                        <td>{{#period}}Date (range): {{period}}{{/period}}</td>
+                    </tr>
+                    {{#reasons}}
+                        <tr>
+                            <td colspan="2">{{.}}</td>
+                        </tr>
+                    {{/reasons}}
+                    {{#notes}}
+                        <tr>
+                            <td colspan="2">{{.}}</td>
+                        </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-        {{/historicInteractionModels}}
+        {{/encounterModels}}
     </div>
 
     <h1>Upcoming Tests and Procedures</h1>
     <div class="cardContainer">
-        {{#historicInteractionModels}}
+        {{#serviceRequestModels}}
             <div class="card">
             </div>
-        {{/historicInteractionModels}}
+        {{/serviceRequestModels}}
     </div>
 </div>
 
