@@ -448,13 +448,19 @@ public class FhirUtil {
     public static boolean references(String idOrReference, Resource resource) {
         if (StringUtils.isBlank(idOrReference) || resource == null) return false;
 
-        String[] parts = idOrReference.split("/");
-        if (parts.length == 1) {
-            return resource.getId().equals(parts[0]);
+        String resourceReference = toRelativeReference(resource.getId());
+        if (idOrReference.equals(resourceReference)) {
+            return true;
+        }
 
-        } else if (parts.length == 2) {
-            return parts[0].equals(resource.getResourceType().name()) &&
-                    parts[1].equals(resource.getId());
+        String[] parts = idOrReference.split("/");
+        String id = parts[parts.length - 1];
+
+        String[] resourceParts = resourceReference.split("/");
+        String resourceId = resourceParts[resourceParts.length - 1];
+
+        if (id.equals(resourceId)) {
+            return parts.length == 1 || resource.getResourceType().name().equals(parts[parts.length - 2]);
         }
 
         return false;
