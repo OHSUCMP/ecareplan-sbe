@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
-public class LabResultsModel extends ObservationModel {
+public class LabResultModel extends ObservationModel {
     private static final Coding BP_PANEL_CODING = new Coding("http://loinc.org", "85354-9", "Blood pressure systolic and diastolic");
     private static final Coding SYSTOLIC_CODING = new Coding("http://loinc.org", "8480-6", "Systolic blood pressure");
     private static final Coding DIASTOLIC_CODING = new Coding("http://loinc.org", "8462-4", "Diastolic blood pressure");
@@ -26,7 +26,7 @@ public class LabResultsModel extends ObservationModel {
     private List<String> notes;
     private String learnMore;           // complex; skip for now // todo : populate this
 
-    public LabResultsModel(Observation observation, String commonName) {
+    public LabResultModel(Observation observation, String commonName) {
         super(observation);
 
         this.commonName = commonName;

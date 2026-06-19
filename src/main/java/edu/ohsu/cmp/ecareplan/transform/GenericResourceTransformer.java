@@ -239,9 +239,9 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<LabResultsModel> transformLabResults(Bundle bundle) {
+    public List<LabResultModel> transformLabResults(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<LabResultsModel> list = new ArrayList<>();
+        List<LabResultModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
                 String commonName = null;
@@ -252,7 +252,7 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                     }
                 }
 
-                list.add(new LabResultsModel(observation, commonName));
+                list.add(new LabResultModel(observation, commonName));
             }
         }
         appendProvenance(list, bundle);

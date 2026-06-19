@@ -22,6 +22,6 @@ public interface ResourceTransformer {
     List<ServiceRequestModel> transformServiceRequests(Bundle bundle);
     List<SocialHistoryModel> transformSocialHistories(Bundle bundle);
     List<SurveyObservationModel> transformSurveyObservations(Bundle bundle);
-    List<LabResultsModel> transformLabResults(Bundle bundle);
+    List<LabResultModel> transformLabResults(Bundle bundle);
     List<VitalsModel> transformVitals(Bundle bundle);
 }

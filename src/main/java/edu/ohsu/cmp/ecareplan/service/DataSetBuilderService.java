@@ -423,12 +423,12 @@ public class DataSetBuilderService extends BaseService {
         return list;
     }
 
-    public List<LabResultsModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
+    public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         logger.info("building Lab Results for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        List<LabResultsModel> list = new ArrayList<>();
+        List<LabResultModel> list = new ArrayList<>();
         for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.LAB_RESULTS, e)) {
             list.addAll(
                     rt.transformLabResults(
@@ -437,7 +437,7 @@ public class DataSetBuilderService extends BaseService {
             );
         }
 
-        for (LabResultsModel tm : list) {
+        for (LabResultModel tm : list) {
             tm.setSourceEndpointName(e.getName());
             tm.setSourceEndpointIss(e.getIss());
         }

@@ -472,8 +472,8 @@ public class UserWorkspace {
         return list;
     }
 
-    public List<LabResultsModel> getAllLabResultModels() {
-        List<LabResultsModel> list = new ArrayList<>();
+    public List<LabResultModel> getAllLabResultModels() {
+        List<LabResultModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
             list.addAll(getLabResults(ue.getEndpoint()));
         }
@@ -566,8 +566,8 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    public List<LabResultsModel> getLabResults(Endpoint e) {
-        return (List<LabResultsModel>) getCachedDataSetForEndpoint(DataSetName.LAB_RESULTS, e);
+    public List<LabResultModel> getLabResults(Endpoint e) {
+        return (List<LabResultModel>) getCachedDataSetForEndpoint(DataSetName.LAB_RESULTS, e);
     }
 
     @SuppressWarnings("unchecked")
