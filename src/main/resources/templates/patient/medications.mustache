@@ -18,6 +18,41 @@
     <div class="cardContainer">
         {{#medicationModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{conceptName}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{#category}}Category: {{category}}{{/category}}</td>
+                        <td>Status: {{status}}</td>
+                    </tr>
+                    <tr>
+                        <td>Ordered On: {{#authoredOn}}{{authoredOn}}{{/authoredOn}}</td>
+                        <td>By: {{#requester}}{{requester}}{{/requester}}</td>
+                    </tr>
+                    {{#dosageInstructions}}
+                        <tr>
+                            <td colspan="2">{{dosageInstruction}}</td>
+                        </tr>
+                    {{/dosageInstructions}}
+                    {{#reasons}}
+                        <tr>
+                            <td colspan="2">Reason: {{.}}</td>
+                        </tr>
+                    {{/reasons}}
+                    {{#notes}}
+                        <tr>
+                            <td colspan="2">Note: {{.}}</td>
+                        </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/medicationModels}}
     </div>
