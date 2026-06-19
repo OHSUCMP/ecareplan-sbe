@@ -79,7 +79,17 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         List<ConditionModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Condition condition) {
-                list.add(new ConditionModel(condition));
+                String category = null;
+                String commonName = null;
+                if (condition.hasCode()) {
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.CONDITIONS, condition.getCode());
+                    if (rc != null) {
+                        category = rc.getCategory();
+                        commonName = rc.getCommonName();
+                    }
+                }
+
+                list.add(new ConditionModel(condition, category, commonName));
             }
         }
         appendProvenance(list, bundle);
@@ -155,7 +165,14 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                             m.getCode() :
                             null;
                 }
-                String category = getMedicationCategory(cc);
+
+                String category = null;
+                if (cc != null) {
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.MEDICATIONS, cc);
+                    if (rc != null) {
+                        category = rc.getCategory();
+                    }
+                }
 
                 Practitioner p = null;
                 if (mr.hasRequester() && mr.getRequester().hasReference() && FhirUtil.bundleContainsReference(bundle, mr.getRequester().getReference())) {
@@ -167,15 +184,6 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         }
         appendProvenance(list, bundle);
         return list;
-    }
-
-    private String getMedicationCategory(CodeableConcept cc) {
-        if (cc == null) return null;
-
-        ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.MEDICATIONS, cc);
-        return rc != null ?
-                rc.getCategory() :
-                null;
     }
 
     @Override

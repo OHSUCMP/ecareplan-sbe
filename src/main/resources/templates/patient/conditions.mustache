@@ -22,6 +22,36 @@
     <div class="cardContainer">
         {{#conditionModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{name}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td colspan="2">{{author}}</td>
+                    </tr>
+                    {{#recordedDate}}
+                        <tr>
+                            <td colspan="2">Recorded: {{recordedDate}}</td>
+                        </tr>
+                    {{/recordedDate}}
+                    {{#onsetDate}}
+                        <tr>
+                            <td colspan="2">When it started: {{onsetDate}}</td>
+                        </tr>
+                    {{/onsetDate}}
+                    {{#notes}}
+                        <tr>
+                            <td colspan="2">Note: {{.}}</td>
+                        </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/conditionModels}}
     </div>
