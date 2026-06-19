@@ -60,13 +60,13 @@
                 <table>
                     <thead>
                     <tr>
-                        <td colspan="2">{{description}}</td>
+                        <td colspan="2">{{#description}}{{description}}{{/description}}{{^description}}(No Description){{/description}}</td>
                     </tr>
                     </thead>
                     <tbody>
                     <tr>
                         <td>{{#expressedBy}}{{expressedBy}}{{/expressedBy}}</td>
-                        <td>Start: {{startDate}}</td>
+                        <td>{{#startDate}}Start: {{startDate}}{{/startDate}}</td>
                     </tr>
                     {{#consolidatedStatus}}
                         <tr>
