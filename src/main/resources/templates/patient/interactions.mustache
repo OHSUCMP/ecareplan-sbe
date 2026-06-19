@@ -52,6 +52,38 @@
     <div class="cardContainer">
         {{#serviceRequestModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#requester}}
+                        <tr>
+                            <td colspan="2">Requested by: {{requester}}</td>
+                        </tr>
+                    {{/requester}}
+                    {{#authoredOn}}
+                        <tr>
+                            <td colspan="2">Ordered on: {{authoredOn}}</td>
+                        </tr>
+                    {{/authoredOn}}
+                    {{#reasons}}
+                        <tr>
+                            <td colspan="2">Reason: {{.}}</td>
+                        </tr>
+                    {{/reasons}}
+                    {{#notes}}
+                        <tr>
+                            <td colspan="2">Note: {{.}}</td>
+                        </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/serviceRequestModels}}
     </div>

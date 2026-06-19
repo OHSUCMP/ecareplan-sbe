@@ -3,7 +3,6 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.hl7.fhir.r4.model.*;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -70,25 +69,10 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         }
 
         if (medicationRequest.hasReasonCode()) {
-            for (CodeableConcept cc : medicationRequest.getReasonCode()) {
-                String reason = getConceptNameFromCodeableConcept(cc);
-                if (reason != null) {
-                    if (reasons == null) reasons = new ArrayList<>();
-                    reasons.add(reason);
-                }
-            }
+            reasons = getConceptNamesFromCodeableConcept(medicationRequest.getReasonCode());
 
         } else if (medicationRequest.hasReasonReference()) {
-            medicationRequest.getReasonReference();
-            for (Reference r : medicationRequest.getReasonReference()) {
-
-                // todo : consider augmenting this part to go get the referenced resource.  might be overkill
-
-                if (r.hasDisplay()) {
-                    if (reasons == null) reasons = new ArrayList<>();
-                    reasons.add(r.getDisplay());
-                }
-            }
+            reasons = getDisplayValuesFromReferences(medicationRequest.getReasonReference());
         }
 
         if (medicationRequest.hasNote()) {

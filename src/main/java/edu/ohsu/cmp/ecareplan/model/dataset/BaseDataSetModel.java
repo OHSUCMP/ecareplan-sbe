@@ -85,6 +85,20 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
         this.sourceEndpointIss = sourceEndpointIss;
     }
 
+    protected List<String> getConceptNamesFromCodeableConcept(List<CodeableConcept> ccList) {
+        List<String> list = null;
+        if (ccList != null) {
+            for (CodeableConcept cc : ccList) {
+                String name = getConceptNameFromCodeableConcept(cc);
+                if (name != null) {
+                    if (list == null) list = new ArrayList<>();
+                    list.add(name);
+                }
+            }
+        }
+        return list;
+    }
+
     protected String getConceptNameFromCodeableConcept(CodeableConcept cc) {
         if (cc != null) {
             if (cc.hasText()) {
@@ -98,6 +112,19 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
             }
         }
         return null;
+    }
+
+    protected List<String> getDisplayValuesFromReferences(List<Reference> references) {
+        List<String> list = null;
+        if (references != null) {
+            for (Reference r : references) {
+                if (r.hasDisplay()) {
+                    if (list == null) list = new ArrayList<>();
+                    list.add(r.getDisplay());
+                }
+            }
+        }
+        return list;
     }
 
     protected String getPreferredName(List<HumanName> names) {

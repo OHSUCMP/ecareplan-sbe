@@ -2,7 +2,6 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Encounter;
-import org.hl7.fhir.r4.model.Reference;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,20 +35,10 @@ public class EncounterModel extends BaseDataSetModel<Encounter> {
         }
 
         if (encounter.hasReasonCode()) {
-            for (CodeableConcept cc : encounter.getReasonCode()) {
-                String reason = getConceptNameFromCodeableConcept(cc);
-                if (reason != null) {
-                    if (reasons == null) reasons = new ArrayList<>();
-                    reasons.add(reason);
-                }
-            }
+            reasons = getConceptNamesFromCodeableConcept(encounter.getReasonCode());
+
         } else if (encounter.hasReasonReference()) {
-            for (Reference ref : encounter.getReasonReference()) {
-                if (ref.hasDisplay()) {
-                    if (reasons == null) reasons = new ArrayList<>();
-                    reasons.add(ref.getReference());
-                }
-            }
+            reasons = getDisplayValuesFromReferences(encounter.getReasonReference());
         }
 
         if (encounter.hasParticipant()) {
