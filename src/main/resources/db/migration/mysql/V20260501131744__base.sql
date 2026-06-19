@@ -130,7 +130,7 @@ create table resource_categorization (
 
 create unique index idxDataSetOid on resource_categorization(dataSetName, valuesetOid);
 
-INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, category, commonName) VALUES
+insert into resource_categorization (dataSetName, valuesetName, valuesetOid, category, commonName) values
     ('CONDITIONS', 'Arthritis Disorders', '2.16.840.1.113762.1.4.1222.81', 'Arthritis', 'Arthritis'),
     ('CONDITIONS', 'Infectious Arthritis', '2.16.840.1.113762.1.4.1222.654', 'Arthritis', 'Arthritis'),
     ('CONDITIONS', 'Osteoarthritis', '2.16.840.1.113762.1.4.1222.648', 'Arthritis', 'Osteoarthritis'),
@@ -243,7 +243,7 @@ INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, cat
     ('CONDITIONS', 'Sleep Apnea Disorders', '2.16.840.1.113762.1.4.1222.102', 'Respiratory Conditions', 'Sleep Apnea'),
     ('CONDITIONS', 'Social Determinants of Health', '2.16.840.1.113762.1.4.1196.788', 'Other Health Risk Factors', 'Social Determinants of Health');
 
-INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, commonName) VALUES
+insert into resource_categorization (dataSetName, valuesetName, valuesetOid, commonName) values
     ('LAB_RESULTS', '24 Hour Urine Protein Excretion', '2.16.840.1.113762.1.4.1222.792', '24 Hour Urine Protein Excretion'),
     ('LAB_RESULTS', '24 Hour Urine Volume', '2.16.840.1.113762.1.4.1222.791', '24 Hour Urine Volume'),
     ('LAB_RESULTS', 'Alanine Aminotransferase (ALT), Bld/Ser/Plas', '2.16.840.1.113883.3.3616.200.110.102.5001', 'ALT'),
@@ -265,8 +265,8 @@ INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, com
     ('LAB_RESULTS', 'Cerebral Spinal Fluid (CSF) Analysis', '2.16.840.1.113762.1.4.1222.1573', 'Cerebral Spinal Fluid (CSF) Analysis'),
     ('LAB_RESULTS', 'Chloride in blood, serum or plasma', '2.16.840.1.113762.1.4.1222.132', 'Chloride'),
     ('LAB_RESULTS', 'Coagulation Assay (PT, aPTT, Fibrinogen)', '2.16.840.1.113762.1.4.1222.1576', 'Coagulation Assay'),
-    ('LAB_RESULTS', 'Complete Blood Count (with Diff)', '1.3.6.1.4.1.6997.4.1.2.271.13.38167.1.1.999.594', ''),
-    ('LAB_RESULTS', 'Comprehensive Metabolic Panel (CMP)', '2.16.840.1.113762.1.4.1222.1574', ''),
+    ('LAB_RESULTS', 'Complete Blood Count (with Diff)', '1.3.6.1.4.1.6997.4.1.2.271.13.38167.1.1.999.594', 'CBC'),
+    ('LAB_RESULTS', 'Comprehensive Metabolic Panel (CMP)', '2.16.840.1.113762.1.4.1222.1574', 'CMP'),
     ('LAB_RESULTS', 'Corrected Calcium', '2.16.840.1.113762.1.4.1222.122', 'Calcium'),
     ('LAB_RESULTS', 'COVID 19 (SARS CoV 2), SARS CoV, Influenza virus A and B Tests', '2.16.840.1.113762.1.4.1222.1580', 'COVID 19 Test'),
     ('LAB_RESULTS', 'Creatine Kinase (CK, CK MB) in Blood, Serum, or Plasma', '2.16.840.1.113762.1.4.1222.1579', 'Creatine Kinase (CK, CK MB)'),
@@ -278,7 +278,7 @@ INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, com
     ('LAB_RESULTS', 'Erythrocyte Sedimentation Rate (ESR), Blood', '2.16.840.1.113883.3.3616.200.110.102.5019', 'Erythrocyte Sedimentation Rate (ESR)'),
     ('LAB_RESULTS', 'Estimated Average Glucose', '2.16.840.1.113762.1.4.1222.150', 'Estimated Average Glucose'),
     ('LAB_RESULTS', 'Estimated Glomerular Filtration Rate (eGFR)', '2.16.840.1.113762.1.4.1222.179', 'eGFR'),
-    ('LAB_RESULTS', 'Estimated Glomerular Filtration Rate NKF', '2.16.840.1.113883.3.6929.3.1000', ''),
+    ('LAB_RESULTS', 'Estimated Glomerular Filtration Rate NKF', '2.16.840.1.113883.3.6929.3.1000', 'eGFR'),
     ('LAB_RESULTS', 'Fasting Blood Glucose', '2.16.840.1.113762.1.4.1222.808', 'Fasting Blood Glucose'),
     ('LAB_RESULTS', 'Ferritin', '2.16.840.1.113762.1.4.1222.140', 'Ferritin'),
     ('LAB_RESULTS', 'Free T4 (Thyroxine) Test', '2.16.840.1.113883.3.7643.2.1019', 'Free T4 (Thyroxine)'),
@@ -331,7 +331,7 @@ INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, com
     ('LAB_RESULTS', 'Vitamin D Levels', '2.16.840.1.113762.1.4.1222.126', 'Vitamin D'),
     ('LAB_RESULTS', 'White Blood Cell (Leukocytes) Count', '2.16.840.1.113762.1.4.1222.142', 'White Blood Cell (Leukocytes) Count');
 
-INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, category) VALUES
+insert into resource_categorization (dataSetName, valuesetName, valuesetOid, category) values
     ('MEDICATIONS', 'ACEis and ARBs', '2.16.840.1.113762.1.4.1213.11', 'ACEis and ARBs'),
     ('MEDICATIONS', 'Erythropoiesis Stimulating Agent', '2.16.840.1.113762.1.4.1196.307', 'Erythropoiesis Stimulating Agent'),
     ('MEDICATIONS', 'Iron Supplement', '2.16.840.1.113762.1.4.1196.308', 'Iron Supplement'),
