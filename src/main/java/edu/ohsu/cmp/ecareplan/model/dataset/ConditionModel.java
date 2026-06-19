@@ -8,16 +8,16 @@ import java.util.Date;
 import java.util.List;
 
 public class ConditionModel extends BaseDataSetModel<Condition> {
-    private String category;            // category parameter
-    private String commonName;          // commonName parameter
-    private String conceptName;         // condition.code
-    private Date recordedDate;          // condition.recordedDate
+    private String category;
+    private String commonName;
+    private String conceptName;
+    private Date recordedDate;
     private Date assertedDate;          // todo: populate this from extension
                                         // http://hl7.org/fhir/StructureDefinition/condition-assertedDate (dateTime type)
-    private Date onsetDate;             // condition.onset
-    private String recorder;            // condition.recorder.display
-    private String asserter;            // condition.asserter.display
-    private List<String> notes;         // condition.note
+    private Date onsetDate;
+    private String recorder;
+    private String asserter;
+    private List<String> notes;
     private List<GoalModel> goals;      // todo : these need to be linked after object creation
     private String learnMore;           // complex; skip for now // todo : populate this
 

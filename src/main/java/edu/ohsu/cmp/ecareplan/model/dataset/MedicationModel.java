@@ -10,14 +10,14 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
     private Medication sourceMedication;
     private Practitioner sourceRequester;
 
-    private String category;                // based on valueset association
-    private String status;                  // medreq.status
-    private String conceptName;             // medreq.medication name from codeableconcept or reference
-    private Date authoredOn;                // medreq.authoredOn
-    private String requester;               // medreq.requester name from practitioner or reference
-    private String dosageInstruction;       // medreq.dosageInstruction.patientInstruction
-    private List<String> reasons;           // medreq.reasonCode.text or medreq.reasonReference.display
-    private List<String> notes;             // medreq.note.text
+    private String category;
+    private String status;
+    private String conceptName;
+    private Date authoredOn;
+    private String requester;
+    private String dosageInstruction;
+    private List<String> reasons;
+    private List<String> notes;
     private String learnMore;               // complex; skip for now // todo : populate this
     private List<String> flags;             // todo : populate this
 

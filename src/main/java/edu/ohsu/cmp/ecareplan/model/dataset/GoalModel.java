@@ -7,17 +7,17 @@ import java.util.Date;
 import java.util.List;
 
 public class GoalModel extends BaseDataSetModel<Goal> {
-    private String category;            // concept text from goal.category[0]
-    private String description;         // concept text from goal.description
-    private String expressedBy;         // goal.expressedBy.display.value
-    private Date startDate;             // goal.start
+    private String category;
+    private String description;
+    private String expressedBy;
+    private Date startDate;
     private String target;              // complex; skip for now // todo : populate this
     private String addresses;           // complex; skip for now // todo : populate this
-    private String lifecycleStatus;     // goal.lifecycleStatus.value
-    private String achievementStatus;   // goal.achievementStatus.value
-    private List<String> notes;         // consolidation of goal.note.text
+    private String lifecycleStatus;
+    private String achievementStatus;
+    private List<String> notes;
     private String learnMore;           // complex; skip for now // todo : populate this
-    private Boolean overdue;            // true if goal.target.due.value is before today
+    private Boolean overdue;
 
     public GoalModel(Goal goal) {
         super(goal);
