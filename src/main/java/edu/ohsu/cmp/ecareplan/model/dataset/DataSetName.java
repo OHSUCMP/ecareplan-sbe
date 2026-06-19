@@ -10,8 +10,8 @@ public enum DataSetName {
     DIAGNOSTIC_REPORTS,
     GOALS,
     IMMUNIZATIONS,
-    INTERACTIONS, // encounters
-    MEDICATIONS, // all active plus the last 10 inactive
+    ENCOUNTERS,
+    MEDICATIONS,
     PROCEDURES,
     SERVICE_REQUESTS,
     SOCIAL_HISTORIES,

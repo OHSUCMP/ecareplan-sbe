@@ -16,7 +16,7 @@ public interface ResourceTransformer {
     List<DiagnosticReportModel> transformDiagnosticReports(Bundle bundle);
     List<GoalModel> transformGoals(Bundle bundle);
     List<ImmunizationModel> transformImmunizations(Bundle bundle);
-    List<InteractionModel> transformInteractions(Bundle bundle);
+    List<EncounterModel> transformEncounters(Bundle bundle);
     List<MedicationModel> transformMedications(Bundle bundle);
     List<ProcedureModel> transformProcedures(Bundle bundle);
     List<ServiceRequestModel> transformServiceRequests(Bundle bundle);

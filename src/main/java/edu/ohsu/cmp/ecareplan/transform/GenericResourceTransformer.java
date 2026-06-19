@@ -136,12 +136,12 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<InteractionModel> transformInteractions(Bundle bundle) {
+    public List<EncounterModel> transformEncounters(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<InteractionModel> list = new ArrayList<>();
+        List<EncounterModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Encounter encounter) {
-                list.add(new InteractionModel(encounter));
+                list.add(new EncounterModel(encounter));
             }
         }
         appendProvenance(list, bundle);

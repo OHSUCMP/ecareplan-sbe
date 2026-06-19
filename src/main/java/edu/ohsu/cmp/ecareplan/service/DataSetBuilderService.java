@@ -261,21 +261,21 @@ public class DataSetBuilderService extends BaseService {
         return list;
     }
 
-    public List<InteractionModel> buildInteractions(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
+    public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Interactions for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Encounters for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        List<InteractionModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.INTERACTIONS, e)) {
+        List<EncounterModel> list = new ArrayList<>();
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.ENCOUNTERS, e)) {
             list.addAll(
-                    rt.transformInteractions(
+                    rt.transformEncounters(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
                     )
             );
         }
 
-        for (InteractionModel im : list) {
+        for (EncounterModel im : list) {
             im.setSourceEndpointName(e.getName());
             im.setSourceEndpointIss(e.getIss());
         }

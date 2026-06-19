@@ -178,7 +178,7 @@ public class UserWorkspace {
                     getDiagnosticReports(e);
                     getGoals(e);
                     getImmunizations(e);
-                    getInteractions(e);
+                    getEncounters(e);
                     getMedications(e);
                     getProcedures(e);
                     getServiceRequests(e);
@@ -424,10 +424,10 @@ public class UserWorkspace {
         return list;
     }
 
-    public List<InteractionModel> getAllInteractionModels() {
-        List<InteractionModel> list = new ArrayList<>();
+    public List<EncounterModel> getAllEncountersModels() {
+        List<EncounterModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
-            list.addAll(getInteractions(ue.getEndpoint()));
+            list.addAll(getEncounters(ue.getEndpoint()));
         }
         return list;
     }
@@ -536,8 +536,8 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    public List<InteractionModel> getInteractions(Endpoint e) {
-        return (List<InteractionModel>) getCachedDataSetForEndpoint(DataSetName.INTERACTIONS, e);
+    public List<EncounterModel> getEncounters(Endpoint e) {
+        return (List<EncounterModel>) getCachedDataSetForEndpoint(DataSetName.ENCOUNTERS, e);
     }
 
     @SuppressWarnings("unchecked")
@@ -618,8 +618,8 @@ public class UserWorkspace {
                     case IMMUNIZATIONS:
                         obj = dataSetBuilderService.buildImmunizations(sessionId, endpoint);
                         break;
-                    case INTERACTIONS:
-                        obj = dataSetBuilderService.buildInteractions(sessionId, endpoint);
+                    case ENCOUNTERS:
+                        obj = dataSetBuilderService.buildEncounters(sessionId, endpoint);
                         break;
                     case MEDICATIONS:
                         obj = dataSetBuilderService.buildMedications(sessionId, endpoint);
