@@ -23,7 +23,7 @@ public class ConcernsController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("concernModels", workspace.getAllConcernModels());
+            model.addAttribute("conditionModels", workspace.getAllConditionModels());
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/concerns");
 

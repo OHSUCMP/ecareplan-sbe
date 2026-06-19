@@ -74,12 +74,12 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<ConcernModel> transformConcerns(Bundle bundle) {
+    public List<ConditionModel> transformConditions(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<ConcernModel> list = new ArrayList<>();
+        List<ConditionModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Condition condition) {
-                list.add(new ConcernModel(condition));
+                list.add(new ConditionModel(condition));
             }
         }
         appendProvenance(list, bundle);

@@ -174,7 +174,7 @@ public class UserWorkspace {
                     getCarePlans(e);
                     getCareTeams(e);
                     getClinicalNotes(e);
-                    getConcerns(e);
+                    getConditions(e);
                     getDiagnosticReports(e);
                     getGoals(e);
                     getImmunizations(e);
@@ -385,10 +385,10 @@ public class UserWorkspace {
         return list;
     }
 
-    public List<ConcernModel> getAllConcernModels() {
-        List<ConcernModel> list = new ArrayList<>();
+    public List<ConditionModel> getAllConditionModels() {
+        List<ConditionModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
-            list.addAll(getConcerns(ue.getEndpoint()));
+            list.addAll(getConditions(ue.getEndpoint()));
         }
         return list;
     }
@@ -509,8 +509,8 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    public List<ConcernModel> getConcerns(Endpoint e) {
-        return (List<ConcernModel>) getCachedDataSetForEndpoint(DataSetName.CONCERNS, e);
+    public List<ConditionModel> getConditions(Endpoint e) {
+        return (List<ConditionModel>) getCachedDataSetForEndpoint(DataSetName.CONDITIONS, e);
     }
 
     @SuppressWarnings("unchecked")
@@ -599,8 +599,8 @@ public class UserWorkspace {
                     case CLINICAL_NOTES:
                         obj = dataSetBuilderService.buildClinicalNotes(sessionId, endpoint);
                         break;
-                    case CONCERNS:
-                        obj = dataSetBuilderService.buildConcerns(sessionId, endpoint);
+                    case CONDITIONS:
+                        obj = dataSetBuilderService.buildConditions(sessionId, endpoint);
                         break;
                     case DIAGNOSTIC_REPORTS:
                         obj = dataSetBuilderService.buildDiagnosticReports(sessionId, endpoint);

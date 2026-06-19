@@ -12,7 +12,7 @@ public interface ResourceTransformer {
     List<CarePlanModel> transformCarePlans(Bundle bundle);
     List<CareTeamModel> transformCareTeams(Bundle bundle);
     List<ClinicalNoteModel> transformClinicalNotes(Bundle bundle);
-    List<ConcernModel> transformConcerns(Bundle bundle);
+    List<ConditionModel> transformConditions(Bundle bundle);
     List<DiagnosticReportModel> transformDiagnosticReports(Bundle bundle);
     List<GoalModel> transformGoals(Bundle bundle);
     List<ImmunizationModel> transformImmunizations(Bundle bundle);

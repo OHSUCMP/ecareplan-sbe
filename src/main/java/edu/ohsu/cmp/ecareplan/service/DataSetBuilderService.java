@@ -173,21 +173,21 @@ public class DataSetBuilderService extends BaseService {
         return list;
     }
 
-    public List<ConcernModel> buildConcerns(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
+    public List<ConditionModel> buildConditions(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Concerns for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Conditions for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        List<ConcernModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CONCERNS, e)) {
+        List<ConditionModel> list = new ArrayList<>();
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.CONDITIONS, e)) {
             list.addAll(
-                    rt.transformConcerns(
+                    rt.transformConditions(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
                     )
             );
         }
 
-        for (ConcernModel cm : list) {
+        for (ConditionModel cm : list) {
             cm.setSourceEndpointName(e.getName());
             cm.setSourceEndpointIss(e.getIss());
         }

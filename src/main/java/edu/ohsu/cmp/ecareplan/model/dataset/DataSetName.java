@@ -6,7 +6,7 @@ public enum DataSetName {
     CARE_PLANS,
     CARE_TEAMS,
     CLINICAL_NOTES,
-    CONCERNS, // conditions
+    CONDITIONS,
     DIAGNOSTIC_REPORTS,
     GOALS,
     IMMUNIZATIONS,
