@@ -125,12 +125,12 @@ create table resource_categorization (
     valuesetName varchar(255) not null,
     valuesetOid varchar(255) not null,
     category varchar(255),
-    displayName varchar(255)
+    commonName varchar(255)
 );
 
 create unique index idxDataSetOid on resource_categorization(dataSetName, valuesetOid);
 
-INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, category, displayName) VALUES
+INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, category, commonName) VALUES
     ('CONDITIONS', 'Arthritis Disorders', '2.16.840.1.113762.1.4.1222.81', 'Arthritis', 'Arthritis'),
     ('CONDITIONS', 'Infectious Arthritis', '2.16.840.1.113762.1.4.1222.654', 'Arthritis', 'Arthritis'),
     ('CONDITIONS', 'Osteoarthritis', '2.16.840.1.113762.1.4.1222.648', 'Arthritis', 'Osteoarthritis'),
@@ -243,7 +243,7 @@ INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, cat
     ('CONDITIONS', 'Sleep Apnea Disorders', '2.16.840.1.113762.1.4.1222.102', 'Respiratory Conditions', 'Sleep Apnea'),
     ('CONDITIONS', 'Social Determinants of Health', '2.16.840.1.113762.1.4.1196.788', 'Other Health Risk Factors', 'Social Determinants of Health');
 
-INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, displayName) VALUES
+INSERT INTO resource_categorization (dataSetName, valuesetName, valuesetOid, commonName) VALUES
     ('TESTS', '24 Hour Urine Protein Excretion', '2.16.840.1.113762.1.4.1222.792', '24 Hour Urine Protein Excretion'),
     ('TESTS', '24 Hour Urine Volume', '2.16.840.1.113762.1.4.1222.791', '24 Hour Urine Volume'),
     ('TESTS', 'Alanine Aminotransferase (ALT), Bld/Ser/Plas', '2.16.840.1.113883.3.3616.200.110.102.5001', 'ALT'),

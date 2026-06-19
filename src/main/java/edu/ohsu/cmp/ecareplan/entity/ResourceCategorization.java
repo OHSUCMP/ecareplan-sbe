@@ -17,7 +17,7 @@ public class ResourceCategorization {
     private String valuesetName;
     private String valuesetOid;
     private String category;
-    private String displayName;
+    private String commonName;
 
     public Long getId() {
         return id;
@@ -63,11 +63,11 @@ public class ResourceCategorization {
         this.category = category;
     }
 
-    public String getDisplayName() {
-        return displayName;
+    public String getCommonName() {
+        return commonName;
     }
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+    public void setCommonName(String commonName) {
+        this.commonName = commonName;
     }
 }
