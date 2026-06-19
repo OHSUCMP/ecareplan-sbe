@@ -184,7 +184,7 @@ public class UserWorkspace {
                     getServiceRequests(e);
                     getSocialHistories(e);
                     getSurveyObservations(e);
-                    getTests(e);
+                    getLabResults(e);
                     getVitals(e);
                     logger.info("DONE populating for endpoint={} for session={} (took {} ms)", e.getName(), sessionId, (System.currentTimeMillis() - endpointStart));
                 }
@@ -472,10 +472,10 @@ public class UserWorkspace {
         return list;
     }
 
-    public List<TestModel> getAllTestModels() {
-        List<TestModel> list = new ArrayList<>();
+    public List<LabResultsModel> getAllLabResultModels() {
+        List<LabResultsModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
-            list.addAll(getTests(ue.getEndpoint()));
+            list.addAll(getLabResults(ue.getEndpoint()));
         }
         return list;
     }
@@ -566,8 +566,8 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    public List<TestModel> getTests(Endpoint e) {
-        return (List<TestModel>) getCachedDataSetForEndpoint(DataSetName.TESTS, e);
+    public List<LabResultsModel> getLabResults(Endpoint e) {
+        return (List<LabResultsModel>) getCachedDataSetForEndpoint(DataSetName.LAB_RESULTS, e);
     }
 
     @SuppressWarnings("unchecked")
@@ -636,8 +636,8 @@ public class UserWorkspace {
                     case SURVEY_OBSERVATIONS:
                         obj = dataSetBuilderService.buildSurveyObservations(sessionId, endpoint);
                         break;
-                    case TESTS:
-                        obj = dataSetBuilderService.buildTests(sessionId, endpoint);
+                    case LAB_RESULTS:
+                        obj = dataSetBuilderService.buildLabResults(sessionId, endpoint);
                         break;
                     case VITALS:
                         obj = dataSetBuilderService.buildVitals(sessionId, endpoint);

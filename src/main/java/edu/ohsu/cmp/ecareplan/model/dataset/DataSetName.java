@@ -16,6 +16,6 @@ public enum DataSetName {
     SERVICE_REQUESTS,
     SOCIAL_HISTORIES,
     SURVEY_OBSERVATIONS,
-    TESTS, // standard lab results plus EGFR
+    LAB_RESULTS,
     VITALS;
 }

@@ -239,12 +239,12 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<TestModel> transformTests(Bundle bundle) {
+    public List<LabResultsModel> transformLabResults(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<TestModel> list = new ArrayList<>();
+        List<LabResultsModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
-                list.add(new TestModel(observation));
+                list.add(new LabResultsModel(observation));
             }
         }
         appendProvenance(list, bundle);

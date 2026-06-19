@@ -2,8 +2,8 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import org.hl7.fhir.r4.model.Observation;
 
-public class TestModel extends BaseDataSetModel<Observation> {
-    public TestModel(Observation observation) {
+public class LabResultsModel extends BaseDataSetModel<Observation> {
+    public LabResultsModel(Observation observation) {
         super(observation);
     }
 }
