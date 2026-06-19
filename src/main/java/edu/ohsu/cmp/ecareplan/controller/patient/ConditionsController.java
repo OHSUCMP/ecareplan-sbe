@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/patient/concerns")
-public class ConcernsController extends BasePatientController {
+@RequestMapping("/patient/conditions")
+public class ConditionsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @GetMapping(value = {"", "/"})
@@ -25,9 +25,9 @@ public class ConcernsController extends BasePatientController {
 
             model.addAttribute("conditionModels", workspace.getAllConditionModels());
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/concerns");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/conditions");
 
-            return "patient/concerns";
+            return "patient/conditions";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
