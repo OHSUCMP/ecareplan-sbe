@@ -19,29 +19,37 @@
         {{#labResultModels}}
             <div class="card">
                 <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{description}}</td>
-                    </tr>
-                    </thead>
+                    {{#mostRecentData}}
+                        <thead>
+                        <tr>
+                            <td colspan="2">{{description}}</td>
+                        </tr>
+                        </thead>
                     <tbody>
                     <tr>
                         <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
                         <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
                     </tr>
-                    {{#referenceRange}}
+                        {{#referenceRange}}
                         <tr>
                             <td colspan="2">{{referenceRange}}</td>
                         </tr>
-                    {{/referenceRange}}
-                    {{#notes}}
+                        {{/referenceRange}}
+                        {{#notes}}
                         <tr>
                             <td colspan="2">Note: {{.}}</td>
                         </tr>
-                    {{/notes}}
+                        {{/notes}}
                     <tr>
                         <td colspan="2">Source: {{sourceEndpointName}}</td>
                     </tr>
+                    {{/mostRecentData}}
+                    {{#historicalData}}
+                        <tr>
+                            <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
+                            <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
+                        </tr>
+                    {{/historicalData}}
                     </tbody>
                 </table>
             </div>
