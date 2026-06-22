@@ -163,6 +163,14 @@ public class CodeSystemUtil {
                 null;
     }
 
+    public static String getUrl(String system) {
+        if (system == null) return null;
+        List<CodeSystemInfo> codeSystems = getCodeSystems(system);
+        return codeSystems != null && ! codeSystems.isEmpty() ?
+                codeSystems.getFirst().getUrl() :
+                null;
+    }
+
     private static final Pattern OID_PATTERN = Pattern.compile("^[0-9.]+$");
     private static final Pattern URL_PATTERN = Pattern.compile("^(https?://.*)|(urn:oid:[0-9.]+)$");
 

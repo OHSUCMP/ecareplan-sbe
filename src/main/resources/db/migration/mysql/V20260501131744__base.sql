@@ -119,7 +119,7 @@ create table user_endpoint (
     created datetime not null default current_timestamp
 );
 
-create table resource_categorization (
+create table resource_categorization_valueset (
     id int not null auto_increment primary key,
     dataSetName varchar(50) not null,
     valuesetName varchar(255) not null,
@@ -128,9 +128,9 @@ create table resource_categorization (
     commonName varchar(255)
 );
 
-create unique index idxDataSetOid on resource_categorization(dataSetName, valuesetOid);
+create unique index idxDataSetOid on resource_categorization_valueset(dataSetName, valuesetOid);
 
-insert into resource_categorization (dataSetName, valuesetName, valuesetOid, category, commonName) values
+insert into resource_categorization_valueset (dataSetName, valuesetName, valuesetOid, category, commonName) values
     ('CONDITIONS', 'Arthritis Disorders', '2.16.840.1.113762.1.4.1222.81', 'Arthritis', 'Arthritis'),
     ('CONDITIONS', 'Infectious Arthritis', '2.16.840.1.113762.1.4.1222.654', 'Arthritis', 'Arthritis'),
     ('CONDITIONS', 'Osteoarthritis', '2.16.840.1.113762.1.4.1222.648', 'Arthritis', 'Osteoarthritis'),
@@ -243,7 +243,7 @@ insert into resource_categorization (dataSetName, valuesetName, valuesetOid, cat
     ('CONDITIONS', 'Sleep Apnea Disorders', '2.16.840.1.113762.1.4.1222.102', 'Respiratory Conditions', 'Sleep Apnea'),
     ('CONDITIONS', 'Social Determinants of Health', '2.16.840.1.113762.1.4.1196.788', 'Other Health Risk Factors', 'Social Determinants of Health');
 
-insert into resource_categorization (dataSetName, valuesetName, valuesetOid, commonName) values
+insert into resource_categorization_valueset (dataSetName, valuesetName, valuesetOid, commonName) values
     ('LAB_RESULTS', '24 Hour Urine Protein Excretion', '2.16.840.1.113762.1.4.1222.792', '24 Hour Urine Protein Excretion'),
     ('LAB_RESULTS', '24 Hour Urine Volume', '2.16.840.1.113762.1.4.1222.791', '24 Hour Urine Volume'),
     ('LAB_RESULTS', 'Alanine Aminotransferase (ALT), Bld/Ser/Plas', '2.16.840.1.113883.3.3616.200.110.102.5001', 'ALT'),
@@ -331,9 +331,30 @@ insert into resource_categorization (dataSetName, valuesetName, valuesetOid, com
     ('LAB_RESULTS', 'Vitamin D Levels', '2.16.840.1.113762.1.4.1222.126', 'Vitamin D'),
     ('LAB_RESULTS', 'White Blood Cell (Leukocytes) Count', '2.16.840.1.113762.1.4.1222.142', 'White Blood Cell (Leukocytes) Count');
 
-insert into resource_categorization (dataSetName, valuesetName, valuesetOid, category) values
+insert into resource_categorization_valueset (dataSetName, valuesetName, valuesetOid, category) values
     ('MEDICATIONS', 'ACEis and ARBs', '2.16.840.1.113762.1.4.1213.11', 'ACEis and ARBs'),
     ('MEDICATIONS', 'Erythropoiesis Stimulating Agent', '2.16.840.1.113762.1.4.1196.307', 'Erythropoiesis Stimulating Agent'),
     ('MEDICATIONS', 'Iron Supplement', '2.16.840.1.113762.1.4.1196.308', 'Iron Supplement'),
     ('MEDICATIONS', 'Phosphate Binders', '2.16.840.1.113762.1.4.1196.305', 'Phosphate Binders'),
     ('MEDICATIONS', 'Vitamin D', '2.16.840.1.113762.1.4.1196.306', 'Vitamin D');
+
+create table resource_categorization_coding (
+    id int not null auto_increment primary key,
+    dataSetName varchar(50) not null,
+    codeSystemUrl varchar(255) not null,
+    code varchar(255) not null,
+    category varchar(255),
+    commonName varchar(255)
+);
+
+create unique index idxDataSetSystemCode on resource_categorization_coding(dataSetName, codeSystemUrl, code);
+
+insert into resource_categorization_coding (dataSetName, codeSystemUrl, code, commonName) values
+    ('VITALS', 'http://loinc.org', '85354-9', 'Blood Pressure'),
+    ('VITALS', 'http://loinc.org', '8302-2', 'Height'),
+    ('VITALS', 'http://loinc.org', '29463-7', 'Weight'),
+    ('VITALS', 'http://loinc.org', '39156-5', 'BMI'),
+    ('VITALS', 'http://loinc.org', '8310-5', 'Temperature'),
+    ('VITALS', 'http://loinc.org', '8867-4', 'Heart Rate'),
+    ('VITALS', 'http://loinc.org', '2708-6', 'Oxygen Saturation'),
+    ('VITALS', 'http://loinc.org', '9279-1', 'Respiratory Rate');
