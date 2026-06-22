@@ -176,15 +176,15 @@ public class UserWorkspace {
                     getClinicalNotes(e);
                     getConditions(e);
                     getDiagnosticReports(e);
+                    getEncounters(e);
                     getGoals(e);
                     getImmunizations(e);
-                    getEncounters(e);
+                    getLabResults(e);
                     getMedications(e);
                     getProcedures(e);
                     getServiceRequests(e);
                     getSocialHistories(e);
                     getSurveyObservations(e);
-                    getLabResults(e);
                     getVitals(e);
                     logger.info("DONE populating for endpoint={} for session={} (took {} ms)", e.getName(), sessionId, (System.currentTimeMillis() - endpointStart));
                 }
@@ -408,6 +408,14 @@ public class UserWorkspace {
         return list;
     }
 
+    public List<EncounterModel> getAllEncountersModels() {
+        List<EncounterModel> list = new ArrayList<>();
+        for (UserEndpoint ue : getAllActiveEndpoints()) {
+            list.addAll(getEncounters(ue.getEndpoint()));
+        }
+        return list;
+    }
+
     public List<GoalModel> getAllGoalModels() {
         List<GoalModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
@@ -424,10 +432,10 @@ public class UserWorkspace {
         return list;
     }
 
-    public List<EncounterModel> getAllEncountersModels() {
-        List<EncounterModel> list = new ArrayList<>();
+    public List<LabResultModel> getAllLabResultModels() {
+        List<LabResultModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
-            list.addAll(getEncounters(ue.getEndpoint()));
+            list.addAll(getLabResults(ue.getEndpoint()));
         }
         return list;
     }
@@ -468,14 +476,6 @@ public class UserWorkspace {
         List<SurveyObservationModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveEndpoints()) {
             list.addAll(getSurveyObservations(ue.getEndpoint()));
-        }
-        return list;
-    }
-
-    public List<LabResultModel> getAllLabResultModels() {
-        List<LabResultModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveEndpoints()) {
-            list.addAll(getLabResults(ue.getEndpoint()));
         }
         return list;
     }
@@ -526,6 +526,11 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
+    public List<EncounterModel> getEncounters(Endpoint e) {
+        return (List<EncounterModel>) getCachedDataSetForEndpoint(DataSetName.ENCOUNTERS, e);
+    }
+
+    @SuppressWarnings("unchecked")
     public List<GoalModel> getGoals(Endpoint e) {
         return (List<GoalModel>) getCachedDataSetForEndpoint(DataSetName.GOALS, e);
     }
@@ -536,8 +541,8 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    public List<EncounterModel> getEncounters(Endpoint e) {
-        return (List<EncounterModel>) getCachedDataSetForEndpoint(DataSetName.ENCOUNTERS, e);
+    public List<LabResultModel> getLabResults(Endpoint e) {
+        return (List<LabResultModel>) getCachedDataSetForEndpoint(DataSetName.LAB_RESULTS, e);
     }
 
     @SuppressWarnings("unchecked")
@@ -563,11 +568,6 @@ public class UserWorkspace {
     @SuppressWarnings("unchecked")
     public List<SurveyObservationModel> getSurveyObservations(Endpoint e) {
         return (List<SurveyObservationModel>) getCachedDataSetForEndpoint(DataSetName.SURVEY_OBSERVATIONS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<LabResultModel> getLabResults(Endpoint e) {
-        return (List<LabResultModel>) getCachedDataSetForEndpoint(DataSetName.LAB_RESULTS, e);
     }
 
     @SuppressWarnings("unchecked")
@@ -612,14 +612,17 @@ public class UserWorkspace {
                     case DIAGNOSTIC_REPORTS:
                         obj = dataSetBuilderService.buildDiagnosticReports(sessionId, endpoint);
                         break;
+                    case ENCOUNTERS:
+                        obj = dataSetBuilderService.buildEncounters(sessionId, endpoint);
+                        break;
                     case GOALS:
                         obj = dataSetBuilderService.buildGoals(sessionId, endpoint);
                         break;
                     case IMMUNIZATIONS:
                         obj = dataSetBuilderService.buildImmunizations(sessionId, endpoint);
                         break;
-                    case ENCOUNTERS:
-                        obj = dataSetBuilderService.buildEncounters(sessionId, endpoint);
+                    case LAB_RESULTS:
+                        obj = dataSetBuilderService.buildLabResults(sessionId, endpoint);
                         break;
                     case MEDICATIONS:
                         obj = dataSetBuilderService.buildMedications(sessionId, endpoint);
@@ -635,9 +638,6 @@ public class UserWorkspace {
                         break;
                     case SURVEY_OBSERVATIONS:
                         obj = dataSetBuilderService.buildSurveyObservations(sessionId, endpoint);
-                        break;
-                    case LAB_RESULTS:
-                        obj = dataSetBuilderService.buildLabResults(sessionId, endpoint);
                         break;
                     case VITALS:
                         obj = dataSetBuilderService.buildVitals(sessionId, endpoint);

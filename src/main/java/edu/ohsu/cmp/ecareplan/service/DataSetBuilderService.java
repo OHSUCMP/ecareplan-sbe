@@ -217,6 +217,28 @@ public class DataSetBuilderService extends BaseService {
         return list;
     }
 
+    public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
+        UserWorkspace workspace = userWorkspaceService.get(sessionId);
+        logger.info("building Encounters for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
+        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+        List<EncounterModel> list = new ArrayList<>();
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.ENCOUNTERS, e)) {
+            list.addAll(
+                    rt.transformEncounters(
+                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
+                    )
+            );
+        }
+
+        for (EncounterModel im : list) {
+            im.setSourceEndpointName(e.getName());
+            im.setSourceEndpointIss(e.getIss());
+        }
+
+        return list;
+    }
+
     public List<GoalModel> buildGoals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         logger.info("building Goals for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
@@ -261,23 +283,23 @@ public class DataSetBuilderService extends BaseService {
         return list;
     }
 
-    public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
+    public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Encounters for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Lab Results for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        List<EncounterModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.ENCOUNTERS, e)) {
+        List<LabResultModel> list = new ArrayList<>();
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.LAB_RESULTS, e)) {
             list.addAll(
-                    rt.transformEncounters(
+                    rt.transformLabResults(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
                     )
             );
         }
 
-        for (EncounterModel im : list) {
-            im.setSourceEndpointName(e.getName());
-            im.setSourceEndpointIss(e.getIss());
+        for (LabResultModel tm : list) {
+            tm.setSourceEndpointName(e.getName());
+            tm.setSourceEndpointIss(e.getIss());
         }
 
         return list;
@@ -418,28 +440,6 @@ public class DataSetBuilderService extends BaseService {
         for (SurveyObservationModel so : list) {
             so.setSourceEndpointName(e.getName());
             so.setSourceEndpointIss(e.getIss());
-        }
-
-        return list;
-    }
-
-    public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Lab Results for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        List<LabResultModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSetName.LAB_RESULTS, e)) {
-            list.addAll(
-                    rt.transformLabResults(
-                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
-                    )
-            );
-        }
-
-        for (LabResultModel tm : list) {
-            tm.setSourceEndpointName(e.getName());
-            tm.setSourceEndpointIss(e.getIss());
         }
 
         return list;
