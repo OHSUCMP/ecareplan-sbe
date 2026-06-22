@@ -76,6 +76,11 @@ public class GoalModel extends BaseDataSetModel<Goal> {
         }
     }
 
+    @Override
+    public Goal toResourceForSDSExport() {
+        return sourceResource;
+    }
+
     public String getCategory() {
         return category;
     }

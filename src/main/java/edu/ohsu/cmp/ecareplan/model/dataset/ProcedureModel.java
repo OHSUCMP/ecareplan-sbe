@@ -6,4 +6,9 @@ public class ProcedureModel extends BaseDataSetModel<Procedure> {
     public ProcedureModel(Procedure procedure) {
         super(procedure);
     }
+
+    @Override
+    public Procedure toResourceForSDSExport() {
+        return sourceResource;
+    }
 }

@@ -66,7 +66,18 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         List<ClinicalNoteModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof DocumentReference documentReference) {
-                list.add(new ClinicalNoteModel(documentReference));
+                List<Binary> binaryList = null;
+                if (documentReference.hasContent()) {
+                    for (DocumentReference.DocumentReferenceContentComponent content : documentReference.getContent()) {
+                        if (content.hasAttachment() && content.getAttachment().hasUrl() &&
+                                FhirUtil.bundleContainsReference(bundle, content.getAttachment().getUrl())) {
+                            if (binaryList == null) binaryList = new ArrayList<>();
+                            Binary binary = FhirUtil.getResourceFromBundleByReference(bundle, Binary.class, content.getAttachment().getUrl());
+                            binaryList.add(binary);
+                        }
+                    }
+                }
+                list.add(new ClinicalNoteModel(documentReference, binaryList));
             }
         }
         appendProvenance(list, bundle);

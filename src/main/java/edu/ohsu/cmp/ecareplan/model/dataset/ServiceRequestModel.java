@@ -39,6 +39,11 @@ public class ServiceRequestModel extends BaseDataSetModel<ServiceRequest> {
         }
     }
 
+    @Override
+    public ServiceRequest toResourceForSDSExport() {
+        return sourceResource;
+    }
+
     public String getCode() {
         return code;
     }

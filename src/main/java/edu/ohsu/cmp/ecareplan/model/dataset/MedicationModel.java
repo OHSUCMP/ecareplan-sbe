@@ -7,11 +7,11 @@ import java.util.Date;
 import java.util.List;
 
 public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
-    private Medication sourceMedication;
-    private Practitioner sourceRequester;
+    private final Medication sourceMedication;
+    private final Practitioner sourceRequester;
 
-    private String category;
-    private String status;
+    private final String category;
+    private final String status;
     private String conceptName;
     private Date authoredOn;
     private String requester;
@@ -78,6 +78,37 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         if (medicationRequest.hasNote()) {
             notes = buildNotes(medicationRequest.getNote());
         }
+    }
+
+    @Override
+    public MedicationRequest toResourceForSDSExport() {
+        // if MedicationRequest resource references a Medication, integrate information from the Medication into the
+        // MedicationRequest resource
+        if (sourceMedication != null && sourceMedication.hasCode()) {
+            MedicationRequest medicationRequest = sourceResource.copy();
+
+            if ( ! medicationRequest.hasMedicationCodeableConcept() ) {
+                medicationRequest.setMedication(new CodeableConcept());
+            }
+
+            CodeableConcept cc = sourceMedication.getCode();
+            if (cc.hasCoding()) {
+                for (Coding coding : cc.getCoding()) {
+                    if (!FhirUtil.hasCoding(medicationRequest.getMedicationCodeableConcept(), coding)) {
+                        medicationRequest.getMedicationCodeableConcept().addCoding(coding);
+                    }
+                }
+            }
+            if (cc.hasText()) {
+                if ( ! medicationRequest.getMedicationCodeableConcept().hasText() ) {
+                    medicationRequest.getMedicationCodeableConcept().setText(cc.getText());
+                }
+            }
+
+            return medicationRequest;
+        }
+
+        return sourceResource;
     }
 
     public Medication getSourceMedication() {

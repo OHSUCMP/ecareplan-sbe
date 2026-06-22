@@ -6,4 +6,9 @@ public class AssessmentModel extends BaseDataSetModel<QuestionnaireResponse> {
     public AssessmentModel(QuestionnaireResponse questionnaireResponse) {
         super(questionnaireResponse);
     }
+
+    @Override
+    public QuestionnaireResponse toResourceForSDSExport() {
+        return sourceResource;
+    }
 }

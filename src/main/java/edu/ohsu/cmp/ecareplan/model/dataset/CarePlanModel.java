@@ -6,4 +6,9 @@ public class CarePlanModel extends BaseDataSetModel<CarePlan> {
     public CarePlanModel(CarePlan carePlan) {
         super(carePlan);
     }
+
+    @Override
+    public CarePlan toResourceForSDSExport() {
+        return sourceResource;
+    }
 }

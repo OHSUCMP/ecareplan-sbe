@@ -51,6 +51,11 @@ public class EncounterModel extends BaseDataSetModel<Encounter> {
         }
     }
 
+    @Override
+    public Encounter toResourceForSDSExport() {
+        return sourceResource;
+    }
+
     public List<String> getTypes() {
         return types;
     }

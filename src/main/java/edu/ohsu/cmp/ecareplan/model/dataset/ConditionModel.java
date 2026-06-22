@@ -8,8 +8,8 @@ import java.util.Date;
 import java.util.List;
 
 public class ConditionModel extends BaseDataSetModel<Condition> {
-    private String category;
-    private String commonName;
+    private final String category;
+    private final String commonName;
     private String conceptName;
     private Date recordedDate;
     private Date assertedDate;          // todo: populate this from extension
@@ -56,6 +56,11 @@ public class ConditionModel extends BaseDataSetModel<Condition> {
         if (condition.hasNote()) {
             notes = buildNotes(condition.getNote());
         }
+    }
+
+    @Override
+    public Condition toResourceForSDSExport() {
+        return sourceResource;
     }
 
     public String getCategory() {

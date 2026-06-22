@@ -28,6 +28,8 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
         this.id = resource.getId();
     }
 
+    public abstract T toResourceForSDSExport();
+
     public T getSourceResource() {
         return sourceResource;
     }

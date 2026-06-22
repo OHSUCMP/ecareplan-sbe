@@ -6,4 +6,9 @@ public class ImmunizationModel extends BaseDataSetModel<Immunization> {
     public ImmunizationModel(Immunization immunization) {
         super(immunization);
     }
+
+    @Override
+    public Immunization toResourceForSDSExport() {
+        return sourceResource;
+    }
 }

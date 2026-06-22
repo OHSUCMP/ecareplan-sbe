@@ -13,7 +13,7 @@ public class LabResultModel extends ObservationModel {
     private static final Coding SYSTOLIC_CODING = new Coding("http://loinc.org", "8480-6", "Systolic blood pressure");
     private static final Coding DIASTOLIC_CODING = new Coding("http://loinc.org", "8462-4", "Diastolic blood pressure");
 
-    private String commonName;
+    private final String commonName;
     private String conceptName;
     private Date effectiveDate;
     private String resultText;
@@ -92,6 +92,11 @@ public class LabResultModel extends ObservationModel {
         if (observation.hasNote()) {
             notes = buildNotes(observation.getNote());
         }
+    }
+
+    @Override
+    public Observation toResourceForSDSExport() {
+        return sourceResource;
     }
 
     public String getCommonName() {

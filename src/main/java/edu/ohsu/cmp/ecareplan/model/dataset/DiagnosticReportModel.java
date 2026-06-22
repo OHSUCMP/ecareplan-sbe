@@ -6,4 +6,9 @@ public class DiagnosticReportModel extends BaseDataSetModel<DiagnosticReport> {
     public DiagnosticReportModel(DiagnosticReport diagnosticReport) {
         super(diagnosticReport);
     }
+
+    @Override
+    public DiagnosticReport toResourceForSDSExport() {
+        return sourceResource;
+    }
 }

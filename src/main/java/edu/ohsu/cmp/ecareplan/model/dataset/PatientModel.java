@@ -13,7 +13,7 @@ public class PatientModel extends BaseDataSetModel<Patient> {
 
     private static final String GENDER_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/patient-genderIdentity";
 
-    private String name;
+    private final String name;
     private Long age;
     private String gender;
 
@@ -73,6 +73,11 @@ public class PatientModel extends BaseDataSetModel<Patient> {
         if (gender == null && patient.hasGender()) {
             gender = patient.getGender().getDisplay();
         }
+    }
+
+    @Override
+    public Patient toResourceForSDSExport() {
+        return sourceResource;
     }
 
     public String getName() {
