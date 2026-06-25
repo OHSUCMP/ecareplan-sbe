@@ -18,6 +18,31 @@
     <div class="cardContainer">
         {{#immunizationModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{#description}}{{description}}{{/description}}{{^description}}No text{{/description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td colspan="2">Administered on: {{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}{{^effectiveDate}}Unknown{{/effectiveDate}}</td>
+                    </tr>
+                    {{#location}}
+                        <tr>
+                            <td colspan="2">Location: {{location}}</td>
+                        </tr>
+                    {{/location}}
+                    {{#notes}}
+                        <tr>
+                            <td colspan="2">Notes: {{.}}</td>
+                        </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/immunizationModels}}
     </div>
