@@ -1,7 +1,6 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
-import edu.ohsu.cmp.ecareplan.model.dataset.Consolidated;
 import edu.ohsu.cmp.ecareplan.model.dataset.LabResultModel;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
@@ -12,7 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.*;
+import java.util.Comparator;
 
 @Controller
 @RequestMapping("/patient/lab-results")
@@ -27,7 +26,7 @@ public class LabResultsController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("labResultModels", consolidate(workspace.getAllLabResultModels()));
+            model.addAttribute("labResultModels", consolidate(workspace.getAllLabResultModels(), Comparator.comparing(LabResultModel::getEffectiveDate).reversed()));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/lab-results");
 
@@ -37,38 +36,5 @@ public class LabResultsController extends BasePatientController {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
             return "redirect:/patient/launch";
         }
-    }
-
-    private List<Consolidated<LabResultModel>> consolidate(List<LabResultModel> labResultModels) {
-        if (labResultModels == null) return null;
-
-        Map<String, List<LabResultModel>> map = new LinkedHashMap<>();
-        for (LabResultModel labResultModel : labResultModels) {
-            if ( ! map.containsKey(labResultModel.getDescription()) ) {
-                map.put(labResultModel.getDescription(), new ArrayList<>());
-            }
-            map.get(labResultModel.getDescription()).add(labResultModel);
-        }
-
-        List<Consolidated<LabResultModel>> list = new ArrayList<>();
-
-        for (List<LabResultModel> values : map.values()) {
-            if (values.size() > 1) {
-                List<LabResultModel> sorted = values.stream().sorted(new Comparator<LabResultModel>(){
-                    @Override
-                    public int compare(LabResultModel o1, LabResultModel o2) {
-                        return o1.getEffectiveDate().compareTo(o2.getEffectiveDate());
-                    }
-                }).toList();
-
-                list.add(new Consolidated<>(sorted.getFirst(), sorted.subList(1, sorted.size())));
-
-            } else {
-                list.add(new Consolidated<>(values.getFirst(), null));
-            }
-        }
-
-
-        return list;
     }
 }

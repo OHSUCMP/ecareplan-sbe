@@ -18,6 +18,40 @@
     <div class="cardContainer">
         {{#vitalsModels}}
             <div class="card">
+                <table>
+                    {{#mostRecentData}}
+                        <thead>
+                        <tr>
+                            <td colspan="2">{{description}}</td>
+                        </tr>
+                        </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
+                        <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
+                    </tr>
+                    {{#performers}}
+                    <tr>
+                        <td colspan="2">{{.}}</td>
+                    </tr>
+                    {{/performers}}
+                    {{#notes}}
+                    <tr>
+                        <td colspan="2">Note: {{.}}</td>
+                    </tr>
+                    {{/notes}}
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    {{/mostRecentData}}
+                    {{#historicalData}}
+                    <tr>
+                        <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
+                        <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
+                    </tr>
+                    {{/historicalData}}
+                </tbody>
+                </table>
             </div>
         {{/vitalsModels}}
     </div>

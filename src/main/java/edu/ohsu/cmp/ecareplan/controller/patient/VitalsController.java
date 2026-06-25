@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.VitalsModel;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.Comparator;
 
 @Controller
 @RequestMapping("/patient/vitals")
@@ -23,7 +26,7 @@ public class VitalsController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("vitalsModels", workspace.getAllVitalsModels());
+            model.addAttribute("vitalsModels", consolidate(workspace.getAllVitalsModels(), Comparator.comparing(VitalsModel::getEffectiveDate).reversed()));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/vitals");
 

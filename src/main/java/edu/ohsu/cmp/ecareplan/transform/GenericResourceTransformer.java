@@ -276,7 +276,17 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         List<VitalsModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
-                list.add(new VitalsModel(observation));
+                String commonName = null;
+                if (observation.hasCode()) {
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.VITALS, observation.getCode());
+                    if (rc != null) {
+                        commonName = rc.getCommonName();
+                    }
+                }
+
+                // todo : combine individual systolic and diastolic observations into composite blood pressure panels
+
+                list.add(new VitalsModel(observation, commonName));
             }
         }
         appendProvenance(list, bundle);
