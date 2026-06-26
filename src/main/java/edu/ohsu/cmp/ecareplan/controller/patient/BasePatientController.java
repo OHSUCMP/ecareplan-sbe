@@ -37,7 +37,6 @@ public class BasePatientController extends BaseController {
         }
 
         List<Consolidated<T>> list = new ArrayList<>();
-//        Comparator comparator = Comparator.comparing(Consolidatable::getConsolidationSortBy).reversed();
 
         for (List<T> values : map.values()) {
             if (values.size() > 1) {
