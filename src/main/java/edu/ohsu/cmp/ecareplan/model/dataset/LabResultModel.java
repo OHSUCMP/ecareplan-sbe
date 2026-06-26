@@ -2,7 +2,9 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import org.hl7.fhir.r4.model.Observation;
 
-public class LabResultModel extends ObservationModel implements Consolidatable {
+import java.util.Date;
+
+public class LabResultModel extends ObservationModel implements Consolidatable<Date> {
     private final String commonName;
 
     public LabResultModel(Observation observation, String commonName) {
@@ -18,6 +20,11 @@ public class LabResultModel extends ObservationModel implements Consolidatable {
     @Override
     public String getConsolidationKey() {
         return getDescription();
+    }
+
+    @Override
+    public Date getConsolidationSortBy() {
+        return getEffectiveDate();
     }
 
     public String getCommonName() {

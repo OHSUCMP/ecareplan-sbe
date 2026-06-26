@@ -25,7 +25,7 @@ public class BasePatientController extends BaseController {
         super.setCommonViewComponents(sessionId, model);
     }
 
-    protected <T extends Consolidatable> List<Consolidated<T>> consolidate(List<T> sourceList, Comparator<T> comparator) {
+    protected <T extends Consolidatable<S>, S extends Comparable<S>> List<Consolidated<T>> consolidate(List<T> sourceList) {
         if (sourceList == null) return null;
 
         Map<String, List<T>> map = new LinkedHashMap<>();
@@ -37,10 +37,24 @@ public class BasePatientController extends BaseController {
         }
 
         List<Consolidated<T>> list = new ArrayList<>();
+//        Comparator comparator = Comparator.comparing(Consolidatable::getConsolidationSortBy).reversed();
 
         for (List<T> values : map.values()) {
             if (values.size() > 1) {
-                List<T> sorted = values.stream().sorted(comparator).toList();
+                List<T> sorted = values.stream().sorted(new Comparator<T>() {
+                    @Override
+                    public int compare(T o1, T o2) {
+                        if (o1 == null && o2 == null) return 0;
+                        if (o1 == null) return 1;
+                        if (o2 == null) return -1;
+
+                        if (o1.getConsolidationSortBy() == null && o2.getConsolidationSortBy() == null) return 0;
+                        if (o1.getConsolidationSortBy() == null && o2.getConsolidationSortBy() != null) return 1;
+                        if (o1.getConsolidationSortBy() != null && o2.getConsolidationSortBy() == null) return -1;
+
+                        return o1.getConsolidationSortBy().compareTo(o2.getConsolidationSortBy());
+                    }
+                }).toList().reversed();
                 list.add(new Consolidated<>(sorted.getFirst(), sorted.subList(1, sorted.size())));
 
             } else {
