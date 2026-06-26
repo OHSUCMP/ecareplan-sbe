@@ -18,7 +18,7 @@ public class VitalsModel extends ObservationModel implements Consolidatable<Date
     }
 
     @Override
-    public String getConsolidationKey() {
+    public String getConsolidationGroupBy() {
         return getDescription();
     }
 

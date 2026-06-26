@@ -18,7 +18,7 @@ public class LabResultModel extends ObservationModel implements Consolidatable<D
     }
 
     @Override
-    public String getConsolidationKey() {
+    public String getConsolidationGroupBy() {
         return getDescription();
     }
 

@@ -30,10 +30,10 @@ public class BasePatientController extends BaseController {
 
         Map<String, List<T>> map = new LinkedHashMap<>();
         for (T t : sourceList) {
-            if ( ! map.containsKey(t.getConsolidationKey()) ) {
-                map.put(t.getConsolidationKey(), new ArrayList<>());
+            if ( ! map.containsKey(t.getConsolidationGroupBy()) ) {
+                map.put(t.getConsolidationGroupBy(), new ArrayList<>());
             }
-            map.get(t.getConsolidationKey()).add(t);
+            map.get(t.getConsolidationGroupBy()).add(t);
         }
 
         List<Consolidated<T>> list = new ArrayList<>();
