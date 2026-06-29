@@ -18,6 +18,38 @@
     <div class="cardContainer">
         {{#careTeamModels}}
             <div class="card">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="2">{{description}}</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#period}}
+                        <tr>
+                            <td colspan="2">Time Period: {{period}}</td>
+                        </tr>
+                    {{/period}}
+                    <tr>
+                        <td colspan="2">
+                            <table>
+                                <tbody>
+                                {{#participants}}
+                                    <tr>
+                                        <td>{{name}}</td>
+                                        <td>{{#role}}{{role}}{{/role}}</td>
+                                        <td>{{#period}}{{period}}{{/period}}</td>
+                                    </tr>
+                                {{/participants}}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/careTeamModels}}
     </div>
