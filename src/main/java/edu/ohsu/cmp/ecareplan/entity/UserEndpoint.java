@@ -18,9 +18,9 @@ public class UserEndpoint {
     @JoinColumn(name = "endpointId")
     private Endpoint endpoint;
 
-    private String fhirPatientId;
-    private String fhirUserId;
-    private Date lastSync;
+    private String encryptedRefreshTokenDataB64;
+    private Date lastAuthInitiated;
+    private Date lastSyncCompleted;
     private Date created;
 
     public Long getId() {
@@ -47,28 +47,28 @@ public class UserEndpoint {
         this.endpoint = endpoint;
     }
 
-    public String getFhirPatientId() {
-        return fhirPatientId;
+    public String getEncryptedRefreshTokenDataB64() {
+        return encryptedRefreshTokenDataB64;
     }
 
-    public void setFhirPatientId(String fhirPatientId) {
-        this.fhirPatientId = fhirPatientId;
+    public void setEncryptedRefreshTokenDataB64(String encryptedRefreshTokenDataB64) {
+        this.encryptedRefreshTokenDataB64 = encryptedRefreshTokenDataB64;
     }
 
-    public String getFhirUserId() {
-        return fhirUserId;
+    public Date getLastAuthInitiated() {
+        return lastAuthInitiated;
     }
 
-    public void setFhirUserId(String fhirUserId) {
-        this.fhirUserId = fhirUserId;
+    public void setLastAuthInitiated(Date lastAuthInitiated) {
+        this.lastAuthInitiated = lastAuthInitiated;
     }
 
-    public Date getLastSync() {
-        return lastSync;
+    public Date getLastSyncCompleted() {
+        return lastSyncCompleted;
     }
 
-    public void setLastSync(Date lastSync) {
-        this.lastSync = lastSync;
+    public void setLastSyncCompleted(Date lastSyncCompleted) {
+        this.lastSyncCompleted = lastSyncCompleted;
     }
 
     public Date getCreated() {

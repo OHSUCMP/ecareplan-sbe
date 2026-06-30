@@ -1,6 +1,7 @@
 create table user (
     id int not null auto_increment primary key,
-    patIdHash char(64) unique not null
+    patIdHash char(64) unique not null,
+    saltB64 varchar(64) not null
 );
 
 create table audit_data (
@@ -113,11 +114,13 @@ create table user_endpoint (
     id int not null auto_increment primary key,
     userId int not null references user(id),
     endpointId int not null references endpoint(id),
-    fhirPatientId varchar(255),
-    fhirUserId varchar(255),
-    lastSync datetime,
+    encryptedRefreshTokenDataB64 text,
+    lastAuthInitiated datetime,
+    lastSyncCompleted datetime,
     created datetime not null default current_timestamp
 );
+
+create unique index idxUserEndpoint on user_endpoint(userId, endpointId);
 
 create table resource_categorization_valueset (
     id int not null auto_increment primary key,

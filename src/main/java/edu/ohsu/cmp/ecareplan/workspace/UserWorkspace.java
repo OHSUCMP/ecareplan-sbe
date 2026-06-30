@@ -14,12 +14,14 @@ import edu.ohsu.cmp.ecareplan.exception.CaseNotHandledException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.EndpointProviderType;
+import edu.ohsu.cmp.ecareplan.model.RefreshTokenData;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
+import edu.ohsu.cmp.ecareplan.util.CryptoUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
@@ -28,7 +30,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.*;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +63,10 @@ public class UserWorkspace {
     private final ExecutorService executorService;
 
     private final DataSetBuilderService dataSetBuilderService;
+    private final EndpointService endpointService;
     private final AuditService auditService;
+
+    private SecretKey secretKey;
 
 
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
@@ -64,15 +77,30 @@ public class UserWorkspace {
         this.launchCredentialsWithClient = launchCredentialsWithClient;
         this.socketTimeout = socketTimeout;
 
-        this.dataSetBuilderService = ctx.getBean(DataSetBuilderService.class);
-        this.auditService = ctx.getBean(AuditService.class);
+        dataSetBuilderService = ctx.getBean(DataSetBuilderService.class);
+        endpointService = ctx.getBean(EndpointService.class);
+        auditService = ctx.getBean(AuditService.class);
 
         UserService userService = ctx.getBean(UserService.class);
         User user = userService.getUser(
                 launchCredentialsWithClient.getCredentials().getPatientId()
         );
 
-        this.userId = user.getId();
+        userId = user.getId();
+
+        // generate a secret key that can be used to encrypt and decrypt sensitive database assets
+        // presently, the user's FHIR Patient ID is used as the password that undergirds this key, which admittedly
+        // isn't the best, but it isn't anywhere else in the database, and it's certainly not something anyone
+        // will be able to easily guess.  we want something that's just a part of the access token so the user
+        // doesn't need to set and manage a separate password.  I think this is probably secure enough?
+        try {
+            secretKey = CryptoUtil.generateSecretKey(
+                    launchCredentialsWithClient.getCredentials().getPatientId(),
+                    Base64.getDecoder().decode(user.getSaltB64())
+            );
+        } catch (Exception e) {
+            logger.error("caught {} generating secret key for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
+        }
 
         userEndpointCredentialsList = new ArrayList<>();
         UserEndpoint ue = getOrCreateUserEndpointIfMissing();
@@ -89,8 +117,6 @@ public class UserWorkspace {
     }
 
     private UserEndpoint getOrCreateUserEndpointIfMissing() {
-        EndpointService endpointService = ctx.getBean(EndpointService.class);
-
         Endpoint endpoint;
         if (Audience.PATIENT.equals(audience)) {
             endpoint = endpointService.getPatientLaunchEndpoint();
@@ -105,13 +131,18 @@ public class UserWorkspace {
             ue = endpointService.getUserEndpoint(userId, endpoint.getId());
 
         } catch (NoSuchElementException nsee) {
-            ue = endpointService.createUserEndpoint(userId,
-                    launchCredentialsWithClient.getCredentials().getPatientId(),
-                    launchCredentialsWithClient.getCredentials().getUserId(),
-                    endpoint);
+            ue = endpointService.createUserEndpoint(userId, endpoint);
         }
 
         return ue;
+    }
+
+    private RefreshTokenData getRefreshTokenData(Endpoint endpoint) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+        return endpointService.getRefreshTokenData(userId, endpoint.getId(), secretKey);
+    }
+
+    private void setRefreshTokenData(Endpoint endpoint, RefreshTokenData refreshTokenData) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
+        endpointService.setRefreshTokenData(userId, endpoint.getId(), secretKey, refreshTokenData);
     }
 
     public String getSessionId() {
@@ -132,7 +163,6 @@ public class UserWorkspace {
     }
 
     public boolean addEndpointWithCredentials(Endpoint endpoint, FHIRCredentials credentials) {
-        EndpointService endpointService = ctx.getBean(EndpointService.class);
         UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint.getId());
         FHIRCredentialsWithClient fcc = getCredentialsWithClientForEndpoint(ue.getEndpoint());
         if (fcc == null) {
@@ -212,10 +242,9 @@ public class UserWorkspace {
 
     public void shutdown() {
         logger.info("shutting down workspace for session={}", sessionId);
+        secretKey = null;
         executorService.shutdown();
-
         clearCacheAndCredentials();
-
         shutdownJobs();
     }
 

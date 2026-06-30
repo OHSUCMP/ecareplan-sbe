@@ -20,8 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.io.IOException;
-
 @Controller
 @RequestMapping("/patient")
 public class PatientHomeController extends BasePatientController {
@@ -61,7 +59,7 @@ public class PatientHomeController extends BasePatientController {
                                             @RequestParam String serverUrl,
                                             @RequestParam String bearerToken,
                                             @RequestParam String patientId,
-                                            @RequestParam String userId) throws ConfigurationException, IOException {
+                                            @RequestParam String userId) throws ConfigurationException {
 
         Endpoint patientEndpoint = endpointService.getPatientLaunchEndpoint();
         if ( ! patientEndpoint.getClientId().equals(clientId) || ! patientEndpoint.getIss().equals(serverUrl) ) {
