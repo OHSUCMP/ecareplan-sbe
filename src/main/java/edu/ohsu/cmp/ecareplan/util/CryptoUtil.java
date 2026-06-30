@@ -61,9 +61,9 @@ public class CryptoUtil {
         return b;
     }
 
-    public static SecretKey generateSecretKey(String password, byte[] salt) throws InvalidKeySpecException, NoSuchAlgorithmException {
+    public static SecretKey generateSecretKey(char[] password, byte[] salt) throws InvalidKeySpecException, NoSuchAlgorithmException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 256);
+        KeySpec spec = new PBEKeySpec(password, salt, 65536, 256);
         SecretKey tmp = factory.generateSecret(spec);
         return new SecretKeySpec(tmp.getEncoded(), "AES");
     }

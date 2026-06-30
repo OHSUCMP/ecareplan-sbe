@@ -95,7 +95,7 @@ public class UserWorkspace {
         // doesn't need to set and manage a separate password.  I think this is probably secure enough?
         try {
             secretKey = CryptoUtil.generateSecretKey(
-                    launchCredentialsWithClient.getCredentials().getPatientId(),
+                    launchCredentialsWithClient.getCredentials().getPatientId().toCharArray(),
                     Base64.getDecoder().decode(user.getSaltB64())
             );
         } catch (Exception e) {
