@@ -1,0 +1,80 @@
+{{>layout/header}}
+
+<div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+
+<div class="container">
+    {{#systemStatusMessage}}
+        <div class="row align-items-center alert alert-teal" role="alert">
+            <div class="col-md-auto text-center">
+                <img src="/images/info-icon.png" alt="System Status" height="50px" />
+            </div>
+            <div class="col">
+                {{systemStatusMessage}}
+            </div>
+        </div>
+    {{/systemStatusMessage}}
+
+    <h1>Currently Active Connected Endpoints</h1>
+    <p>
+        You are currently connected to the following endpoints:
+    </p>
+    <ol>
+        {{#activeEndpointModels}}
+            <li>{{name}}</li>
+        {{/activeEndpointModels}}
+    </ol>
+
+    <h1>Connect to a New Endpoint</h1>
+    <p>
+        Select an endpoint and click the Login button below to authenticate and integrate your health data from
+        that institution.
+    </p>
+
+    <select id="endpointSelect" class="form-control">
+        <option value="" selected disabled hidden>---Select an Endpoint---</option>
+        {{#thirdPartyEndpointModels}}
+            <option value="{{id}}" data-client-id="{{clientId}}" data-scope="{{scope}}" data-redirect-uri="{{redirectUri}}" data-iss="{{iss}}">
+                {{name}}
+            </option>
+        {{/thirdPartyEndpointModels}}
+    </select>
+
+    <input type="button" id="loginButton" class="btn btn-primary" value="Login" disabled />
+</div>
+
+<script type="text/javascript">
+    $(document).on('change', '#endpointSelect', function() {
+        let el = $(this).find('option:selected').first();
+        $('#loginButton').prop('disabled', !el.val());
+    });
+
+    $(document).on('click', '#loginButton', function() {
+        $('#endpointSelect').prop('disabled', true);
+        $('#loginButton').prop('disabled', true);
+        $('html').css('cursor', 'wait');
+
+        let el = $('#endpointSelect').find('option:selected').first();
+        let clientId = el.data('client-id');
+        let scope = el.data('scope');
+        let redirectUri = el.data('redirect-uri');
+        let iss = el.data('iss');
+
+        FHIR.oauth2.authorize({
+            "client_id": clientId,
+            "scope": scope,
+            "redirect_uri": redirectUri,
+            "iss": iss
+        });
+    });
+
+    $(document).ready(function() {
+        let sessionEstablished = $('#sessionEstablished').text();
+        if (sessionEstablished !== 'true') {
+            return;
+        }
+
+        // todo : things that should happen once the page has loaded
+    });
+</script>
+
+{{>layout/footer}}
