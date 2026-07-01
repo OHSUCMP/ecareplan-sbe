@@ -2,7 +2,6 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
-import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +23,13 @@ public class EndpointController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("patientModels", workspace.getAllPatientModels());
+            model.addAttribute("pageScripts", new String[] { "fhir-client-v2.6.3.min.js" });
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
+            model.addAttribute("endpointModels", endpointService.getAllThirdPartyEndpoints());
+
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/select-endpoint");
 
             return "patient/select-endpoint";
 
