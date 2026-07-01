@@ -21,7 +21,6 @@ public class BasePatientController extends BaseController {
 
     protected void setCommonViewComponents(String sessionId, Model model) {
         model.addAttribute("applicationName", APPLICATION_NAME);
-        model.addAttribute("pageStyles", new String[] { "patient/app.css" });
         super.setCommonViewComponents(sessionId, model);
     }
 
