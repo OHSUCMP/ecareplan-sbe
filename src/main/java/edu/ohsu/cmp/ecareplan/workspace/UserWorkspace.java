@@ -405,7 +405,10 @@ public class UserWorkspace {
     public List<PatientModel> getAllPatientModels() {
         List<PatientModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.add(getPatient(ue.getEndpoint()));
+            PatientModel patientModel = getPatient(ue.getEndpoint());
+            if (patientModel != null) {
+                list.add(patientModel);
+            }
         }
         return list;
     }
@@ -413,7 +416,10 @@ public class UserWorkspace {
     public List<AssessmentModel> getAllAssessmentModels() {
         List<AssessmentModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getAssessments(ue.getEndpoint()));
+            List<AssessmentModel> assessmentModels = getAssessments(ue.getEndpoint());
+            if (assessmentModels != null) {
+                list.addAll(assessmentModels);
+            }
         }
         return list;
     }
@@ -421,7 +427,10 @@ public class UserWorkspace {
     public List<CarePlanModel> getAllCarePlanModels() {
         List<CarePlanModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getCarePlans(ue.getEndpoint()));
+            List<CarePlanModel> carePlanModels = getCarePlans(ue.getEndpoint());
+            if (carePlanModels != null) {
+                list.addAll(carePlanModels);
+            }
         }
         return list;
     }
@@ -429,7 +438,10 @@ public class UserWorkspace {
     public List<CareTeamModel> getAllCareTeamModels() {
         List<CareTeamModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getCareTeams(ue.getEndpoint()));
+            List<CareTeamModel> careTeamModels = getCareTeams(ue.getEndpoint());
+            if (careTeamModels != null) {
+                list.addAll(careTeamModels);
+            }
         }
         return list;
     }
@@ -437,7 +449,10 @@ public class UserWorkspace {
     public List<ClinicalNoteModel> getAllClinicalNoteModels() {
         List<ClinicalNoteModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getClinicalNotes(ue.getEndpoint()));
+            List<ClinicalNoteModel> clinicalNoteModels = getClinicalNotes(ue.getEndpoint());
+            if (clinicalNoteModels != null) {
+                list.addAll(clinicalNoteModels);
+            }
         }
         return list;
     }
@@ -445,7 +460,10 @@ public class UserWorkspace {
     public List<ConditionModel> getAllConditionModels() {
         List<ConditionModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getConditions(ue.getEndpoint()));
+            List<ConditionModel> conditionModels = getConditions(ue.getEndpoint());
+            if (conditionModels != null) {
+                list.addAll(conditionModels);
+            }
         }
         return list;
     }
@@ -453,7 +471,10 @@ public class UserWorkspace {
     public List<DiagnosticReportModel> getAllDiagnosticReportModels() {
         List<DiagnosticReportModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getDiagnosticReports(ue.getEndpoint()));
+            List<DiagnosticReportModel> diagnosticReportModels = getDiagnosticReports(ue.getEndpoint());
+            if (diagnosticReportModels != null) {
+                list.addAll(diagnosticReportModels);
+            }
         }
         return list;
     }
@@ -461,7 +482,10 @@ public class UserWorkspace {
     public List<EncounterModel> getAllEncountersModels() {
         List<EncounterModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getEncounters(ue.getEndpoint()));
+            List<EncounterModel> encounterModels = getEncounters(ue.getEndpoint());
+            if (encounterModels != null) {
+                list.addAll(encounterModels);
+            }
         }
         return list;
     }
@@ -469,7 +493,10 @@ public class UserWorkspace {
     public List<GoalModel> getAllGoalModels() {
         List<GoalModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getGoals(ue.getEndpoint()));
+            List<GoalModel> goalModels = getGoals(ue.getEndpoint());
+            if (goalModels != null) {
+                list.addAll(goalModels);
+            }
         }
         return list;
     }
@@ -477,7 +504,10 @@ public class UserWorkspace {
     public List<ImmunizationModel> getAllImmunizationModels() {
         List<ImmunizationModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getImmunizations(ue.getEndpoint()));
+            List<ImmunizationModel> immunizationModels = getImmunizations(ue.getEndpoint());
+            if (immunizationModels != null) {
+                list.addAll(immunizationModels);
+            }
         }
         return list;
     }
@@ -485,7 +515,10 @@ public class UserWorkspace {
     public List<LabResultModel> getAllLabResultModels() {
         List<LabResultModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getLabResults(ue.getEndpoint()));
+            List<LabResultModel> labResultModels = getLabResults(ue.getEndpoint());
+            if (labResultModels != null) {
+                list.addAll(labResultModels);
+            }
         }
         return list;
     }
@@ -493,7 +526,10 @@ public class UserWorkspace {
     public List<MedicationModel> getAllMedicationModels() {
         List<MedicationModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getMedications(ue.getEndpoint()));
+            List<MedicationModel> medicationModels = getMedications(ue.getEndpoint());
+            if (medicationModels != null) {
+                list.addAll(medicationModels);
+            }
         }
         return list;
     }
@@ -501,7 +537,10 @@ public class UserWorkspace {
     public List<ProcedureModel> getAllProcedureModels() {
         List<ProcedureModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getProcedures(ue.getEndpoint()));
+            List<ProcedureModel> procedureModels = getProcedures(ue.getEndpoint());
+            if (procedureModels != null) {
+                list.addAll(procedureModels);
+            }
         }
         return list;
     }
@@ -509,7 +548,10 @@ public class UserWorkspace {
     public List<ServiceRequestModel> getAllServiceRequestModels() {
         List<ServiceRequestModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getServiceRequests(ue.getEndpoint()));
+            List<ServiceRequestModel> serviceRequestModels = getServiceRequests(ue.getEndpoint());
+            if (serviceRequestModels != null) {
+                list.addAll(serviceRequestModels);
+            }
         }
         return list;
     }
@@ -517,7 +559,10 @@ public class UserWorkspace {
     public List<SocialHistoryModel> getAllSocialHistoryModels() {
         List<SocialHistoryModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getSocialHistories(ue.getEndpoint()));
+            List<SocialHistoryModel> socialHistoryModels = getSocialHistories(ue.getEndpoint());
+            if (socialHistoryModels != null) {
+                list.addAll(socialHistoryModels);
+            }
         }
         return list;
     }
@@ -525,7 +570,10 @@ public class UserWorkspace {
     public List<SurveyObservationModel> getAllSurveyObservationModels() {
         List<SurveyObservationModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getSurveyObservations(ue.getEndpoint()));
+            List<SurveyObservationModel> surveyObservationModels = getSurveyObservations(ue.getEndpoint());
+            if (surveyObservationModels != null) {
+                list.addAll(surveyObservationModels);
+            }
         }
         return list;
     }
@@ -533,10 +581,18 @@ public class UserWorkspace {
     public List<VitalsModel> getAllVitalsModels() {
         List<VitalsModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.addAll(getVitals(ue.getEndpoint()));
+            List<VitalsModel> vitalsModels = getVitals(ue.getEndpoint());
+            if (vitalsModels != null) {
+                list.addAll(vitalsModels);
+            }
         }
         return list;
     }
+
+    // todo : update this class so that all these getters are made generic.  easier said than done, tho,
+    //        as there's not a solid connection between DataSetName and classes that extend BaseDataSetModel,
+    //        and the compiler can't draw a connection between them.
+    //        do this down the line when we have some time to burn.
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /// Data Set Caching Functions
