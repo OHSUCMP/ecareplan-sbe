@@ -5,6 +5,7 @@ import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
@@ -100,7 +101,7 @@ public class PatientHomeController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("patientModels", workspace.getAllPatientModels());
+            model.addAttribute("patientModels", workspace.getAllDataSetModels(DataSet.PATIENT));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
 

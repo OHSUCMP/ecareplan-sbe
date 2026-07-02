@@ -93,7 +93,7 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                 String category = null;
                 String commonName = null;
                 if (condition.hasCode()) {
-                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.CONDITIONS, condition.getCode());
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.CONDITIONS, condition.getCode());
                     if (rc != null) {
                         category = rc.getCategory();
                         commonName = rc.getCommonName();
@@ -179,7 +179,7 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
 
                 String category = null;
                 if (cc != null) {
-                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.MEDICATIONS, cc);
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.MEDICATIONS, cc);
                     if (rc != null) {
                         category = rc.getCategory();
                     }
@@ -257,7 +257,7 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
                 String commonName = null;
                 if (observation.hasCode()) {
-                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.LAB_RESULTS, observation.getCode());
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.LAB_RESULTS, observation.getCode());
                     if (rc != null) {
                         commonName = rc.getCommonName();
                     }
@@ -278,7 +278,7 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
                 String commonName = null;
                 if (observation.hasCode()) {
-                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSetName.VITALS, observation.getCode());
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.VITALS, observation.getCode());
                     if (rc != null) {
                         commonName = rc.getCommonName();
                     }

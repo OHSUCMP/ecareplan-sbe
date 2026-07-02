@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -23,7 +24,7 @@ public class CareTeamController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("careTeamModels", workspace.getAllCareTeamModels());
+            model.addAttribute("careTeamModels", workspace.getAllDataSetModels(DataSet.CARE_TEAMS));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/care-team");
 

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface UserEndpointRepository extends JpaRepository<UserEndpoint, Long> {
-    List<UserEndpoint> findUserEndpointsByUserId(Long userId);
-    Boolean existsUserEndpointByUserIdAndEndpointId(Long userId, Long endpointId);
-    UserEndpoint findUserEndpointByUserIdAndEndpointId(Long userId, Long endpointId);
+    List<UserEndpoint> findByUserId(Long userId);
+    Boolean existsByUserIdAndEndpointId(Long userId, Long endpointId);
+    UserEndpoint findByUserIdAndEndpointId(Long userId, Long endpointId);
 }

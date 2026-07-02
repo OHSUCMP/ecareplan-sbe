@@ -1,6 +1,5 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
-import edu.ohsu.cmp.ecareplan.model.dataset.DataSetName;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import jakarta.persistence.*;
 
@@ -14,9 +13,7 @@ public class EndpointQuery {
     private Long id;
     private Long endpointId;
 
-    @Enumerated(EnumType.STRING)
-    private DataSetName dataSetName;
-
+    private String dataSetName;
     private String query;
 
     @Enumerated(EnumType.STRING)
@@ -40,11 +37,11 @@ public class EndpointQuery {
         this.endpointId = endpointId;
     }
 
-    public DataSetName getDataSetName() {
+    public String getDataSetName() {
         return dataSetName;
     }
 
-    public void setDataSetName(DataSetName dataSetName) {
+    public void setDataSetName(String dataSetName) {
         this.dataSetName = dataSetName;
     }
 

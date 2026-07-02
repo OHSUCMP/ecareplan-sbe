@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.GoalModel;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
@@ -27,7 +28,7 @@ public class GoalsController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            List<GoalModel> goalModels = workspace.getAllGoalModels();
+            List<GoalModel> goalModels = workspace.getAllDataSetModels(DataSet.GOALS);
             model.addAttribute("personalHealthGoalModels", filterPersonalHealthGoals(goalModels));
             model.addAttribute("hospitalizationGoalModels", filterHospitalizationGoals(goalModels));
 

@@ -46,14 +46,14 @@ public class EndpointService extends BaseService {
     private UserEndpointRepository userEndpointRepository;
 
     public Endpoint getPatientLaunchEndpoint() {
-        return endpointRepository.findOneByName(patientEndpointName);
+        return endpointRepository.findByName(patientEndpointName);
     }
 
     public Endpoint getCareTeamLaunchEndpoint() {
-        return endpointRepository.findOneByName(careTeamEndpointName);
+        return endpointRepository.findByName(careTeamEndpointName);
     }
 
-    public Endpoint getSDSEndpoint() { return endpointRepository.findOneByName(sdsEndpointName); }
+    public Endpoint getSDSEndpoint() { return endpointRepository.findByName(sdsEndpointName); }
 
     public List<EndpointModel> getAllThirdPartyEndpoints() {
         List<EndpointModel> list = new ArrayList<>();
@@ -69,8 +69,8 @@ public class EndpointService extends BaseService {
     }
 
     public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
-        if (userEndpointRepository.existsUserEndpointByUserIdAndEndpointId(userId, endpointId)) {
-            return userEndpointRepository.findUserEndpointByUserIdAndEndpointId(userId, endpointId);
+        if (userEndpointRepository.existsByUserIdAndEndpointId(userId, endpointId)) {
+            return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId);
 
         } else {
             UserEndpoint ue = new UserEndpoint();

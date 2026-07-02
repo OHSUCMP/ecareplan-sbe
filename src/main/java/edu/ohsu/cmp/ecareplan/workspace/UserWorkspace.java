@@ -57,7 +57,7 @@ public class UserWorkspace {
     private final Long userId;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
-    private final Cache<String, Object> cache;
+    private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
 
     private final ExecutorService executorService;
 
@@ -200,23 +200,9 @@ public class UserWorkspace {
                     Endpoint e = uec.getUserEndpoint().getEndpoint();
                     long endpointStart = System.currentTimeMillis();
                     logger.info("BEGIN populating for endpoint={} for session={}", e.getName(), sessionId);
-                    getPatient(e);
-                    getAssessments(e);
-                    getCarePlans(e);
-                    getCareTeams(e);
-                    getClinicalNotes(e);
-                    getConditions(e);
-                    getDiagnosticReports(e);
-                    getEncounters(e);
-                    getGoals(e);
-                    getImmunizations(e);
-                    getLabResults(e);
-                    getMedications(e);
-                    getProcedures(e);
-                    getServiceRequests(e);
-                    getSocialHistories(e);
-                    getSurveyObservations(e);
-                    getVitals(e);
+                    for (DataSet<?> dataSet : DataSet.ALL_DATASETS) {
+                        getCachedDataSetForEndpoint(dataSet, e);
+                    }
                     logger.info("DONE populating for endpoint={} for session={} (took {} ms)", e.getName(), sessionId, (System.currentTimeMillis() - endpointStart));
                 }
                 logger.info("DONE populating workspace for session={} (took {} ms)", sessionId, (System.currentTimeMillis() - start));
@@ -402,375 +388,94 @@ public class UserWorkspace {
         }
     }
 
-    public List<PatientModel> getAllPatientModels() {
-        List<PatientModel> list = new ArrayList<>();
+    public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
+        List<T> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            PatientModel patientModel = getPatient(ue.getEndpoint());
-            if (patientModel != null) {
-                list.add(patientModel);
+            List<T> dataSetModels = getCachedDataSetForEndpoint(dataSet, ue.getEndpoint());
+            if (dataSetModels != null) {
+                list.addAll(dataSetModels);
             }
         }
         return list;
     }
 
-    public List<AssessmentModel> getAllAssessmentModels() {
-        List<AssessmentModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<AssessmentModel> assessmentModels = getAssessments(ue.getEndpoint());
-            if (assessmentModels != null) {
-                list.addAll(assessmentModels);
-            }
-        }
-        return list;
-    }
-
-    public List<CarePlanModel> getAllCarePlanModels() {
-        List<CarePlanModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<CarePlanModel> carePlanModels = getCarePlans(ue.getEndpoint());
-            if (carePlanModels != null) {
-                list.addAll(carePlanModels);
-            }
-        }
-        return list;
-    }
-
-    public List<CareTeamModel> getAllCareTeamModels() {
-        List<CareTeamModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<CareTeamModel> careTeamModels = getCareTeams(ue.getEndpoint());
-            if (careTeamModels != null) {
-                list.addAll(careTeamModels);
-            }
-        }
-        return list;
-    }
-
-    public List<ClinicalNoteModel> getAllClinicalNoteModels() {
-        List<ClinicalNoteModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<ClinicalNoteModel> clinicalNoteModels = getClinicalNotes(ue.getEndpoint());
-            if (clinicalNoteModels != null) {
-                list.addAll(clinicalNoteModels);
-            }
-        }
-        return list;
-    }
-
-    public List<ConditionModel> getAllConditionModels() {
-        List<ConditionModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<ConditionModel> conditionModels = getConditions(ue.getEndpoint());
-            if (conditionModels != null) {
-                list.addAll(conditionModels);
-            }
-        }
-        return list;
-    }
-
-    public List<DiagnosticReportModel> getAllDiagnosticReportModels() {
-        List<DiagnosticReportModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<DiagnosticReportModel> diagnosticReportModels = getDiagnosticReports(ue.getEndpoint());
-            if (diagnosticReportModels != null) {
-                list.addAll(diagnosticReportModels);
-            }
-        }
-        return list;
-    }
-
-    public List<EncounterModel> getAllEncountersModels() {
-        List<EncounterModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<EncounterModel> encounterModels = getEncounters(ue.getEndpoint());
-            if (encounterModels != null) {
-                list.addAll(encounterModels);
-            }
-        }
-        return list;
-    }
-
-    public List<GoalModel> getAllGoalModels() {
-        List<GoalModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<GoalModel> goalModels = getGoals(ue.getEndpoint());
-            if (goalModels != null) {
-                list.addAll(goalModels);
-            }
-        }
-        return list;
-    }
-
-    public List<ImmunizationModel> getAllImmunizationModels() {
-        List<ImmunizationModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<ImmunizationModel> immunizationModels = getImmunizations(ue.getEndpoint());
-            if (immunizationModels != null) {
-                list.addAll(immunizationModels);
-            }
-        }
-        return list;
-    }
-
-    public List<LabResultModel> getAllLabResultModels() {
-        List<LabResultModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<LabResultModel> labResultModels = getLabResults(ue.getEndpoint());
-            if (labResultModels != null) {
-                list.addAll(labResultModels);
-            }
-        }
-        return list;
-    }
-
-    public List<MedicationModel> getAllMedicationModels() {
-        List<MedicationModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<MedicationModel> medicationModels = getMedications(ue.getEndpoint());
-            if (medicationModels != null) {
-                list.addAll(medicationModels);
-            }
-        }
-        return list;
-    }
-
-    public List<ProcedureModel> getAllProcedureModels() {
-        List<ProcedureModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<ProcedureModel> procedureModels = getProcedures(ue.getEndpoint());
-            if (procedureModels != null) {
-                list.addAll(procedureModels);
-            }
-        }
-        return list;
-    }
-
-    public List<ServiceRequestModel> getAllServiceRequestModels() {
-        List<ServiceRequestModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<ServiceRequestModel> serviceRequestModels = getServiceRequests(ue.getEndpoint());
-            if (serviceRequestModels != null) {
-                list.addAll(serviceRequestModels);
-            }
-        }
-        return list;
-    }
-
-    public List<SocialHistoryModel> getAllSocialHistoryModels() {
-        List<SocialHistoryModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<SocialHistoryModel> socialHistoryModels = getSocialHistories(ue.getEndpoint());
-            if (socialHistoryModels != null) {
-                list.addAll(socialHistoryModels);
-            }
-        }
-        return list;
-    }
-
-    public List<SurveyObservationModel> getAllSurveyObservationModels() {
-        List<SurveyObservationModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<SurveyObservationModel> surveyObservationModels = getSurveyObservations(ue.getEndpoint());
-            if (surveyObservationModels != null) {
-                list.addAll(surveyObservationModels);
-            }
-        }
-        return list;
-    }
-
-    public List<VitalsModel> getAllVitalsModels() {
-        List<VitalsModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<VitalsModel> vitalsModels = getVitals(ue.getEndpoint());
-            if (vitalsModels != null) {
-                list.addAll(vitalsModels);
-            }
-        }
-        return list;
-    }
-
-    // todo : update this class so that all these getters are made generic.  easier said than done, tho,
-    //        as there's not a solid connection between DataSetName and classes that extend BaseDataSetModel,
-    //        and the compiler can't draw a connection between them.
-    //        do this down the line when we have some time to burn.
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /// Data Set Caching Functions
 
-    public PatientModel getPatient(Endpoint e) {
-        return (PatientModel) getCachedDataSetForEndpoint(DataSetName.PATIENT, e);
+    private String buildCacheKey(DataSet<?> dataSet, Endpoint e) {
+        return dataSet.getName() + "-" + e.getIss();  // use iss instead of name.  it's possible that multiple
+                                                      // data sets will have different names but point to the same
+                                                      // iss.  ultimately, it's the iss we care about, irrespective
+                                                      // of what the user sees.  this will help prevent duplicates.
     }
 
     @SuppressWarnings("unchecked")
-    public List<AssessmentModel> getAssessments(Endpoint e) {
-        return (List<AssessmentModel>) getCachedDataSetForEndpoint(DataSetName.ASSESSMENTS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<CarePlanModel> getCarePlans(Endpoint e) {
-        return (List<CarePlanModel>) getCachedDataSetForEndpoint(DataSetName.CARE_PLANS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<CareTeamModel> getCareTeams(Endpoint e) {
-        return (List<CareTeamModel>) getCachedDataSetForEndpoint(DataSetName.CARE_TEAMS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<ClinicalNoteModel> getClinicalNotes(Endpoint e) {
-        return (List<ClinicalNoteModel>) getCachedDataSetForEndpoint(DataSetName.CLINICAL_NOTES, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<ConditionModel> getConditions(Endpoint e) {
-        return (List<ConditionModel>) getCachedDataSetForEndpoint(DataSetName.CONDITIONS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<DiagnosticReportModel> getDiagnosticReports(Endpoint e) {
-        return (List<DiagnosticReportModel>) getCachedDataSetForEndpoint(DataSetName.DIAGNOSTIC_REPORTS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<EncounterModel> getEncounters(Endpoint e) {
-        return (List<EncounterModel>) getCachedDataSetForEndpoint(DataSetName.ENCOUNTERS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<GoalModel> getGoals(Endpoint e) {
-        return (List<GoalModel>) getCachedDataSetForEndpoint(DataSetName.GOALS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<ImmunizationModel> getImmunizations(Endpoint e) {
-        return (List<ImmunizationModel>) getCachedDataSetForEndpoint(DataSetName.IMMUNIZATIONS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<LabResultModel> getLabResults(Endpoint e) {
-        return (List<LabResultModel>) getCachedDataSetForEndpoint(DataSetName.LAB_RESULTS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<MedicationModel> getMedications(Endpoint e) {
-        return (List<MedicationModel>) getCachedDataSetForEndpoint(DataSetName.MEDICATIONS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<ProcedureModel> getProcedures(Endpoint e) {
-        return (List<ProcedureModel>) getCachedDataSetForEndpoint(DataSetName.PROCEDURES, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<ServiceRequestModel> getServiceRequests(Endpoint e) {
-        return (List<ServiceRequestModel>) getCachedDataSetForEndpoint(DataSetName.SERVICE_REQUESTS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<SocialHistoryModel> getSocialHistories(Endpoint e) {
-        return (List<SocialHistoryModel>) getCachedDataSetForEndpoint(DataSetName.SOCIAL_HISTORIES, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<SurveyObservationModel> getSurveyObservations(Endpoint e) {
-        return (List<SurveyObservationModel>) getCachedDataSetForEndpoint(DataSetName.SURVEY_OBSERVATIONS, e);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<VitalsModel> getVitals(Endpoint e) {
-        return (List<VitalsModel>) getCachedDataSetForEndpoint(DataSetName.VITALS, e);
-    }
-
-    private String buildCacheKey(DataSetName dataSetName, Endpoint e) {
-        return dataSetName + "-" + e.getIss();  // use iss instead of name.  it's possible that multiple
-                                                // data sets will have different names but point to the same
-                                                // iss.  ultimately, it's the iss we care about, irrespective
-                                                // of what the user sees.  this will help prevent duplicates.
-    }
-
-    private Object getCachedDataSetForEndpoint(DataSetName dataSetName, Endpoint endpoint) {
-        return cache.get(buildCacheKey(dataSetName, endpoint), s -> {
+    private <T extends BaseDataSetModel<?>> List<T> getCachedDataSetForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
+        return (List<T>) cache.get(buildCacheKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
-            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSetName, sessionId, userId,
+            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,
                     endpoint.getName());
 
-            Object obj = null;
+            List<? extends BaseDataSetModel<?>> list = null;
             try {
-                switch (dataSetName) {
-                    case PATIENT:
-                        obj = dataSetBuilderService.buildPatient(sessionId, endpoint);
-                        break;
-                    case ASSESSMENTS:
-                        obj = dataSetBuilderService.buildAssessments(sessionId, endpoint);
-                        break;
-                    case CARE_PLANS:
-                        obj = dataSetBuilderService.buildCarePlans(sessionId, endpoint);
-                        break;
-                    case CARE_TEAMS:
-                        obj = dataSetBuilderService.buildCareTeams(sessionId, endpoint);
-                        break;
-                    case CLINICAL_NOTES:
-                        obj = dataSetBuilderService.buildClinicalNotes(sessionId, endpoint);
-                        break;
-                    case CONDITIONS:
-                        obj = dataSetBuilderService.buildConditions(sessionId, endpoint);
-                        break;
-                    case DIAGNOSTIC_REPORTS:
-                        obj = dataSetBuilderService.buildDiagnosticReports(sessionId, endpoint);
-                        break;
-                    case ENCOUNTERS:
-                        obj = dataSetBuilderService.buildEncounters(sessionId, endpoint);
-                        break;
-                    case GOALS:
-                        obj = dataSetBuilderService.buildGoals(sessionId, endpoint);
-                        break;
-                    case IMMUNIZATIONS:
-                        obj = dataSetBuilderService.buildImmunizations(sessionId, endpoint);
-                        break;
-                    case LAB_RESULTS:
-                        obj = dataSetBuilderService.buildLabResults(sessionId, endpoint);
-                        break;
-                    case MEDICATIONS:
-                        obj = dataSetBuilderService.buildMedications(sessionId, endpoint);
-                        break;
-                    case PROCEDURES:
-                        obj = dataSetBuilderService.buildProcedures(sessionId, endpoint);
-                        break;
-                    case SERVICE_REQUESTS:
-                        obj = dataSetBuilderService.buildServiceRequests(sessionId, endpoint);
-                        break;
-                    case SOCIAL_HISTORIES:
-                        obj = dataSetBuilderService.buildSocialHistories(sessionId, endpoint);
-                        break;
-                    case SURVEY_OBSERVATIONS:
-                        obj = dataSetBuilderService.buildSurveyObservations(sessionId, endpoint);
-                        break;
-                    case VITALS:
-                        obj = dataSetBuilderService.buildVitals(sessionId, endpoint);
-                        break;
-                    default:
-                        throw new CaseNotHandledException("couldn't handle case for DataSetName=" + dataSetName);
+                if (DataSet.PATIENT.equals(dataSet)) {
+                    list = dataSetBuilderService.buildPatients(sessionId, endpoint);
+                } else if (DataSet.ASSESSMENTS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildAssessments(sessionId, endpoint);
+                } else if (DataSet.CARE_PLANS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildCarePlans(sessionId, endpoint);
+                } else if (DataSet.CARE_TEAMS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildCareTeams(sessionId, endpoint);
+                } else if (DataSet.CLINICAL_NOTES.equals(dataSet)) {
+                    list = dataSetBuilderService.buildClinicalNotes(sessionId, endpoint);
+                } else if (DataSet.CONDITIONS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildConditions(sessionId, endpoint);
+                } else if (DataSet.DIAGNOSTIC_REPORTS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildDiagnosticReports(sessionId, endpoint);
+                } else if (DataSet.ENCOUNTERS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildEncounters(sessionId, endpoint);
+                } else if (DataSet.GOALS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildGoals(sessionId, endpoint);
+                } else if (DataSet.IMMUNIZATIONS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildImmunizations(sessionId, endpoint);
+                } else if (DataSet.LAB_RESULTS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildLabResults(sessionId, endpoint);
+                } else if (DataSet.MEDICATIONS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildMedications(sessionId, endpoint);
+                } else if (DataSet.PROCEDURES.equals(dataSet)) {
+                    list = dataSetBuilderService.buildProcedures(sessionId, endpoint);
+                } else if (DataSet.SERVICE_REQUESTS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildServiceRequests(sessionId, endpoint);
+                } else if (DataSet.SOCIAL_HISTORIES.equals(dataSet)) {
+                    list = dataSetBuilderService.buildSocialHistories(sessionId, endpoint);
+                } else if (DataSet.SURVEY_OBSERVATIONS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildSurveyObservations(sessionId, endpoint);
+                } else if (DataSet.VITALS.equals(dataSet)) {
+                    list = dataSetBuilderService.buildVitals(sessionId, endpoint);
+                } else {
+                    throw new CaseNotHandledException("Case not handled for data set: " + dataSet.getName());
                 }
 
             } catch (Exception e) {
                 if (e instanceof ForbiddenOperationException) {
                     logger.warn("attempt to retrieve {} from {} was forbidden - will not include {} for this session",
-                            dataSetName, endpoint.getName(), dataSetName);
-                    auditService.doAudit(sessionId, AuditSeverity.WARN, "cache population", "retrieving " + dataSetName +
+                            dataSet.getName(), endpoint.getName(), dataSet.getName());
+                    auditService.doAudit(sessionId, AuditSeverity.WARN, "cache population", "retrieving " + dataSet.getName() +
                             " from " + endpoint.getName() + " was forbidden");
 
-                    if (DataSetName.PATIENT.equals(dataSetName)) {
+                    if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (ForbiddenOperationException) e;
                     }
 
                 } else if (e instanceof InvalidRequestException) {
                     logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - will not include {} for this session",
-                            dataSetName, endpoint.getName(), dataSetName);
+                            dataSet.getName(), endpoint.getName(), dataSet.getName());
                     auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
-                            dataSetName + " from " + endpoint.getName());
+                            dataSet.getName() + " from " + endpoint.getName());
 
-                    if (DataSetName.PATIENT.equals(dataSetName)) {
+                    if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (InvalidRequestException) e;
                     }
@@ -788,10 +493,10 @@ public class UserWorkspace {
                 }
             }
 
-            logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSetName, sessionId,
+            logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
                     userId, endpoint.getName(), (System.currentTimeMillis() - start));
 
-            return obj;
+            return list;
         });
     }
 }

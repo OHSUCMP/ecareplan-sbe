@@ -1,6 +1,5 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
-import edu.ohsu.cmp.ecareplan.model.dataset.DataSetName;
 import jakarta.persistence.*;
 
 @Entity
@@ -10,9 +9,7 @@ public class ResourceCategorizationCoding implements ResourceCategorization {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    private DataSetName dataSetName;
-
+    private String dataSetName;
     private String codeSystemUrl;
     private String code;
     private String category;
@@ -26,11 +23,11 @@ public class ResourceCategorizationCoding implements ResourceCategorization {
         this.id = id;
     }
 
-    public DataSetName getDataSetName() {
+    public String getDataSetName() {
         return dataSetName;
     }
 
-    public void setDataSetName(DataSetName dataSetName) {
+    public void setDataSetName(String dataSetName) {
         this.dataSetName = dataSetName;
     }
 

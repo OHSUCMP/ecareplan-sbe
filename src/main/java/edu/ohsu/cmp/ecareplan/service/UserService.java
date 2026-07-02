@@ -24,8 +24,8 @@ public class UserService extends BaseService {
         String patIdHash = buildPatIdHash(fhirPatientId);
 
         User u;
-        if (repository.existsUserByPatIdHash(patIdHash)) {
-            u = repository.findUserByPatIdHash(patIdHash);
+        if (repository.existsByPatIdHash(patIdHash)) {
+            u = repository.findByPatIdHash(patIdHash);
 
         } else {
             u = new User(patIdHash);

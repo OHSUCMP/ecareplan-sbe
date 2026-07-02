@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -23,8 +24,8 @@ public class InteractionsController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("encounterModels", workspace.getAllEncountersModels());
-            model.addAttribute("serviceRequestModels", workspace.getAllServiceRequestModels());
+            model.addAttribute("encounterModels", workspace.getAllDataSetModels(DataSet.ENCOUNTERS));
+            model.addAttribute("serviceRequestModels", workspace.getAllDataSetModels(DataSet.SERVICE_REQUESTS));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/interactions");
 

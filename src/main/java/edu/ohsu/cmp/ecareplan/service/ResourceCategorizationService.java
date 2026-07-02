@@ -5,7 +5,7 @@ import edu.ohsu.cmp.ecareplan.entity.ResourceCategorizationCoding;
 import edu.ohsu.cmp.ecareplan.entity.ResourceCategorizationValueSet;
 import edu.ohsu.cmp.ecareplan.entity.vsac.Concept;
 import edu.ohsu.cmp.ecareplan.entity.vsac.ValueSet;
-import edu.ohsu.cmp.ecareplan.model.dataset.DataSetName;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.repository.ResourceCategorizationCodingRepository;
 import edu.ohsu.cmp.ecareplan.repository.ResourceCategorizationValueSetRepository;
 import edu.ohsu.cmp.ecareplan.service.vsac.ConceptService;
@@ -61,11 +61,11 @@ public class ResourceCategorizationService extends BaseService {
         logger.info("done refreshing Resource Categorization ValueSets.");
     }
 
-    public List<ResourceCategorization> getCategorizations(DataSetName dataSetName, CodeableConcept codeableConcept) {
+    public List<ResourceCategorization> getCategorizations(DataSet<?> dataSet, CodeableConcept codeableConcept) {
         List<ResourceCategorization> list = new ArrayList<>();
 
         if (codeableConcept != null && codeableConcept.hasCoding()) {
-            List<ResourceCategorizationValueSet> rcvsList = valueSetRepository.findByDataSetName(dataSetName);
+            List<ResourceCategorizationValueSet> rcvsList = valueSetRepository.findByDataSetName(dataSet.getName());
             if ( ! rcvsList.isEmpty() ) {
                 // collect all valueSet OIDs associated with concepts represented in codeableConcept
                 Set<String> conceptValueSetOids = new HashSet<>();
@@ -88,7 +88,7 @@ public class ResourceCategorizationService extends BaseService {
             }
 
             // now check for specific coding categorizations
-            List<ResourceCategorizationCoding> rccList = codingRepository.findByDataSetName(dataSetName);
+            List<ResourceCategorizationCoding> rccList = codingRepository.findByDataSetName(dataSet.getName());
             if ( ! rccList.isEmpty() ) {
                 Set<String> codingKeySet = new HashSet<>();
                 // collect all codings represented in codeableConcept, stored as system|code, since that's how
@@ -115,10 +115,10 @@ public class ResourceCategorizationService extends BaseService {
 
     // getFirstCategorization is intended to perform the same logic as getCategorizations above,
     // except that it will short-circuit its operation as soon as a match is made
-    public ResourceCategorization getFirstCategorization(DataSetName dataSetName, CodeableConcept codeableConcept) {
+    public ResourceCategorization getFirstCategorization(DataSet<?> dataSet, CodeableConcept codeableConcept) {
         if (codeableConcept != null && codeableConcept.hasCoding()) {
             Map<String, ResourceCategorizationValueSet> valueSetCategorizationMap = new HashMap<>();
-            for (ResourceCategorizationValueSet rc : valueSetRepository.findByDataSetName(dataSetName)) {
+            for (ResourceCategorizationValueSet rc : valueSetRepository.findByDataSetName(dataSet.getName())) {
                 valueSetCategorizationMap.put(rc.getValuesetOid(), rc);
             }
 
@@ -139,7 +139,7 @@ public class ResourceCategorizationService extends BaseService {
             }
 
             Map<String, ResourceCategorizationCoding> codingCategorizationMap = new HashMap<>();
-            for (ResourceCategorizationCoding rc : codingRepository.findByDataSetName(dataSetName)) {
+            for (ResourceCategorizationCoding rc : codingRepository.findByDataSetName(dataSet.getName())) {
                 codingCategorizationMap.put(buildKey(rc.getCodeSystemUrl(), rc.getCode()), rc);
             }
 
