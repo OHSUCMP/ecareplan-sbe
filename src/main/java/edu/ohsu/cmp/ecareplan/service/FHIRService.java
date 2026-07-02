@@ -123,7 +123,7 @@ public class FHIRService {
 
     public Bundle search(FHIRCredentialsWithClient fcc, FHIRStrategy strategy, String fhirQuery,
                          Function<ResourceWithBundle, Boolean> validityFunction,
-                         Function<ResourceWithBundle, Bundle> supplementalResourcesFunction) throws DataException, ConfigurationException, IOException {
+                         Function<ResourceWithBundle, List<Resource>> supplementalResourcesFunction) throws DataException, ConfigurationException, IOException {
 
         if (StringUtils.isBlank(fhirQuery) || strategy == FHIRStrategy.DISABLED) {
             return null;
@@ -397,20 +397,22 @@ public class FHIRService {
         }
     }
 
-    private void appendSupplementalResources(Bundle bundle, Function<ResourceWithBundle, Bundle> supplementalResourcesFunction) {
+    private void appendSupplementalResources(Bundle bundle, Function<ResourceWithBundle, List<Resource>> supplementalResourcesFunction) {
         if (bundle != null && bundle.hasEntry()) {
-            CompositeBundle compositeBundle = new CompositeBundle();
+            List<Resource> resources = new ArrayList<>();
             for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
                 if (entry.hasResource()) {
-                    Bundle supplementalBundle = supplementalResourcesFunction.apply(new ResourceWithBundle(entry.getResource(), bundle));
-                    if (supplementalBundle != null && supplementalBundle.hasEntry()) {
-                        compositeBundle.consume(supplementalBundle);
-                    }
+                    resources.add(entry.getResource());
                 }
             }
 
-            for (Bundle.BundleEntryComponent entry : compositeBundle.getBundle().getEntry()) {
-                bundle.addEntry(entry.copy());
+            for (Resource resource : resources) {
+                List<Resource> list = supplementalResourcesFunction.apply(new ResourceWithBundle(resource, bundle));
+                if (list != null) {
+                    for (Resource supplementalResource : list) {
+                        FhirUtil.appendResourceToBundle(bundle, supplementalResource);
+                    }
+                }
             }
         }
     }

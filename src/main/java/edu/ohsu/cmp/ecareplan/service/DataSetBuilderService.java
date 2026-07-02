@@ -6,7 +6,6 @@ import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
-import edu.ohsu.cmp.ecareplan.model.fhir.CompositeBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import edu.ohsu.cmp.ecareplan.model.fhir.ResourceWithBundle;
@@ -136,18 +135,18 @@ public class DataSetBuilderService extends BaseService {
             list.addAll(
                     rt.transformClinicalNotes(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery(), null,
-                                    new Function<ResourceWithBundle, Bundle>() {
+                                    new Function<ResourceWithBundle, List<Resource>>() {
                                         @Override
-                                        public Bundle apply(ResourceWithBundle resourceWithBundle) {
+                                        public List<Resource> apply(ResourceWithBundle resourceWithBundle) {
                                             if (resourceWithBundle.getResource() instanceof DocumentReference) {
                                                 DocumentReference dr = (DocumentReference) resourceWithBundle.getResource();
-                                                CompositeBundle bundle = new CompositeBundle();
+                                                List<Resource> list = new ArrayList<>();
                                                 if (dr.hasContent()) {
                                                     for (DocumentReference.DocumentReferenceContentComponent content : dr.getContent()) {
                                                         if (content.hasAttachment() && content.getAttachment().hasUrl()) {
                                                             if ( ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), content.getAttachment().getUrl()) ) {
                                                                 try {
-                                                                    bundle.consume(
+                                                                    list.add(
                                                                             fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Binary.class, content.getAttachment().getUrl())
                                                                     );
                                                                 } catch (Exception e) {
@@ -158,7 +157,7 @@ public class DataSetBuilderService extends BaseService {
                                                         }
                                                     }
                                                 }
-                                                return bundle.getBundle();
+                                                return list;
                                             }
                                             return null;
                                         }
@@ -317,15 +316,15 @@ public class DataSetBuilderService extends BaseService {
             list.addAll(
                     rt.transformMedications(
                             fhirService.search(fcc, qm.getStrategy(), qm.getQuery(), null,
-                                    new Function<ResourceWithBundle, Bundle>() {
+                                    new Function<ResourceWithBundle, List<Resource>>() {
                                         @Override
-                                        public Bundle apply(ResourceWithBundle resourceWithBundle) {
+                                        public List<Resource> apply(ResourceWithBundle resourceWithBundle) {
                                             if (resourceWithBundle.getResource() instanceof MedicationRequest) {
                                                 MedicationRequest mr = (MedicationRequest) resourceWithBundle.getResource();
-                                                CompositeBundle bundle = new CompositeBundle();
+                                                List<Resource> list = new ArrayList<>();
                                                 if (mr.hasMedicationReference() && ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getMedicationReference())) {
                                                     try {
-                                                        bundle.consume(
+                                                        list.add(
                                                                 fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Medication.class, mr.getMedicationReference())
                                                         );
                                                     } catch (Exception e) {
@@ -336,7 +335,7 @@ public class DataSetBuilderService extends BaseService {
 
                                                 if (mr.hasRequester() && mr.getRequester().hasReference() && ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getRequester().getReference())) {
                                                     try {
-                                                        bundle.consume(
+                                                        list.add(
                                                                 fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Practitioner.class, mr.getRequester().getReference())
                                                         );
                                                     } catch (Exception e) {
@@ -344,7 +343,7 @@ public class DataSetBuilderService extends BaseService {
                                                         if (e instanceof AuthenticationException) throw (AuthenticationException) e;
                                                     }
                                                 }
-                                                return bundle.getBundle();
+                                                return list;
                                             }
                                             return null;
                                         }
