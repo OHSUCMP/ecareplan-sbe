@@ -115,7 +115,6 @@ create table user_endpoint (
     userId int not null references user(id),
     endpointId int not null references endpoint(id),
     encryptedRefreshTokenDataB64 text,
-    lastAuthInitiated datetime,
     lastSyncCompleted datetime,
     created datetime not null default current_timestamp
 );

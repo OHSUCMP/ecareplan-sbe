@@ -19,7 +19,6 @@ public class UserEndpoint {
     private Endpoint endpoint;
 
     private String encryptedRefreshTokenDataB64;
-    private Date lastAuthInitiated;
     private Date lastSyncCompleted;
     private Date created;
 
@@ -53,14 +52,6 @@ public class UserEndpoint {
 
     public void setEncryptedRefreshTokenDataB64(String encryptedRefreshTokenDataB64) {
         this.encryptedRefreshTokenDataB64 = encryptedRefreshTokenDataB64;
-    }
-
-    public Date getLastAuthInitiated() {
-        return lastAuthInitiated;
-    }
-
-    public void setLastAuthInitiated(Date lastAuthInitiated) {
-        this.lastAuthInitiated = lastAuthInitiated;
     }
 
     public Date getLastSyncCompleted() {
