@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.service;
 
+import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -151,6 +152,7 @@ public class DataSetBuilderService extends BaseService {
                                                                     );
                                                                 } catch (Exception e) {
                                                                     logger.error("Error reading binary reference: " + content.getAttachment().getUrl(), e);
+                                                                    if (e instanceof AuthenticationException) throw (AuthenticationException) e;
                                                                 }
                                                             }
                                                         }
@@ -328,6 +330,7 @@ public class DataSetBuilderService extends BaseService {
                                                         );
                                                     } catch (Exception e) {
                                                         logger.error("Error reading medication reference: " + mr.getMedicationReference().getReference(), e);
+                                                        if (e instanceof AuthenticationException) throw (AuthenticationException) e;
                                                     }
                                                 }
 
@@ -338,6 +341,7 @@ public class DataSetBuilderService extends BaseService {
                                                         );
                                                     } catch (Exception e) {
                                                         logger.error("Error reading requester reference: " + mr.getRequester().getReference(), e);
+                                                        if (e instanceof AuthenticationException) throw (AuthenticationException) e;
                                                     }
                                                 }
                                                 return bundle.getBundle();
