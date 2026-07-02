@@ -3,7 +3,7 @@ package edu.ohsu.cmp.ecareplan.workspace;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.SessionMissingException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
-import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,13 +34,13 @@ public class UserWorkspaceService {
         return map.containsKey(sessionId);
     }
 
-    public void init(String sessionId, Audience audience, FHIRCredentialsWithClient fcc) throws ConfigurationException {
+    public void init(String sessionId, Audience audience, FHIRCredentials credentials) throws ConfigurationException {
         try {
             if (shutdown(sessionId)) {
                 logger.warn("found pre-existing User Workspace for session={} during init, which we shut down.  this is weird, as this should have been cleared earlier.  ???", sessionId);
             }
 
-            UserWorkspace workspace = new UserWorkspace(ctx, sessionId, audience, fcc, socketTimeout);
+            UserWorkspace workspace = new UserWorkspace(ctx, sessionId, audience, credentials, socketTimeout);
             map.put(sessionId, workspace);
 
         } catch (Exception e) {

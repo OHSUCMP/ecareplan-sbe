@@ -11,7 +11,7 @@
     <script type="text/javascript">
         const REDIRECT_URI = "{{redirectUri}}";
 
-        function prepareSession(client) {
+        function completeHandshake(client) {
             let data = {
                 clientId: client.state.clientId,
                 serverUrl: client.state.serverUrl,
@@ -24,7 +24,7 @@
 
             $.ajax({
                 method: "POST",
-                url: REDIRECT_URI + "/prepare-session",
+                url: REDIRECT_URI + "/complete-handshake",
                 data: data
             }).done(function() {
                 // alert("useful debug checkpoint");
@@ -54,7 +54,7 @@
                     if ( ! {{cacheCredentials}} ) {
                         sessionStorage.clear(); // flush credentials stored here by SMART on FHIR
                     }
-                    prepareSession(client);
+                    completeHandshake(client);
                 })
                 .catch(console.error);
         });

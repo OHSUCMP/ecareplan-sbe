@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
+import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
@@ -45,21 +46,37 @@ public class PatientHomeController extends BasePatientController {
         return "launch";
     }
 
-    @GetMapping("complete-handshake")
-    public String completeHandshake(HttpSession session, Model model) {
+    @GetMapping("smart-callback")
+    public String smartCallback(HttpSession session, Model model) {
         setCommonViewComponents(model);
         model.addAttribute("cacheCredentials", cacheCredentials);
         model.addAttribute("redirectUri", "/patient");
-        return "complete-handshake";
+        return "smart-callback";
     }
 
-    @PostMapping("prepare-session")
-    public ResponseEntity<?> prepareSession(HttpSession session,
-                                            @RequestParam String clientId,
-                                            @RequestParam String serverUrl,
-                                            @RequestParam String bearerToken,
-                                            @RequestParam String patientId,
-                                            @RequestParam String userId) throws ConfigurationException {
+    @PostMapping("complete-handshake")
+    public ResponseEntity<?> completeHandshake(HttpSession session,
+                                               @RequestParam String clientId,
+                                               @RequestParam String serverUrl,
+                                               @RequestParam String bearerToken,
+                                               @RequestParam String patientId,
+                                               @RequestParam String userId) throws ConfigurationException {
+
+        if (userWorkspaceService.exists(session.getId())) {
+            UserWorkspace workspace = userWorkspaceService.get(session.getId());
+            Long endpointId = workspace.getCurrentlyLaunchingEndpointId();
+            if (endpointId != null) {
+                UserEndpoint userEndpoint = endpointService.getUserEndpoint(workspace.getUserId(), endpointId);
+                Endpoint endpoint = userEndpoint.getEndpoint();
+                if (endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
+                    FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
+                    workspace.addEndpointWithCredentials(userEndpoint, credentials);
+                    workspace.populate();
+                    auditService.doAudit(session.getId(), AuditSeverity.INFO, "endpoint connected", "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
+                    return ResponseEntity.ok("handshake completed");
+                }
+            }
+        }
 
         Endpoint patientEndpoint = endpointService.getPatientLaunchEndpoint();
         if ( ! patientEndpoint.getClientId().equals(clientId) || ! patientEndpoint.getIss().equals(serverUrl) ) {

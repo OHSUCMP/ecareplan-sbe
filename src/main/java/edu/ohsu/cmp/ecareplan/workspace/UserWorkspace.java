@@ -1,8 +1,10 @@
 package edu.ohsu.cmp.ecareplan.workspace;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import ca.uhn.fhir.rest.server.exceptions.ForbiddenOperationException;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.impl.JWTParser;
 import com.auth0.jwt.interfaces.Payload;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -51,10 +53,10 @@ public class UserWorkspace {
     private final String sessionId;
     private final Audience audience;
     private final Integer socketTimeout;
-    private final FHIRCredentialsWithClient launchCredentialsWithClient;
+    private final FHIRCredentials launchCredentials;
     private final Long userId;
 
-    private final List<UserEndpointCredentials> userEndpointCredentialsList;
+    private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
     private final Cache<String, Object> cache;
 
     private final ExecutorService executorService;
@@ -65,13 +67,14 @@ public class UserWorkspace {
 
     private SecretKey secretKey;
 
+    private Long currentlyLaunchingEndpointId = null;
 
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
-                            FHIRCredentialsWithClient launchCredentialsWithClient, Integer socketTimeout) {
+                            FHIRCredentials launchCredentials, Integer socketTimeout) {
         this.ctx = ctx;
         this.sessionId = sessionId;
         this.audience = audience;
-        this.launchCredentialsWithClient = launchCredentialsWithClient;
+        this.launchCredentials = launchCredentials;
         this.socketTimeout = socketTimeout;
 
         dataSetBuilderService = ctx.getBean(DataSetBuilderService.class);
@@ -80,7 +83,7 @@ public class UserWorkspace {
 
         UserService userService = ctx.getBean(UserService.class);
         User user = userService.getUser(
-                launchCredentialsWithClient.getCredentials().getPatientId()
+                launchCredentials.getPatientId()
         );
 
         userId = user.getId();
@@ -92,17 +95,15 @@ public class UserWorkspace {
         // doesn't need to set and manage a separate password.  I think this is probably secure enough?
         try {
             secretKey = CryptoUtil.generateSecretKey(
-                    launchCredentialsWithClient.getCredentials().getPatientId().toCharArray(),
+                    launchCredentials.getPatientId().toCharArray(),
                     Base64.getDecoder().decode(user.getSaltB64())
             );
         } catch (Exception e) {
             logger.error("caught {} generating secret key for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
         }
 
-        userEndpointCredentialsList = new ArrayList<>();
-        UserEndpoint ue = getOrCreateUserEndpointIfMissing();
-        UserEndpointCredentials uec = new UserEndpointCredentials(ue, launchCredentialsWithClient);
-        userEndpointCredentialsList.add(uec);
+        userEndpointCredentialsMap = new LinkedHashMap<>();
+        addEndpointWithCredentials(getLaunchUserEndpoint(), launchCredentials);
 
         cache = Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)
@@ -113,7 +114,7 @@ public class UserWorkspace {
         setupAutoShutdownJob();
     }
 
-    private UserEndpoint getOrCreateUserEndpointIfMissing() {
+    private UserEndpoint getLaunchUserEndpoint() {
         Endpoint endpoint;
         if (Audience.PATIENT.equals(audience)) {
             endpoint = endpointService.getPatientLaunchEndpoint();
@@ -123,15 +124,7 @@ public class UserWorkspace {
             throw new CaseNotHandledException("no case for audience: " + audience);
         }
 
-        UserEndpoint ue;
-        try {
-            ue = endpointService.getUserEndpoint(userId, endpoint.getId());
-
-        } catch (NoSuchElementException nsee) {
-            ue = endpointService.createUserEndpoint(userId, endpoint);
-        }
-
-        return ue;
+        return endpointService.getUserEndpoint(userId, endpoint.getId());
     }
 
     private RefreshTokenData getRefreshTokenData(Endpoint endpoint) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
@@ -151,25 +144,36 @@ public class UserWorkspace {
     }
 
     public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint e) {
-        for (UserEndpointCredentials uec : userEndpointCredentialsList) {
-            if (uec.getUserEndpoint().getEndpoint().getId().equals(e.getId())) {
-                return uec.getCredentialsWithClient();
-            }
-        }
-        return null;
+        return userEndpointCredentialsMap.containsKey(e.getId()) ?
+                userEndpointCredentialsMap.get(e.getId()).getCredentialsWithClient() :
+                null;
     }
 
-    public boolean addEndpointWithCredentials(Endpoint endpoint, FHIRCredentials credentials) {
-        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint.getId());
-        FHIRCredentialsWithClient fcc = getCredentialsWithClientForEndpoint(ue.getEndpoint());
-        if (fcc == null) {
+    public boolean addEndpointWithCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
+        if ( ! userEndpointCredentialsMap.containsKey(userEndpoint.getEndpoint().getId()) ) {
             IGenericClient client = FhirUtil.buildClient(
                     credentials.getServerURL(),
                     credentials.getBearerToken(),
                     socketTimeout
             );
-            fcc = new FHIRCredentialsWithClient(credentials, client);
-            userEndpointCredentialsList.add(new UserEndpointCredentials(ue, fcc));
+            FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
+
+            Date expiresAt;
+            try {
+                expiresAt = parseExpiresAt(credentials.getBearerToken());
+
+            } catch (Exception e) {
+                logger.warn("couldn't parse token for session={} - will auto-expire token in 1 hour", sessionId);
+                logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
+
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(new Date());
+                cal.add(Calendar.HOUR_OF_DAY, 1);
+                expiresAt = cal.getTime();
+            }
+
+            userEndpointCredentialsMap.put(userEndpoint.getEndpoint().getId(), new UserEndpointCredentials(userEndpoint, fcc, expiresAt));
+
             return true;
 
         } else {
@@ -187,7 +191,7 @@ public class UserWorkspace {
             public void run() {
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating workspace for session={}", sessionId);
-                for (UserEndpointCredentials uec : userEndpointCredentialsList) {
+                for (UserEndpointCredentials uec : userEndpointCredentialsMap.values()) {
 
                     // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
                     //        this function should use that to automatically obtain a fresh authentication token
@@ -227,7 +231,7 @@ public class UserWorkspace {
         cache.invalidateAll();
         cache.cleanUp();
 
-        userEndpointCredentialsList.clear();
+        userEndpointCredentialsMap.clear();
     }
 
     public void clearCache() {
@@ -266,7 +270,20 @@ public class UserWorkspace {
 
     private void setupAutoShutdownJob() {
         Scheduler scheduler = ctx.getBean(Scheduler.class);
-        Date shutdownTimestamp = deriveWorkspaceAutoShutdownExpirationFromToken(launchCredentialsWithClient.getCredentials().getBearerToken());
+
+        Date shutdownTimestamp;
+        try {
+            shutdownTimestamp = parseExpiresAt(launchCredentials.getBearerToken());
+
+        } catch (JWTDecodeException e) {
+            logger.warn("couldn't parse token for session={} - will auto-shutdown workspace after 1 day", sessionId);
+            logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
+
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(new Date());
+            cal.add(Calendar.DATE, 1);
+            shutdownTimestamp = cal.getTime();
+        }
 
         JobDataMap jobDataMap = new JobDataMap();
         jobDataMap.put(ShutdownWorkspaceJob.JOBDATA_APPLICATIONCONTEXT, ctx);
@@ -311,22 +328,7 @@ public class UserWorkspace {
         }
     }
 
-    private Date deriveWorkspaceAutoShutdownExpirationFromToken(String bearerToken) {
-        try {
-            return parseExpiresAt(bearerToken);
-
-        } catch (Exception e) {
-            logger.warn("couldn't parse token for session={} - will auto-shutdown workspace after 1 day", sessionId);
-            logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
-
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(new Date());
-            cal.add(Calendar.DATE, 1);
-            return cal.getTime();
-        }
-    }
-
-    private Date parseExpiresAt(String bearerToken) {
+    private Date parseExpiresAt(String bearerToken) throws JWTDecodeException {
         String[] parts = bearerToken.split("\\.");
         String payloadJSON = new String(Base64.getDecoder().decode(parts[1]), StandardCharsets.UTF_8);
         JWTParser parser = new JWTParser();
@@ -343,6 +345,14 @@ public class UserWorkspace {
         return new GenericResourceTransformer(rcs);
     }
 
+    public void setCurrentlyLaunchingEndpointId(Long endpointId) {
+        currentlyLaunchingEndpointId = endpointId;
+    }
+
+    public Long getCurrentlyLaunchingEndpointId() {
+        return currentlyLaunchingEndpointId;
+    }
+
     public List<EndpointModel> getAllActiveEndpointModels() {
         List<EndpointModel> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
@@ -355,13 +365,13 @@ public class UserWorkspace {
         List<UserEndpoint> list = new ArrayList<>();
 
         Date now = new Date();
-        for (UserEndpointCredentials uec : userEndpointCredentialsList) {
-            String bearerToken = uec.getCredentialsWithClient().getCredentials().getBearerToken();
-            if (bearerToken == null) continue;
-
-            Date expiresAt = parseExpiresAt(bearerToken);
-            if (expiresAt.after(now)) {
+        Iterator<UserEndpointCredentials> uecIterator = userEndpointCredentialsMap.values().iterator();
+        while (uecIterator.hasNext()) {
+            UserEndpointCredentials uec = uecIterator.next();
+            if (uec.getExpiresAt().after(now)) {
                 list.add(uec.getUserEndpoint());
+            } else {
+                uecIterator.remove();
             }
         }
 
@@ -371,10 +381,12 @@ public class UserWorkspace {
     private static final class UserEndpointCredentials {
         private UserEndpoint userEndpoint;
         private FHIRCredentialsWithClient credentialsWithClient;
+        private Date expiresAt;
 
-        public UserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentialsWithClient credentialsWithClient) {
+        public UserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentialsWithClient credentialsWithClient, Date expiresAt) {
             this.userEndpoint = userEndpoint;
             this.credentialsWithClient = credentialsWithClient;
+            this.expiresAt = expiresAt;
         }
 
         public UserEndpoint getUserEndpoint() {
@@ -383,6 +395,10 @@ public class UserWorkspace {
 
         public FHIRCredentialsWithClient getCredentialsWithClient() {
             return credentialsWithClient;
+        }
+
+        public Date getExpiresAt() {
+            return expiresAt;
         }
     }
 
@@ -702,6 +718,11 @@ public class UserWorkspace {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (InvalidRequestException) e;
                     }
+
+                } else if (e instanceof AuthenticationException ae) {
+                    // access token expired
+                    // handle gracefully if possible, otherwise abort
+                    throw (RuntimeException) e;
 
                 } else if (e instanceof RuntimeException) {
                     throw (RuntimeException) e;
