@@ -69,22 +69,17 @@ public class EndpointService extends BaseService {
     }
 
     public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
-        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElseThrow();
-    }
+        if (userEndpointRepository.existsUserEndpointByUserIdAndEndpointId(userId, endpointId)) {
+            return userEndpointRepository.findUserEndpointByUserIdAndEndpointId(userId, endpointId);
 
-    public UserEndpoint createUserEndpoint(Long userId, Endpoint endpoint) {
-        UserEndpoint ue = new UserEndpoint();
-        ue.setUserId(userId);
-        ue.setEndpoint(endpoint);
-        ue.setCreated(new Date());
-        userEndpointRepository.save(ue);
-        return ue;
-    }
-
-    public void updateUserEndpointLastAuthInitiated(Long userId, Long endpointId) {
-        UserEndpoint ue = getUserEndpoint(userId, endpointId);
-        ue.setLastAuthInitiated(new Date());
-        userEndpointRepository.save(ue);
+        } else {
+            UserEndpoint ue = new UserEndpoint();
+            ue.setUserId(userId);
+            ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
+            ue.setCreated(new Date());
+            userEndpointRepository.save(ue);
+            return ue;
+        }
     }
 
     public void updateUserEndpointLastSyncCompleted(Long userId, Long endpointId) {
