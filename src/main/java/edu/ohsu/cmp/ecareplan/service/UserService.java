@@ -25,7 +25,7 @@ public class UserService extends BaseService {
 
         User u;
         if (repository.existsUserByPatIdHash(patIdHash)) {
-            u = repository.findOneByPatIdHash(patIdHash);
+            u = repository.findUserByPatIdHash(patIdHash);
 
         } else {
             u = new User(patIdHash);
