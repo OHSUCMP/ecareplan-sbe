@@ -151,7 +151,7 @@ public class DataSetBuilderService extends BaseService {
                                                                     );
                                                                 } catch (Exception e) {
                                                                     logger.error("Error reading binary reference: " + content.getAttachment().getUrl(), e);
-                                                                    if (e instanceof AuthenticationException) throw (AuthenticationException) e;
+                                                                    if (e instanceof AuthenticationException ae) throw ae;
                                                                 }
                                                             }
                                                         }
@@ -329,7 +329,7 @@ public class DataSetBuilderService extends BaseService {
                                                         );
                                                     } catch (Exception e) {
                                                         logger.error("Error reading medication reference: " + mr.getMedicationReference().getReference(), e);
-                                                        if (e instanceof AuthenticationException) throw (AuthenticationException) e;
+                                                        if (e instanceof AuthenticationException ae) throw ae;
                                                     }
                                                 }
 
@@ -340,7 +340,7 @@ public class DataSetBuilderService extends BaseService {
                                                         );
                                                     } catch (Exception e) {
                                                         logger.error("Error reading requester reference: " + mr.getRequester().getReference(), e);
-                                                        if (e instanceof AuthenticationException) throw (AuthenticationException) e;
+                                                        if (e instanceof AuthenticationException ae) throw ae;
                                                     }
                                                 }
                                                 return list;

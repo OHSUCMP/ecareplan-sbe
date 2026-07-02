@@ -2,6 +2,7 @@ package edu.ohsu.cmp.ecareplan.service;
 
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import edu.ohsu.cmp.ecareplan.exception.*;
@@ -407,11 +408,16 @@ public class FHIRService {
             }
 
             for (Resource resource : resources) {
-                List<Resource> list = supplementalResourcesFunction.apply(new ResourceWithBundle(resource, bundle));
-                if (list != null) {
-                    for (Resource supplementalResource : list) {
-                        FhirUtil.appendResourceToBundle(bundle, supplementalResource);
+                try {
+                    List<Resource> list = supplementalResourcesFunction.apply(new ResourceWithBundle(resource, bundle));
+                    if (list != null) {
+                        for (Resource supplementalResource : list) {
+                            FhirUtil.appendResourceToBundle(bundle, supplementalResource);
+                        }
                     }
+                } catch (Exception e) {
+                    logger.error("caught " + e.getClass().getName() + " while appending supplemental resources for " + resource.getClass().getSimpleName() + " with id=" + resource.getId(), e);
+                    if (e instanceof AuthenticationException ae) throw ae;
                 }
             }
         }
