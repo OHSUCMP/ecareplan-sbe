@@ -40,33 +40,13 @@
     </select>
 
     <input type="button" id="loginButton" class="btn btn-primary" value="Login" disabled />
+
+    <div id="messageContainer" class="hidden">
+        <p id="errorMessage"></p>
+    </div>
 </div>
 
 <script type="text/javascript">
-    $(document).on('change', '#endpointSelect', function() {
-        let el = $(this).find('option:selected').first();
-        $('#loginButton').prop('disabled', !el.val());
-    });
-
-    $(document).on('click', '#loginButton', function() {
-        $('#endpointSelect').prop('disabled', true);
-        $('#loginButton').prop('disabled', true);
-        $('html').css('cursor', 'wait');
-
-        let el = $('#endpointSelect').find('option:selected').first();
-        let clientId = el.data('client-id');
-        let scope = el.data('scope');
-        let redirectUri = el.data('redirect-uri');
-        let iss = el.data('iss');
-
-        FHIR.oauth2.authorize({
-            "client_id": clientId,
-            "scope": scope,
-            "redirect_uri": redirectUri,
-            "iss": iss
-        });
-    });
-
     $(document).ready(function() {
         let sessionEstablished = $('#sessionEstablished').text();
         if (sessionEstablished !== 'true') {

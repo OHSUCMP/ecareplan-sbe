@@ -8,10 +8,13 @@ import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,20 +22,21 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/patient/select-endpoint")
+@RequestMapping("/patient/endpoint")
 public class EndpointController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private EndpointService endpointService;
 
-    @GetMapping(value = {"", "/"})
+    @GetMapping("select")
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "fhir-client-v2.6.3.min.js" });
+            model.addAttribute("pageScripts", new String[] { "fhir-client-v2.6.3.min.js", "select-endpoint.js" });
+            model.addAttribute("pageStyles", new String[] { "select-endpoint.css" });
 
             UserWorkspace workspace = userWorkspaceService.get(sessionId);
 
@@ -52,13 +56,36 @@ public class EndpointController extends BasePatientController {
             }
             model.addAttribute("thirdPartyEndpointModels", notYetConnectedThirdPartyEndpoints);
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/select-endpoint");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/endpoint/select");
 
             return "patient/select-endpoint";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
             return "redirect:/patient/launch";
+        }
+    }
+
+    @PostMapping("report-launch")
+    public ResponseEntity<String> reportLaunch(HttpSession session,
+                                               @RequestParam Long endpointId) {
+
+        if (sessionService.exists(session.getId())) {
+            logger.info("reporting launch for endpointId={}", endpointId);
+
+            try {
+                UserWorkspace workspace = userWorkspaceService.get(session.getId());
+                workspace.setCurrentlyLaunchingEndpointId(endpointId);
+                auditService.doAudit(session.getId(), AuditSeverity.INFO, "launch third-party endpoint", "endpointId=" + endpointId);
+                return ResponseEntity.ok("ok");
+
+            } catch (Exception e) {
+                logger.error("caught {} attempting to report launch for endpointId={}", e.getClass().getSimpleName(), endpointId, e);
+                return ResponseEntity.badRequest().body("error - see server logs for details");
+            }
+
+        } else {
+            return ResponseEntity.badRequest().body("no session");
         }
     }
 }
