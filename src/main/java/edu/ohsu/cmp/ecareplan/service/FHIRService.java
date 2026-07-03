@@ -5,6 +5,7 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import ca.uhn.fhir.rest.server.exceptions.UnclassifiedServerFailureException;
 import edu.ohsu.cmp.ecareplan.exception.*;
 import edu.ohsu.cmp.ecareplan.model.fhir.CompositeBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
@@ -41,6 +42,9 @@ public class FHIRService {
 
     @Value("${fhir.search.count}")
     private int searchCount;
+
+    @Value("${retry.count:5}")
+    private Integer maxRetries;
 
     @Value("${smart.backend.iss}")
     private String backendIss;
@@ -105,16 +109,28 @@ public class FHIRService {
         logger.info("read: " + reference + " (" + aClass.getSimpleName() + ")");
         String id = FhirUtil.extractIdFromReference(reference);
         IGenericClient client = buildClient(fcc, strategy);
-        try {
-            return client.read()
-                    .resource(aClass)
-                    .withId(id)
-                    .execute();
 
-        } catch (InvalidRequestException ire) {
-            logger.error("caught " + ire.getClass().getName() + " reading " + aClass.getName() + " with id='" + id + "' - " + ire.getMessage());
-            throw ire;
+        int attempt = 0;
+        while (attempt++ < maxRetries) {
+            try {
+                return client.read()
+                        .resource(aClass)
+                        .withId(id)
+                        .execute();
+
+            } catch (InvalidRequestException ire) {
+                logger.error("caught " + ire.getClass().getName() + " reading " + aClass.getName() + " with id='" + id + "' - " + ire.getMessage());
+                throw ire;
+
+            } catch (UnclassifiedServerFailureException usfe) {
+                if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                    logger.debug("caught HTTP 504 Bad Gateway while reading " + aClass.getName() + " with id='" + id + "' - retrying -");
+                } else {
+                    throw usfe;
+                }
+            }
         }
+        throw new DataException("failed to read " + aClass.getName() + " with id='" + id + "' after " + maxRetries + " attempts");
     }
 
     // search function to facilitate getting large datasets involving multi-paginated queries
