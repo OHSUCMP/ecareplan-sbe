@@ -192,23 +192,42 @@ public class UserWorkspace {
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating workspace for session={}", sessionId);
                 for (UserEndpointCredentials uec : userEndpointCredentialsMap.values()) {
-
-                    // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
-                    //        this function should use that to automatically obtain a fresh authentication token
-                    //        if a valid one isn't present, prior to populating data sets
-
-                    Endpoint e = uec.getUserEndpoint().getEndpoint();
-                    long endpointStart = System.currentTimeMillis();
-                    logger.info("BEGIN populating for endpoint={} for session={}", e.getName(), sessionId);
-                    for (DataSet<?> dataSet : DataSet.ALL_DATASETS) {
-                        getCachedDataSetForEndpoint(dataSet, e);
-                    }
-                    logger.info("DONE populating for endpoint={} for session={} (took {} ms)", e.getName(), sessionId, (System.currentTimeMillis() - endpointStart));
+                    Endpoint endpoint = uec.getUserEndpoint().getEndpoint();
+                    Runnable populateEndpointRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                populateEndpoint(endpoint);
+                            } catch (Exception e) {
+                                logger.error("caught {} populating endpoint={} for session={} - {}", e.getClass().getSimpleName(), endpoint.getName(), sessionId, e.getMessage(), e);
+                            }
+                        }
+                    };
+                    executorService.submit(populateEndpointRunnable);
                 }
                 logger.info("DONE populating workspace for session={} (took {} ms)", sessionId, (System.currentTimeMillis() - start));
             }
         };
         executorService.submit(runnable);
+    }
+
+    private void populateEndpoint(Endpoint endpoint) {
+        // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
+        //        this function should use that to automatically obtain a fresh authentication token
+        //        if a valid one isn't present, prior to populating data sets
+
+        long start = System.currentTimeMillis();
+        logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
+        for (DataSet<?> dataSet : DataSet.ALL_DATASETS) {
+            try {
+                getCachedDataSetForEndpoint(dataSet, endpoint);
+            } catch (Exception e) {
+                logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
+
+                // todo : depending on the type of error, perhaps retry?
+            }
+        }
+        logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, (System.currentTimeMillis() - start));
     }
 
     public void clearCacheAndCredentials() {
@@ -459,8 +478,11 @@ public class UserWorkspace {
 
             } catch (Exception e) {
                 if (e instanceof ForbiddenOperationException) {
-                    logger.warn("attempt to retrieve {} from {} was forbidden - will not include {} for this session",
-                            dataSet.getName(), endpoint.getName(), dataSet.getName());
+
+                    // todo : report this to the UI
+
+                    logger.warn("attempt to retrieve {} from {} was forbidden - {}",
+                            dataSet.getName(), endpoint.getName(), e.getMessage());
                     auditService.doAudit(sessionId, AuditSeverity.WARN, "cache population", "retrieving " + dataSet.getName() +
                             " from " + endpoint.getName() + " was forbidden");
 
@@ -470,8 +492,11 @@ public class UserWorkspace {
                     }
 
                 } else if (e instanceof InvalidRequestException) {
-                    logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - will not include {} for this session",
-                            dataSet.getName(), endpoint.getName(), dataSet.getName());
+
+                    // todo : report this error to the UI
+
+                    logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - {}",
+                            dataSet.getName(), endpoint.getName(), e.getMessage());
                     auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
                             dataSet.getName() + " from " + endpoint.getName());
 
