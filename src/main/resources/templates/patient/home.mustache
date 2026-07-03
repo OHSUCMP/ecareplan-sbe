@@ -23,6 +23,8 @@
         personalized way to see what steps you’ve already taken and what else you can do to check for and prevent illnesses.
     </p>
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h2>Patient Records</h2>
     <ol>
         {{#patientModels}}
@@ -51,8 +53,7 @@
 
 <script type="text/javascript">
     $(document).ready(function() {
-        let sessionEstablished = $('#sessionEstablished').text();
-        if (sessionEstablished !== 'true') {
+        if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 

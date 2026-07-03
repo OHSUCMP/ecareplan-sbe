@@ -69,6 +69,8 @@ public class UserWorkspace {
 
     private Long currentlyLaunchingEndpointId = null;
 
+    private volatile Map<Long, ProgressModel> endpointIdProgressMap = null;
+
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
                             FHIRCredentials launchCredentials, Integer socketTimeout) {
         this.ctx = ctx;
@@ -125,6 +127,40 @@ public class UserWorkspace {
         }
 
         return endpointService.getUserEndpoint(userId, endpoint.getId());
+    }
+
+    public synchronized List<ProgressModel> getCurrentProgress() {
+        return endpointIdProgressMap != null ?
+                new ArrayList<>(endpointIdProgressMap.values()) :
+                null;
+    }
+
+    private synchronized void updateProgress(Endpoint endpoint, ProgressStatus status, String message, Integer percentComplete) {
+        if (endpointIdProgressMap == null) {
+            endpointIdProgressMap = new LinkedHashMap<>();
+        }
+
+        if (endpointIdProgressMap.containsKey(endpoint.getId())) {
+            ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
+            model.setStatus(status);
+            model.setMessage(message);
+            model.setPercentComplete(percentComplete);
+
+        } else {
+            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, percentComplete));
+        }
+    }
+
+    private synchronized void addProgressError(Endpoint endpoint, String error) {
+        if (endpointIdProgressMap == null) return;
+        if (endpointIdProgressMap.containsKey(endpoint.getId())) {
+            ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
+            model.addError(error);
+        }
+    }
+
+    private void resetProgress() {
+        endpointIdProgressMap = null;
     }
 
     private RefreshTokenData getRefreshTokenData(Endpoint endpoint) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
@@ -191,6 +227,7 @@ public class UserWorkspace {
             public void run() {
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating workspace for session={}", sessionId);
+                resetProgress();
                 for (UserEndpointCredentials uec : userEndpointCredentialsMap.values()) {
                     Endpoint endpoint = uec.getUserEndpoint().getEndpoint();
                     Runnable populateEndpointRunnable = new Runnable() {
@@ -218,16 +255,22 @@ public class UserWorkspace {
 
         long start = System.currentTimeMillis();
         logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
+        updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
+        int count = 0;
+        int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
         for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
             try {
+                updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float)max));
                 getCachedDataSetForEndpoint(dataSet, endpoint);
             } catch (Exception e) {
                 logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-
+                addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
                 // todo : depending on the type of error, perhaps retry?
             }
         }
-        logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, (System.currentTimeMillis() - start));
+        long runtime = System.currentTimeMillis() - start;
+        logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+        updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
     }
 
     public void clearCacheAndCredentials() {

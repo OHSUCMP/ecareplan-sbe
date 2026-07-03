@@ -1,0 +1,7 @@
+div.progress {
+    display: block;
+}
+
+display.progress > div {
+    display: block;
+}

@@ -101,6 +101,9 @@ public class PatientHomeController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
+            model.addAttribute("pageScripts", new String[] { "progress.js" });
+            model.addAttribute("pageStyles", new String[] { "progress.css" });
+
             model.addAttribute("patientModels", workspace.getAllDataSetModels(DataSet.PATIENT));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
