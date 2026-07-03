@@ -60,8 +60,7 @@
 
 <script type="text/javascript">
     $(document).ready(function() {
-        let sessionEstablished = $('#sessionEstablished').text();
-        if (sessionEstablished !== 'true') {
+        if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
