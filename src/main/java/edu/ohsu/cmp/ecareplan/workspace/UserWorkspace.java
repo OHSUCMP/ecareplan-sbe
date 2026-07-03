@@ -218,7 +218,7 @@ public class UserWorkspace {
 
         long start = System.currentTimeMillis();
         logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
-        for (DataSet<?> dataSet : DataSet.ALL_DATASETS) {
+        for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
             try {
                 getCachedDataSetForEndpoint(dataSet, endpoint);
             } catch (Exception e) {
