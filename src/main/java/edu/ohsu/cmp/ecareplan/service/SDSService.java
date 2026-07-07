@@ -56,8 +56,19 @@ public class SDSService extends BaseService {
                 null;
     }
 
-    public void clearProgress(String sessionId) {
-        sessionIdProgressMap.remove(sessionId);
+    public void clearCompletedProgress(String sessionId) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            Iterator<ProgressModel> iter = sessionIdProgressMap.get(sessionId).values().iterator();
+            while (iter.hasNext()) {
+                ProgressModel pm = iter.next();
+                if (pm.getStatus() == ProgressStatus.COMPLETED) {
+                    iter.remove();
+                }
+            }
+            if (sessionIdProgressMap.get(sessionId).isEmpty()) {
+                sessionIdProgressMap.remove(sessionId);
+            }
+        }
     }
 
     public void shareToSDS(String sessionId, DataSet<?> dataSet, Endpoint endpoint) {

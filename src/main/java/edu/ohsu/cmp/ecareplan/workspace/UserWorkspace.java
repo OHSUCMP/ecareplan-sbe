@@ -169,8 +169,21 @@ public class UserWorkspace {
         }
     }
 
-    private void resetProgress() {
-        endpointIdProgressMap = null;
+    private synchronized void clearCompletedProgress() {
+        if (endpointIdProgressMap != null) {
+            Iterator<ProgressModel> iter = endpointIdProgressMap.values().iterator();
+            while (iter.hasNext()) {
+                ProgressModel pm = iter.next();
+                if (pm.getStatus() == ProgressStatus.COMPLETED) {
+                    iter.remove();
+                }
+            }
+            if (endpointIdProgressMap.isEmpty()) {
+                endpointIdProgressMap = null;
+            }
+        }
+
+        sdsService.clearCompletedProgress(sessionId);
     }
 
     private RefreshTokenData getRefreshTokenData(Endpoint endpoint) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
@@ -232,30 +245,10 @@ public class UserWorkspace {
     }
 
     public void populate() {
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                long start = System.currentTimeMillis();
-                logger.info("BEGIN populating workspace for session={}", sessionId);
-                resetProgress();
-                for (UserEndpointCredentials uec : userEndpointCredentialsMap.values()) {
-                    Endpoint endpoint = uec.getUserEndpoint().getEndpoint();
-                    Runnable populateEndpointRunnable = new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                populateEndpoint(endpoint);
-                            } catch (Exception e) {
-                                logger.error("caught {} populating endpoint={} for session={} - {}", e.getClass().getSimpleName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                            }
-                        }
-                    };
-                    executorService.submit(populateEndpointRunnable);
-                }
-                logger.info("DONE populating workspace for session={} (took {} ms)", sessionId, (System.currentTimeMillis() - start));
-            }
-        };
-        executorService.submit(runnable);
+        clearCompletedProgress();
+        for (UserEndpointCredentials uec : userEndpointCredentialsMap.values()) {
+            populateEndpoint(uec.getUserEndpoint().getEndpoint());
+        }
     }
 
     public void populateEndpoint(Endpoint endpoint) {
@@ -263,27 +256,35 @@ public class UserWorkspace {
         //        this function should use that to automatically obtain a fresh authentication token
         //        if a valid one isn't present, prior to populating data sets
 
-        long start = System.currentTimeMillis();
-        logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
-        updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
-        int count = 0;
-        int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
-        for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
-            try {
-                updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float)max));
-                cache.invalidate(buildCacheKey(dataSet, endpoint));
-                getDataSetModelsForEndpoint(dataSet, endpoint);
-                sdsService.shareToSDS(sessionId, dataSet, endpoint);
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                clearCompletedProgress();
+                long start = System.currentTimeMillis();
+                logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
+                updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
+                int count = 0;
+                int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
+                for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
+                    try {
+                        updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float)max));
+                        cache.invalidate(buildCacheKey(dataSet, endpoint));
+                        getDataSetModelsForEndpoint(dataSet, endpoint);
+                        sdsService.shareToSDS(sessionId, dataSet, endpoint);
 
-            } catch (Exception e) {
-                logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
-                // todo : depending on the type of error, perhaps retry?
+                    } catch (Exception e) {
+                        logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
+                        addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
+                        // todo : depending on the type of error, perhaps retry?
+                    }
+                }
+                long runtime = System.currentTimeMillis() - start;
+                logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+                updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
             }
-        }
-        long runtime = System.currentTimeMillis() - start;
-        logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
-        updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
+        };
+
+        executorService.submit(runnable);
     }
 
     public void clearCacheAndCredentials() {
