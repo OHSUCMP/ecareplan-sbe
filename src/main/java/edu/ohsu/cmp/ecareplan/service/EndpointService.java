@@ -36,9 +36,6 @@ public class EndpointService extends BaseService {
     @Value("${endpoint.careTeamLaunch.name}")
     private String careTeamEndpointName;
 
-    @Value("${endpoint.sds.name}")
-    private String sdsEndpointName;
-
     @Autowired
     private EndpointRepository endpointRepository;
 
@@ -53,14 +50,11 @@ public class EndpointService extends BaseService {
         return endpointRepository.findByName(careTeamEndpointName);
     }
 
-    public Endpoint getSDSEndpoint() { return endpointRepository.findByName(sdsEndpointName); }
-
     public List<EndpointModel> getAllThirdPartyEndpoints() {
         List<EndpointModel> list = new ArrayList<>();
         for (Endpoint endpoint : endpointRepository.findAll(Sort.by("name").ascending())) {
             if (endpoint.getName().equals(patientEndpointName) ||
-                    endpoint.getName().equals(careTeamEndpointName) ||
-                    endpoint.getName().equals(sdsEndpointName)) {
+                    endpoint.getName().equals(careTeamEndpointName)) {
                 continue;
             }
             list.add(new EndpointModel(endpoint));

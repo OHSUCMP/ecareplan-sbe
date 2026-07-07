@@ -14,13 +14,15 @@ import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.CaseNotHandledException;
 import edu.ohsu.cmp.ecareplan.model.*;
-import edu.ohsu.cmp.ecareplan.model.dataset.*;
+import edu.ohsu.cmp.ecareplan.model.dataset.BaseDataSetModel;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
 import edu.ohsu.cmp.ecareplan.util.CryptoUtil;
+import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
@@ -63,6 +65,7 @@ public class UserWorkspace {
 
     private final DataSetBuilderService dataSetBuilderService;
     private final EndpointService endpointService;
+    private final SDSService sdsService;
     private final AuditService auditService;
 
     private SecretKey secretKey;
@@ -81,6 +84,7 @@ public class UserWorkspace {
 
         dataSetBuilderService = ctx.getBean(DataSetBuilderService.class);
         endpointService = ctx.getBean(EndpointService.class);
+        sdsService = ctx.getBean(SDSService.class);
         auditService = ctx.getBean(AuditService.class);
 
         UserService userService = ctx.getBean(UserService.class);
@@ -130,9 +134,15 @@ public class UserWorkspace {
     }
 
     public synchronized List<ProgressModel> getCurrentProgress() {
-        return endpointIdProgressMap != null ?
-                new ArrayList<>(endpointIdProgressMap.values()) :
-                null;
+        List<ProgressModel> list = new ArrayList<>();
+        if (endpointIdProgressMap != null) {
+            list.addAll(endpointIdProgressMap.values());
+        }
+        List<ProgressModel> sdsList = sdsService.getCurrentProgress(sessionId);
+        if (sdsList != null) {
+            list.addAll(sdsList);
+        }
+        return list;
     }
 
     private synchronized void updateProgress(Endpoint endpoint, ProgressStatus status, String message, Integer percentComplete) {
@@ -144,10 +154,10 @@ public class UserWorkspace {
             ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
             model.setStatus(status);
             model.setMessage(message);
-            model.setPercentComplete(percentComplete);
+            model.setCurrent(percentComplete);
 
         } else {
-            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, percentComplete));
+            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, 0, 100));
         }
     }
 
@@ -248,7 +258,7 @@ public class UserWorkspace {
         executorService.submit(runnable);
     }
 
-    private void populateEndpoint(Endpoint endpoint) {
+    public void populateEndpoint(Endpoint endpoint) {
         // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
         //        this function should use that to automatically obtain a fresh authentication token
         //        if a valid one isn't present, prior to populating data sets
@@ -261,7 +271,10 @@ public class UserWorkspace {
         for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
             try {
                 updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float)max));
-                getCachedDataSetForEndpoint(dataSet, endpoint);
+                cache.invalidate(buildCacheKey(dataSet, endpoint));
+                getDataSetModelsForEndpoint(dataSet, endpoint);
+                sdsService.shareToSDS(sessionId, dataSet, endpoint);
+
             } catch (Exception e) {
                 logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
                 addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
@@ -282,17 +295,10 @@ public class UserWorkspace {
         userEndpointCredentialsMap.clear();
     }
 
-    public void clearCache() {
-        logger.info("clearing cache for session={}", sessionId);
-
-        cache.invalidateAll();
-        cache.cleanUp();
-    }
-
     public void shutdown() {
         logger.info("shutting down workspace for session={}", sessionId);
         secretKey = null;
-        executorService.shutdown();
+        ExecutorUtil.shutdownAndAwaitTermination(executorService, 60);
         clearCacheAndCredentials();
         shutdownJobs();
     }
@@ -453,7 +459,7 @@ public class UserWorkspace {
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
         for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<T> dataSetModels = getCachedDataSetForEndpoint(dataSet, ue.getEndpoint());
+            List<T> dataSetModels = getDataSetModelsForEndpoint(dataSet, ue.getEndpoint());
             if (dataSetModels != null) {
                 list.addAll(dataSetModels);
             }
@@ -473,7 +479,7 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends BaseDataSetModel<?>> List<T> getCachedDataSetForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
+    public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
         return (List<T>) cache.get(buildCacheKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
             logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,

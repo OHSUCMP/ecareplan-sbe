@@ -48,7 +48,6 @@ public class ClinicalNoteModel extends BaseDataSetModel<DocumentReference> {
                     } else {
                         logger.warn("Binary not found for attachment: " + attachment.getUrl());
                     }
-                    content.getAttachment().setUrl(binaryMap.get(content.getAttachment().getUrl()).getId());
                 }
             }
 

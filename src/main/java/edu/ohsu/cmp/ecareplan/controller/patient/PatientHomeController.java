@@ -72,7 +72,7 @@ public class PatientHomeController extends BasePatientController {
                 if (endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
                     FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
                     workspace.addEndpointWithCredentials(userEndpoint, credentials);
-                    workspace.populate();
+                    workspace.populateEndpoint(userEndpoint.getEndpoint());
                     auditService.doAudit(session.getId(), AuditSeverity.INFO, "endpoint connected", "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
                     return ResponseEntity.ok("handshake completed");
                 }

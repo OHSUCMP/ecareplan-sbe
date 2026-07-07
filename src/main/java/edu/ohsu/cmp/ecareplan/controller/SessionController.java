@@ -57,7 +57,6 @@ public class SessionController extends BaseController {
     public ResponseEntity<?> refresh(HttpSession session) {
         logger.info("refreshing data for session=" + session.getId());
         UserWorkspace workspace = userWorkspaceService.get(session.getId());
-        workspace.clearCache();
         workspace.populate();
         return ResponseEntity.ok("refreshing");
     }

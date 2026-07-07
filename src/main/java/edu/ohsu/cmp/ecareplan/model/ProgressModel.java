@@ -9,19 +9,26 @@ public class ProgressModel {
     private final String label;
     private ProgressStatus status;
     private String message;
-    private Integer percentComplete;
+    private Integer current;
+    private final Integer max;
     private final List<String> errors = new ArrayList<>();
 
-    public ProgressModel(String label, ProgressStatus status, String message, Integer percentComplete) {
+    public ProgressModel(String label, ProgressStatus status, String message, Integer current, Integer max) {
         id = UUID.randomUUID().toString();
         this.label = label;
         this.status = status;
         this.message = message;
-
-        if (percentComplete == null || percentComplete < 0 || percentComplete > 100) {
-            throw new IllegalArgumentException("Percent complete must be between 0 and 100");
+        if (current == null || max == null) {
+            throw new IllegalArgumentException("Current and max cannot be null");
         }
-        this.percentComplete = percentComplete;
+        if (max < 0) {
+            throw new IllegalArgumentException("Max cannot be negative");
+        }
+        if (current < 0 || current > max) {
+            throw new IllegalArgumentException("Current cannot be null or greater than max");
+        }
+        this.current = current;
+        this.max = max;
     }
 
     public String getId() {
@@ -49,14 +56,37 @@ public class ProgressModel {
     }
 
     public Integer getPercentComplete() {
-        return percentComplete;
+        if (max == 0) {
+            return 100;
+        } else {
+            return max == 100 ?
+                    current :
+                    Math.round(current * 100 / (float) max);
+        }
     }
 
-    public void setPercentComplete(Integer percentComplete) {
-        if (percentComplete == null || percentComplete < 0 || percentComplete > 100) {
-            throw new IllegalArgumentException("Percent complete must be between 0 and 100");
+    public void setCurrent(Integer current) {
+        if (current == null) {
+            throw new IllegalArgumentException("Current cannot be null");
+        } else if (current < 0 || current > max) {
+            throw new IllegalArgumentException("Current cannot be negative or greater than max");
         }
-        this.percentComplete = percentComplete;
+        this.current = current;
+    }
+
+    public Integer getCurrent() {
+        return current;
+    }
+
+    public void incrementCurrent() {
+        if (current >= max) {
+            throw new IllegalArgumentException("Current cannot be incremented beyond max");
+        }
+        this.current++;
+    }
+
+    public Integer getMax() {
+        return max;
     }
 
     public List<String> getErrors() {
