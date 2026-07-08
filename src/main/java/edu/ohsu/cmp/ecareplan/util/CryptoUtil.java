@@ -74,8 +74,13 @@ public class CryptoUtil {
         AlgorithmParameters params = cipher.getParameters();
         byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
 
-        Gson gson = new GsonBuilder().create();
-        byte[] encryptedBytes = cipher.doFinal(gson.toJson(obj).getBytes());
+        byte[] encryptedBytes;
+        if (obj instanceof String s) {
+            encryptedBytes = cipher.doFinal(s.getBytes());
+        } else {
+            Gson gson = new GsonBuilder().create();
+            encryptedBytes = cipher.doFinal(gson.toJson(obj).getBytes());
+        }
 
         if (iv.length != IV_LENGTH) {
             throw new InvalidParameterSpecException("IV length must be " + IV_LENGTH + " bytes");
@@ -93,7 +98,7 @@ public class CryptoUtil {
         return Base64.encodeBase64String(payload);
     }
 
-    public static <T> T decrypt(Class<T> clazz, String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+    public static String decrypt(String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         byte[] payload = Base64.decodeBase64(encryptedDataB64);
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 
@@ -111,8 +116,11 @@ public class CryptoUtil {
 
         cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
         byte[] bytes = cipher.doFinal(encryptedBytes);
+        return new String(bytes);
+    }
 
+    public static <T> T decrypt(Class<T> clazz, String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         Gson gson = new GsonBuilder().create();
-        return gson.fromJson(new String(bytes), clazz);
+        return gson.fromJson(decrypt(encryptedDataB64, secretKey), clazz);
     }
 }
