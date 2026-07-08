@@ -8,7 +8,6 @@ import java.util.List;
 
 public interface ResourceTransformer {
     PatientModel transformPatient(Patient patient);
-    List<AssessmentModel> transformAssessments(Bundle bundle);
     List<CarePlanModel> transformCarePlans(Bundle bundle);
     List<CareTeamModel> transformCareTeams(Bundle bundle);
     List<ClinicalNoteModel> transformClinicalNotes(Bundle bundle);
@@ -19,6 +18,7 @@ public interface ResourceTransformer {
     List<EncounterModel> transformEncounters(Bundle bundle);
     List<MedicationModel> transformMedications(Bundle bundle);
     List<ProcedureModel> transformProcedures(Bundle bundle);
+    List<QuestionnaireResponseModel> transformQuestionnaireResponses(Bundle bundle);
     List<ServiceRequestModel> transformServiceRequests(Bundle bundle);
     List<SocialHistoryModel> transformSocialHistories(Bundle bundle);
     List<SurveyObservationModel> transformSurveyObservations(Bundle bundle);

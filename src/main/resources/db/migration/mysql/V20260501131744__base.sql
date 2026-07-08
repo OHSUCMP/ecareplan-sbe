@@ -62,7 +62,6 @@ create table default_query (
     strategy varchar(20) not null
 );
 
-insert into default_query (dataSetName, query, strategy) values ('ASSESSMENTS', 'QuestionnaireResponse?patient={PATIENT}&status=completed&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('CARE_PLANS', 'CarePlan?patient={PATIENT}&status=active&category=assess-plan&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('CARE_TEAMS', 'CareTeam?patient={PATIENT}&_include=CareTeam:participant&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('CLINICAL_NOTES', 'DocumentReference?patient={PATIENT}&category=clinical-note&date=ge{TWO_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
@@ -78,6 +77,7 @@ insert into default_query (dataSetName, query, strategy) values ('LAB_RESULTS', 
 insert into default_query (dataSetName, query, strategy) values ('MEDICATIONS', 'MedicationRequest?patient={PATIENT}&status=active&_include=MedicationRequest:requester&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('MEDICATIONS', 'MedicationRequest?patient={PATIENT}&status=on-hold,cancelled,completed,stopped&_count=10&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('PROCEDURES', 'Procedure?patient={PATIENT}&date=ge{THREE_YEARS_AGO}&_revinclude=Provenance:target', 'PATIENT');
+insert into default_query (dataSetName, query, strategy) values ('QUESTIONNAIRE_RESPONSES', 'QuestionnaireResponse?patient={PATIENT}&status=completed&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('SERVICE_REQUESTS', 'ServiceRequest?patient={PATIENT}&status=active&authored=ge{TWO_YEARS_AGO}&_include=ServiceRequest:requester&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('SOCIAL_HISTORIES', 'Observation?patient={PATIENT}&category=social-history&_revinclude=Provenance:target', 'PATIENT');
 insert into default_query (dataSetName, query, strategy) values ('SURVEY_OBSERVATIONS', 'Observation?patient={PATIENT}&category=survey&_revinclude=Provenance:target', 'PATIENT');

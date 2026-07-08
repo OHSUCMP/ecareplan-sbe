@@ -59,28 +59,6 @@ public class DataSetBuilderService extends BaseService {
         return List.of(patientModel);
     }
 
-    public List<AssessmentModel> buildAssessments(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Assessments for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        List<AssessmentModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.ASSESSMENTS, e)) {
-            list.addAll(
-                    rt.transformAssessments(
-                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
-                    )
-            );
-        }
-
-        for (AssessmentModel am : list) {
-            am.setSourceEndpointName(e.getName());
-            am.setSourceEndpointIss(e.getIss());
-        }
-
-        return list;
-    }
-
     public List<CarePlanModel> buildCarePlans(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         logger.info("building Care Plans for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
@@ -377,6 +355,28 @@ public class DataSetBuilderService extends BaseService {
         for (ProcedureModel pm : list) {
             pm.setSourceEndpointName(e.getName());
             pm.setSourceEndpointIss(e.getIss());
+        }
+
+        return list;
+    }
+
+    public List<QuestionnaireResponseModel> buildQuestionnaireResponses(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
+        UserWorkspace workspace = userWorkspaceService.get(sessionId);
+        logger.info("building Questionnaire Responses for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
+        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+        List<QuestionnaireResponseModel> list = new ArrayList<>();
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.QUESTIONNAIRE_RESPONSES, e)) {
+            list.addAll(
+                    rt.transformQuestionnaireResponses(
+                            fhirService.search(fcc, qm.getStrategy(), qm.getQuery())
+                    )
+            );
+        }
+
+        for (QuestionnaireResponseModel qrm : list) {
+            qrm.setSourceEndpointName(e.getName());
+            qrm.setSourceEndpointIss(e.getIss());
         }
 
         return list;

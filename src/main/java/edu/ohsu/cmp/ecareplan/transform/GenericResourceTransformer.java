@@ -22,19 +22,6 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<AssessmentModel> transformAssessments(Bundle bundle) {
-        if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<AssessmentModel> list = new ArrayList<>();
-        for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
-            if (entry.hasResource() && entry.getResource() instanceof QuestionnaireResponse questionnaireResponse) {
-                list.add(new AssessmentModel(questionnaireResponse));
-            }
-        }
-        appendProvenance(list, bundle);
-        return list;
-    }
-
-    @Override
     public List<CarePlanModel> transformCarePlans(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
         List<CarePlanModel> list = new ArrayList<>();
@@ -204,6 +191,19 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Procedure procedure) {
                 list.add(new ProcedureModel(procedure));
+            }
+        }
+        appendProvenance(list, bundle);
+        return list;
+    }
+
+    @Override
+    public List<QuestionnaireResponseModel> transformQuestionnaireResponses(Bundle bundle) {
+        if (bundle == null || bundle.getEntry() == null) return List.of();
+        List<QuestionnaireResponseModel> list = new ArrayList<>();
+        for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
+            if (entry.hasResource() && entry.getResource() instanceof QuestionnaireResponse questionnaireResponse) {
+                list.add(new QuestionnaireResponseModel(questionnaireResponse));
             }
         }
         appendProvenance(list, bundle);
