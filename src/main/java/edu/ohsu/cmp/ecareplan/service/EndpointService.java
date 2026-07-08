@@ -62,6 +62,10 @@ public class EndpointService extends BaseService {
         return list;
     }
 
+    public List<UserEndpoint> getAllUserEndpoints(Long userId) {
+        return userEndpointRepository.findByUserId(userId);
+    }
+
     public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
         if (userEndpointRepository.existsByUserIdAndEndpointId(userId, endpointId)) {
             return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId);
