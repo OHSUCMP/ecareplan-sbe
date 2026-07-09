@@ -18,7 +18,8 @@ public class UserEndpoint {
     @JoinColumn(name = "endpointId")
     private Endpoint endpoint;
 
-    private String encryptedRefreshTokenDataB64;
+    private String encryptedPatientId;
+    private String encryptedRefreshToken;
     private Date lastSyncCompleted;
     private Date created;
 
@@ -46,12 +47,20 @@ public class UserEndpoint {
         this.endpoint = endpoint;
     }
 
-    public String getEncryptedRefreshTokenDataB64() {
-        return encryptedRefreshTokenDataB64;
+    public String getEncryptedPatientId() {
+        return encryptedPatientId;
     }
 
-    public void setEncryptedRefreshTokenDataB64(String encryptedRefreshTokenDataB64) {
-        this.encryptedRefreshTokenDataB64 = encryptedRefreshTokenDataB64;
+    public void setEncryptedPatientId(String encryptedPatientId) {
+        this.encryptedPatientId = encryptedPatientId;
+    }
+
+    public String getEncryptedRefreshToken() {
+        return encryptedRefreshToken;
+    }
+
+    public void setEncryptedRefreshToken(String encryptedRefreshToken) {
+        this.encryptedRefreshToken = encryptedRefreshToken;
     }
 
     public Date getLastSyncCompleted() {

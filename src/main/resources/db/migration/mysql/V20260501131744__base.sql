@@ -114,7 +114,8 @@ create table user_endpoint (
     id int not null auto_increment primary key,
     userId int not null references user(id),
     endpointId int not null references endpoint(id),
-    encryptedRefreshTokenDataB64 text,
+    encryptedPatientId varchar(1000),
+    encryptedRefreshToken text,
     lastSyncCompleted datetime,
     created datetime not null default current_timestamp
 );
