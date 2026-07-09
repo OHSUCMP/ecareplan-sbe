@@ -31,7 +31,7 @@ import java.util.function.Function;
  * that only "good" resources are included in results.  No other filtering takes place here.
  */
 @Service
-public class DataSetBuilderService extends BaseService {
+public class EndpointDataSetBuilderService extends BaseService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
