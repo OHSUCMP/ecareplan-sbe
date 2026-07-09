@@ -3,7 +3,6 @@ package edu.ohsu.cmp.ecareplan.service;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.model.EndpointModel;
-import edu.ohsu.cmp.ecareplan.model.RefreshTokenData;
 import edu.ohsu.cmp.ecareplan.repository.EndpointRepository;
 import edu.ohsu.cmp.ecareplan.repository.UserEndpointRepository;
 import edu.ohsu.cmp.ecareplan.util.CryptoUtil;
@@ -18,7 +17,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidParameterSpecException;
@@ -67,33 +65,27 @@ public class EndpointService extends BaseService {
     }
 
     public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
-        if (userEndpointRepository.existsByUserIdAndEndpointId(userId, endpointId)) {
-            return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId);
-
-        } else {
-            UserEndpoint ue = new UserEndpoint();
-            ue.setUserId(userId);
-            ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
-            ue.setCreated(new Date());
-            userEndpointRepository.save(ue);
-            return ue;
-        }
+        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElseThrow();
     }
 
-    public void updateUserEndpointLastSyncCompleted(Long userId, Long endpointId) {
-        UserEndpoint ue = getUserEndpoint(userId, endpointId);
+    public UserEndpoint createUserEndpoint(Long userId, Long endpointId, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
+        UserEndpoint ue = new UserEndpoint();
+        ue.setUserId(userId);
+        ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
+        ue.setEncryptedPatientId(CryptoUtil.encrypt(fhirPatientId, secretKey));
+        if (refreshToken != null) ue.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
+        ue.setCreated(new Date());
+        userEndpointRepository.save(ue);
+        return ue;
+    }
+
+    public UserEndpoint updateUserEndpointLastSyncCompleted(UserEndpoint ue) {
         ue.setLastSyncCompleted(new Date());
-        userEndpointRepository.save(ue);
+        return userEndpointRepository.save(ue);
     }
 
-    public void setRefreshTokenData(Long userId, Long endpointId, SecretKey secretKey, RefreshTokenData refreshTokenData) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
-        UserEndpoint ue = getUserEndpoint(userId, endpointId);
-        ue.setEncryptedRefreshTokenDataB64(CryptoUtil.encrypt(refreshTokenData, secretKey));
-        userEndpointRepository.save(ue);
-    }
-
-    public RefreshTokenData getRefreshTokenData(Long userId, Long endpointId, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
-        UserEndpoint ue = getUserEndpoint(userId, endpointId);
-        return CryptoUtil.decrypt(RefreshTokenData.class, ue.getEncryptedRefreshTokenDataB64(), secretKey);
+    public UserEndpoint updateUserEndpointRefreshToken(UserEndpoint userEndpoint, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
+        userEndpoint.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
+        return userEndpointRepository.save(userEndpoint);
     }
 }
