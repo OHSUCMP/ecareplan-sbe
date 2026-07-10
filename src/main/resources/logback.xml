@@ -32,9 +32,10 @@
         <appender-ref ref="FILE" />
     </root>
 
-    <logger name="edu.ohsu.cmp.ecareplan.workspace.UserWorkspace" level="DEBUG" />
-    <logger name="edu.ohsu.cmp.ecareplan.service.EndpointDataSetBuilderService" level="INFO" />
-    <logger name="edu.ohsu.cmp.ecareplan.service.FHIRService" level="INFO" />
     <logger name="edu.ohsu.cmp.ecareplan.controller.SessionController" level="DEBUG" />
-    
+    <logger name="edu.ohsu.cmp.ecareplan.workspace.UserWorkspace" level="DEBUG" />
+    <logger name="edu.ohsu.cmp.ecareplan.service.EndpointService" level="INFO" />
+    <logger name="edu.ohsu.cmp.ecareplan.service.SDSService" level="INFO" />
+    <logger name="edu.ohsu.cmp.ecareplan.service.FHIRService" level="INFO" />
+
 </configuration>
