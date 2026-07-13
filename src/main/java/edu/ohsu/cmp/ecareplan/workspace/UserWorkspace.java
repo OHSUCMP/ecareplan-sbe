@@ -52,6 +52,7 @@ public class UserWorkspace {
     private final Long userId;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
+    private final Map<Long, Endpoint> sdsEndpointMap;
     private final Map<Long, String> endpointPatientIdMap;
     private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
 
@@ -101,6 +102,7 @@ public class UserWorkspace {
         }
 
         userEndpointCredentialsMap = new LinkedHashMap<>();
+        sdsEndpointMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
         UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
@@ -300,6 +302,11 @@ public class UserWorkspace {
             @Override
             public void run() {
                 clearCompletedProgress();
+
+                if (loadFromSDS) {
+                    sdsEndpointMap.remove(endpoint.getId());
+                }
+
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
                 updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
@@ -327,6 +334,10 @@ public class UserWorkspace {
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
                 updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
+
+                if ( loadFromSDS && ! sdsEndpointMap.containsKey(endpoint.getId()) ) {
+                    sdsEndpointMap.put(endpoint.getId(), endpoint);
+                }
             }
         };
 
@@ -340,6 +351,7 @@ public class UserWorkspace {
         cache.cleanUp();
 
         userEndpointCredentialsMap.clear();
+        sdsEndpointMap.clear();
         endpointPatientIdMap.clear();
     }
 
@@ -480,6 +492,10 @@ public class UserWorkspace {
         return list;
     }
 
+    private List<Endpoint> getAllSDSEndpoints() {
+        return new ArrayList<>(sdsEndpointMap.values());
+    }
+
     private static final class UserEndpointCredentials {
         private UserEndpoint userEndpoint;
         private FHIRCredentialsWithClient credentialsWithClient;
@@ -507,6 +523,12 @@ public class UserWorkspace {
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
         for (Endpoint endpoint : getAllActiveEndpoints()) {
+            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
+            if (dataSetModels != null) {
+                list.addAll(dataSetModels);
+            }
+        }
+        for (Endpoint endpoint : getAllSDSEndpoints()) {
             List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
             if (dataSetModels != null) {
                 list.addAll(dataSetModels);
