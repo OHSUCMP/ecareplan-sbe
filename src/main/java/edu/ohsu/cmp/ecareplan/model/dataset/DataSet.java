@@ -24,7 +24,6 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
     public static final Map<String, DataSet<?>> DATASET_MAP = new LinkedHashMap<>();
     static {
         DATASET_MAP.put(PATIENT.getName(), PATIENT);
-        DATASET_MAP.put(QUESTIONNAIRE_RESPONSES.getName(), QUESTIONNAIRE_RESPONSES);
         DATASET_MAP.put(CARE_PLANS.getName(), CARE_PLANS);
         DATASET_MAP.put(CARE_TEAMS.getName(), CARE_TEAMS);
         DATASET_MAP.put(CLINICAL_NOTES.getName(), CLINICAL_NOTES);
@@ -36,6 +35,7 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
         DATASET_MAP.put(LAB_RESULTS.getName(), LAB_RESULTS);
         DATASET_MAP.put(MEDICATIONS.getName(), MEDICATIONS);
         DATASET_MAP.put(PROCEDURES.getName(), PROCEDURES);
+        DATASET_MAP.put(QUESTIONNAIRE_RESPONSES.getName(), QUESTIONNAIRE_RESPONSES);
         DATASET_MAP.put(SERVICE_REQUESTS.getName(), SERVICE_REQUESTS);
         DATASET_MAP.put(SOCIAL_HISTORIES.getName(), SOCIAL_HISTORIES);
         DATASET_MAP.put(SURVEY_OBSERVATIONS.getName(), SURVEY_OBSERVATIONS);
