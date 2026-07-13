@@ -138,7 +138,7 @@ public class UserWorkspace {
         UserEndpoint userEndpoint;
         try {
             userEndpoint = endpointService.getUserEndpoint(userId, endpointId);
-        } catch (Exception e) {
+        } catch (NoSuchElementException e) {
             logger.warn("caught {} getting launch user endpoint for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
             try {
                 userEndpoint = endpointService.createUserEndpoint(userId, endpointId, patientId, null, secretKey);
