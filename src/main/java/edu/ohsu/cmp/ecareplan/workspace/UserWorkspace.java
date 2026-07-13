@@ -31,15 +31,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidParameterSpecException;
 import java.util.*;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
@@ -59,11 +52,12 @@ public class UserWorkspace {
     private final Long userId;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
+    private final Map<Long, Endpoint> sdsEndpointMap;
+    private final Map<Long, String> endpointPatientIdMap;
     private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
 
     private final ExecutorService executorService;
 
-    private final DataSetBuilderService dataSetBuilderService;
     private final EndpointService endpointService;
     private final SDSService sdsService;
     private final AuditService auditService;
@@ -82,7 +76,6 @@ public class UserWorkspace {
         this.launchCredentials = launchCredentials;
         this.socketTimeout = socketTimeout;
 
-        dataSetBuilderService = ctx.getBean(DataSetBuilderService.class);
         endpointService = ctx.getBean(EndpointService.class);
         sdsService = ctx.getBean(SDSService.class);
         auditService = ctx.getBean(AuditService.class);
@@ -109,7 +102,14 @@ public class UserWorkspace {
         }
 
         userEndpointCredentialsMap = new LinkedHashMap<>();
-        addEndpointWithCredentials(getLaunchUserEndpoint(), launchCredentials);
+        sdsEndpointMap = new LinkedHashMap<>();
+
+        Endpoint launcherEndpoint = getLauncherEndpoint();
+        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
+        addEndpointWithCredentials(launchUserEndpoint, launchCredentials);
+
+        endpointPatientIdMap = new LinkedHashMap<>();
+        endpointPatientIdMap.put(launcherEndpoint.getId(), launchCredentials.getPatientId());
 
         cache = Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)
@@ -120,17 +120,50 @@ public class UserWorkspace {
         setupAutoShutdownJob();
     }
 
-    private UserEndpoint getLaunchUserEndpoint() {
-        Endpoint endpoint;
+    public String getPatientIdForEndpoint(Endpoint endpoint) {
+        if ( ! endpointPatientIdMap.containsKey(endpoint.getId()) ) {
+            try {
+                UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                endpointPatientIdMap.put(endpoint.getId(), CryptoUtil.decrypt(userEndpoint.getEncryptedPatientId(), secretKey));
+            } catch (Exception e) {
+                if (e instanceof RuntimeException re) {
+                    throw re;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return endpointPatientIdMap.get(endpoint.getId());
+    }
+
+    public UserEndpoint getOrCreateUserEndpoint(Long endpointId, String patientId) {
+        UserEndpoint userEndpoint;
+        try {
+            userEndpoint = endpointService.getUserEndpoint(userId, endpointId);
+        } catch (NoSuchElementException e) {
+            logger.warn("caught {} getting launch user endpoint for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
+            try {
+                userEndpoint = endpointService.createUserEndpoint(userId, endpointId, patientId, null, secretKey);
+            } catch (Exception e1) {
+                logger.error("caught {} creating launch user endpoint for session {} - {}", e1.getClass().getSimpleName(), sessionId, e1.getMessage());
+                if (e1 instanceof RuntimeException re) {
+                    throw re;
+                } else {
+                    throw new RuntimeException(e1);
+                }
+            }
+        }
+        return userEndpoint;
+    }
+
+    private Endpoint getLauncherEndpoint() {
         if (Audience.PATIENT.equals(audience)) {
-            endpoint = endpointService.getPatientLaunchEndpoint();
+            return endpointService.getPatientLaunchEndpoint();
         } else if (Audience.CARE_TEAM.equals(audience)) {
-            endpoint = endpointService.getCareTeamLaunchEndpoint();
+            return endpointService.getCareTeamLaunchEndpoint();
         } else {
             throw new CaseNotHandledException("no case for audience: " + audience);
         }
-
-        return endpointService.getUserEndpoint(userId, endpoint.getId());
     }
 
     public synchronized List<ProgressModel> getCurrentProgress() {
@@ -186,14 +219,6 @@ public class UserWorkspace {
         sdsService.clearCompletedProgress(sessionId);
     }
 
-    private RefreshTokenData getRefreshTokenData(Endpoint endpoint) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-        return endpointService.getRefreshTokenData(userId, endpoint.getId(), secretKey);
-    }
-
-    private void setRefreshTokenData(Endpoint endpoint, RefreshTokenData refreshTokenData) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
-        endpointService.setRefreshTokenData(userId, endpoint.getId(), secretKey, refreshTokenData);
-    }
-
     public String getSessionId() {
         return sessionId;
     }
@@ -246,12 +271,29 @@ public class UserWorkspace {
 
     public void populate() {
         clearCompletedProgress();
-        for (UserEndpointCredentials uec : userEndpointCredentialsMap.values()) {
-            populateEndpoint(uec.getUserEndpoint().getEndpoint());
+        Map<Long, Endpoint> endpointMap = new HashMap<>();
+
+        // first process endpoints for which we have current authenticated credentials
+        for (Endpoint endpoint : getAllActiveEndpoints()) {
+            populateEndpoint(endpoint, false);
+            endpointMap.put(endpoint.getId(), endpoint);
+        }
+
+        // next, iterate over all other endpoints that have been synced to the SDS
+        // for which we don't have any current authenticated credentials, and load those
+        // from the SDS
+        for (UserEndpoint userEndpoint : endpointService.getAllUserEndpoints(userId)) {
+            Endpoint endpoint = userEndpoint.getEndpoint();
+            if ( ! endpointMap.containsKey(endpoint.getId()) ) {
+                if (userEndpoint.getLastSyncCompleted() != null) {
+                    populateEndpoint(endpoint, true);
+                    endpointMap.put(endpoint.getId(), endpoint);
+                }
+            }
         }
     }
 
-    public void populateEndpoint(Endpoint endpoint) {
+    public void populateEndpoint(Endpoint endpoint, boolean loadFromSDS) {
         // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
         //        this function should use that to automatically obtain a fresh authentication token
         //        if a valid one isn't present, prior to populating data sets
@@ -260,6 +302,11 @@ public class UserWorkspace {
             @Override
             public void run() {
                 clearCompletedProgress();
+
+                if (loadFromSDS) {
+                    sdsEndpointMap.remove(endpoint.getId());
+                }
+
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
                 updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
@@ -269,8 +316,14 @@ public class UserWorkspace {
                     try {
                         updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float)max));
                         cache.invalidate(buildCacheKey(dataSet, endpoint));
-                        getDataSetModelsForEndpoint(dataSet, endpoint);
-                        sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                        if (loadFromSDS) {
+                            getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
+                        } else {
+                            getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
+                            sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                            endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
+                        }
 
                     } catch (Exception e) {
                         logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
@@ -281,6 +334,10 @@ public class UserWorkspace {
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
                 updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
+
+                if ( loadFromSDS && ! sdsEndpointMap.containsKey(endpoint.getId()) ) {
+                    sdsEndpointMap.put(endpoint.getId(), endpoint);
+                }
             }
         };
 
@@ -294,6 +351,8 @@ public class UserWorkspace {
         cache.cleanUp();
 
         userEndpointCredentialsMap.clear();
+        sdsEndpointMap.clear();
+        endpointPatientIdMap.clear();
     }
 
     public void shutdown() {
@@ -410,27 +469,31 @@ public class UserWorkspace {
 
     public List<EndpointModel> getAllActiveEndpointModels() {
         List<EndpointModel> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            list.add(new EndpointModel(ue.getEndpoint()));
+        for (Endpoint endpoint : getAllActiveEndpoints()) {
+            list.add(new EndpointModel(endpoint));
         }
         return list;
     }
 
-    private List<UserEndpoint> getAllActiveUserEndpoints() {
-        List<UserEndpoint> list = new ArrayList<>();
+    private List<Endpoint> getAllActiveEndpoints() {
+        List<Endpoint> list = new ArrayList<>();
 
         Date now = new Date();
         Iterator<UserEndpointCredentials> uecIterator = userEndpointCredentialsMap.values().iterator();
         while (uecIterator.hasNext()) {
             UserEndpointCredentials uec = uecIterator.next();
             if (uec.getExpiresAt().after(now)) {
-                list.add(uec.getUserEndpoint());
+                list.add(uec.getUserEndpoint().getEndpoint());
             } else {
                 uecIterator.remove();
             }
         }
 
         return list;
+    }
+
+    private List<Endpoint> getAllSDSEndpoints() {
+        return new ArrayList<>(sdsEndpointMap.values());
     }
 
     private static final class UserEndpointCredentials {
@@ -459,8 +522,14 @@ public class UserWorkspace {
 
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
-        for (UserEndpoint ue : getAllActiveUserEndpoints()) {
-            List<T> dataSetModels = getDataSetModelsForEndpoint(dataSet, ue.getEndpoint());
+        for (Endpoint endpoint : getAllActiveEndpoints()) {
+            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
+            if (dataSetModels != null) {
+                list.addAll(dataSetModels);
+            }
+        }
+        for (Endpoint endpoint : getAllSDSEndpoints()) {
+            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
             if (dataSetModels != null) {
                 list.addAll(dataSetModels);
             }
@@ -480,7 +549,16 @@ public class UserWorkspace {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
+    public <T extends BaseDataSetModel<?>> List<T> getCachedDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
+        List<T> list = (List<T>) cache.getIfPresent(buildCacheKey(dataSet, endpoint));
+        return list != null ?
+                list :
+                new ArrayList<>();
+    }
+
+
+    @SuppressWarnings("unchecked")
+    public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint, IDataSetBuilder dataSetBuilder) {
         return (List<T>) cache.get(buildCacheKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
             logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,
@@ -489,39 +567,39 @@ public class UserWorkspace {
             List<? extends BaseDataSetModel<?>> list = null;
             try {
                 if (DataSet.PATIENT.equals(dataSet)) {
-                    list = dataSetBuilderService.buildPatients(sessionId, endpoint);
-                } else if (DataSet.ASSESSMENTS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildAssessments(sessionId, endpoint);
+                    list = dataSetBuilder.buildPatients(sessionId, endpoint);
                 } else if (DataSet.CARE_PLANS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildCarePlans(sessionId, endpoint);
+                    list = dataSetBuilder.buildCarePlans(sessionId, endpoint);
                 } else if (DataSet.CARE_TEAMS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildCareTeams(sessionId, endpoint);
+                    list = dataSetBuilder.buildCareTeams(sessionId, endpoint);
                 } else if (DataSet.CLINICAL_NOTES.equals(dataSet)) {
-                    list = dataSetBuilderService.buildClinicalNotes(sessionId, endpoint);
+                    list = dataSetBuilder.buildClinicalNotes(sessionId, endpoint);
                 } else if (DataSet.CONDITIONS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildConditions(sessionId, endpoint);
+                    list = dataSetBuilder.buildConditions(sessionId, endpoint);
                 } else if (DataSet.DIAGNOSTIC_REPORTS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildDiagnosticReports(sessionId, endpoint);
+                    list = dataSetBuilder.buildDiagnosticReports(sessionId, endpoint);
                 } else if (DataSet.ENCOUNTERS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildEncounters(sessionId, endpoint);
+                    list = dataSetBuilder.buildEncounters(sessionId, endpoint);
                 } else if (DataSet.GOALS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildGoals(sessionId, endpoint);
+                    list = dataSetBuilder.buildGoals(sessionId, endpoint);
                 } else if (DataSet.IMMUNIZATIONS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildImmunizations(sessionId, endpoint);
+                    list = dataSetBuilder.buildImmunizations(sessionId, endpoint);
                 } else if (DataSet.LAB_RESULTS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildLabResults(sessionId, endpoint);
+                    list = dataSetBuilder.buildLabResults(sessionId, endpoint);
                 } else if (DataSet.MEDICATIONS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildMedications(sessionId, endpoint);
+                    list = dataSetBuilder.buildMedications(sessionId, endpoint);
                 } else if (DataSet.PROCEDURES.equals(dataSet)) {
-                    list = dataSetBuilderService.buildProcedures(sessionId, endpoint);
+                    list = dataSetBuilder.buildProcedures(sessionId, endpoint);
+                } else if (DataSet.QUESTIONNAIRE_RESPONSES.equals(dataSet)) {
+                    list = dataSetBuilder.buildQuestionnaireResponses(sessionId, endpoint);
                 } else if (DataSet.SERVICE_REQUESTS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildServiceRequests(sessionId, endpoint);
+                    list = dataSetBuilder.buildServiceRequests(sessionId, endpoint);
                 } else if (DataSet.SOCIAL_HISTORIES.equals(dataSet)) {
-                    list = dataSetBuilderService.buildSocialHistories(sessionId, endpoint);
+                    list = dataSetBuilder.buildSocialHistories(sessionId, endpoint);
                 } else if (DataSet.SURVEY_OBSERVATIONS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildSurveyObservations(sessionId, endpoint);
+                    list = dataSetBuilder.buildSurveyObservations(sessionId, endpoint);
                 } else if (DataSet.VITALS.equals(dataSet)) {
-                    list = dataSetBuilderService.buildVitals(sessionId, endpoint);
+                    list = dataSetBuilder.buildVitals(sessionId, endpoint);
                 } else {
                     throw new CaseNotHandledException("Case not handled for data set: " + dataSet.getName());
                 }

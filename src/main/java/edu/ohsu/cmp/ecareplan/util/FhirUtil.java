@@ -3,6 +3,7 @@ package edu.ohsu.cmp.ecareplan.util;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -33,11 +34,18 @@ public class FhirUtil {
     private static final String EXTENSION_TOKEN_URL = "token";
 
     public static IGenericClient buildClient(String serverUrl, String bearerToken, int socketTimeout) {
+        return buildClient(serverUrl, bearerToken, socketTimeout, true);
+    }
+
+    public static IGenericClient buildClient(String serverUrl, String bearerToken, int socketTimeout, boolean doServerValidation) {
         logger.debug("building FHIR R4 client for serverUrl=" + serverUrl + ", bearerToken=" + bearerToken +
                 ", socketTimeout=" + socketTimeout);
 
         FhirContext ctx = FhirContext.forR4();
         ctx.getRestfulClientFactory().setSocketTimeout(socketTimeout);
+        if ( ! doServerValidation ) {
+            ctx.getRestfulClientFactory().setServerValidationMode(ServerValidationModeEnum.NEVER);
+        }
         IGenericClient client = ctx.newRestfulGenericClient(serverUrl);
 
         BearerTokenAuthInterceptor authInterceptor = new BearerTokenAuthInterceptor(bearerToken);

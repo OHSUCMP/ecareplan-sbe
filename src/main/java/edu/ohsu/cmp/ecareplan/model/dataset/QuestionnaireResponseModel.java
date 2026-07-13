@@ -2,8 +2,8 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import org.hl7.fhir.r4.model.QuestionnaireResponse;
 
-public class AssessmentModel extends BaseDataSetModel<QuestionnaireResponse> {
-    public AssessmentModel(QuestionnaireResponse questionnaireResponse) {
+public class QuestionnaireResponseModel extends BaseDataSetModel<QuestionnaireResponse> {
+    public QuestionnaireResponseModel(QuestionnaireResponse questionnaireResponse) {
         super(questionnaireResponse);
     }
 

@@ -67,12 +67,12 @@ public class PatientHomeController extends BasePatientController {
             UserWorkspace workspace = userWorkspaceService.get(session.getId());
             Long endpointId = workspace.getCurrentlyLaunchingEndpointId();
             if (endpointId != null) {
-                UserEndpoint userEndpoint = endpointService.getUserEndpoint(workspace.getUserId(), endpointId);
+                UserEndpoint userEndpoint = workspace.getOrCreateUserEndpoint(endpointId, patientId);
                 Endpoint endpoint = userEndpoint.getEndpoint();
                 if (endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
                     FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
                     workspace.addEndpointWithCredentials(userEndpoint, credentials);
-                    workspace.populateEndpoint(userEndpoint.getEndpoint());
+                    workspace.populateEndpoint(userEndpoint.getEndpoint(), false);
                     auditService.doAudit(session.getId(), AuditSeverity.INFO, "endpoint connected", "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
                     return ResponseEntity.ok("handshake completed");
                 }

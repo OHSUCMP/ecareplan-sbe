@@ -4,7 +4,6 @@ import java.util.*;
 
 public final class DataSet<T extends BaseDataSetModel<?>> {
     public static final DataSet<PatientModel> PATIENT = new DataSet<>("PATIENT", PatientModel.class, 1);
-    public static final DataSet<AssessmentModel> ASSESSMENTS = new DataSet<>("ASSESSMENTS", AssessmentModel.class, 2);
     public static final DataSet<CarePlanModel> CARE_PLANS = new DataSet<>("CARE_PLANS", CarePlanModel.class, 3);
     public static final DataSet<CareTeamModel> CARE_TEAMS = new DataSet<>("CARE_TEAMS", CareTeamModel.class, 2);
     public static final DataSet<ClinicalNoteModel> CLINICAL_NOTES = new DataSet<>("CLINICAL_NOTES", ClinicalNoteModel.class, 4);
@@ -16,6 +15,7 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
     public static final DataSet<LabResultModel> LAB_RESULTS = new DataSet<>("LAB_RESULTS", LabResultModel.class, 2);
     public static final DataSet<MedicationModel> MEDICATIONS = new DataSet<>("MEDICATIONS", MedicationModel.class, 2);
     public static final DataSet<ProcedureModel> PROCEDURES = new DataSet<>("PROCEDURES", ProcedureModel.class, 3);
+    public static final DataSet<QuestionnaireResponseModel> QUESTIONNAIRE_RESPONSES = new DataSet<>("QUESTIONNAIRE_RESPONSES", QuestionnaireResponseModel.class, 2);
     public static final DataSet<ServiceRequestModel> SERVICE_REQUESTS = new DataSet<>("SERVICE_REQUESTS", ServiceRequestModel.class, 2);
     public static final DataSet<SocialHistoryModel> SOCIAL_HISTORIES = new DataSet<>("SOCIAL_HISTORIES", SocialHistoryModel.class, 3);
     public static final DataSet<SurveyObservationModel> SURVEY_OBSERVATIONS = new DataSet<>("SURVEY_OBSERVATIONS", SurveyObservationModel.class, 3);
@@ -24,7 +24,6 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
     public static final Map<String, DataSet<?>> DATASET_MAP = new LinkedHashMap<>();
     static {
         DATASET_MAP.put(PATIENT.getName(), PATIENT);
-        DATASET_MAP.put(ASSESSMENTS.getName(), ASSESSMENTS);
         DATASET_MAP.put(CARE_PLANS.getName(), CARE_PLANS);
         DATASET_MAP.put(CARE_TEAMS.getName(), CARE_TEAMS);
         DATASET_MAP.put(CLINICAL_NOTES.getName(), CLINICAL_NOTES);
@@ -36,6 +35,7 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
         DATASET_MAP.put(LAB_RESULTS.getName(), LAB_RESULTS);
         DATASET_MAP.put(MEDICATIONS.getName(), MEDICATIONS);
         DATASET_MAP.put(PROCEDURES.getName(), PROCEDURES);
+        DATASET_MAP.put(QUESTIONNAIRE_RESPONSES.getName(), QUESTIONNAIRE_RESPONSES);
         DATASET_MAP.put(SERVICE_REQUESTS.getName(), SERVICE_REQUESTS);
         DATASET_MAP.put(SOCIAL_HISTORIES.getName(), SOCIAL_HISTORIES);
         DATASET_MAP.put(SURVEY_OBSERVATIONS.getName(), SURVEY_OBSERVATIONS);

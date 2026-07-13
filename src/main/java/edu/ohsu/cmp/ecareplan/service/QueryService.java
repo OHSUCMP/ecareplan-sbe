@@ -5,6 +5,7 @@ import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.EndpointQuery;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import edu.ohsu.cmp.ecareplan.repository.DefaultQueryRepository;
 import edu.ohsu.cmp.ecareplan.repository.EndpointQueryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +26,16 @@ public class QueryService extends BaseService {
         List<QueryModel> list = new ArrayList<>();
 
         for (EndpointQuery endpointQuery : endpointQueryRepository.findByEndpointIdAndDataSetName(endpoint.getId(), dataSet.getName())) {
-            list.add(new QueryModel(endpointQuery));
+            if ( ! FHIRStrategy.DISABLED.equals(endpointQuery.getStrategy()) ) {
+                list.add(new QueryModel(endpointQuery));
+            }
         }
 
         if (list.isEmpty()) {
             for (DefaultQuery query : defaultQueryRepository.findByDataSetName(dataSet.getName())) {
-                list.add(new QueryModel(query));
+                if ( ! FHIRStrategy.DISABLED.equals(query.getStrategy()) ) {
+                    list.add(new QueryModel(query));
+                }
             }
         }
 
