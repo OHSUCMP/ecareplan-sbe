@@ -110,7 +110,6 @@ create table endpoint_query (
     dataSetName varchar(50) not null,
     query varchar(1000) not null,
     strategy varchar(20) not null,
-    created datetime not null default current_timestamp,
     constraint eq_fk1 foreign key (endpointId) references endpoint (id)
         on delete cascade
 );

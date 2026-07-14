@@ -3,8 +3,6 @@ package edu.ohsu.cmp.ecareplan.entity;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import jakarta.persistence.*;
 
-import java.util.Date;
-
 @Entity
 @Table(name = "endpoint_query")
 public class EndpointQuery {
@@ -18,8 +16,6 @@ public class EndpointQuery {
 
     @Enumerated(EnumType.STRING)
     private FHIRStrategy strategy;
-
-    private Date created;
 
     public Long getId() {
         return id;
@@ -59,13 +55,5 @@ public class EndpointQuery {
 
     public void setStrategy(FHIRStrategy strategy) {
         this.strategy = strategy;
-    }
-
-    public Date getCreated() {
-        return created;
-    }
-
-    public void setCreated(Date created) {
-        this.created = created;
     }
 }
