@@ -1,7 +1,8 @@
 create table user (
     id int not null auto_increment primary key,
     patIdHash char(64) unique not null,
-    saltB64 varchar(64) not null
+    saltB64 varchar(64) not null,
+    created datetime not null default current_timestamp
 );
 
 create table audit_data (
