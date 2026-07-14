@@ -703,6 +703,4 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                 fhirQuery :
                 fhirQuery + "?" + String.join("&", paramList);
     }
-
-
 }
