@@ -1,10 +1,11 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
+import edu.ohsu.cmp.ecareplan.entity.MedicationFlag;
+import edu.ohsu.cmp.ecareplan.util.CodeSystemUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.hl7.fhir.r4.model.*;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
     private final Medication sourceMedication;
@@ -19,7 +20,7 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
     private List<String> reasons;
     private List<String> notes;
     private String learnMore;               // complex; skip for now // todo : populate this
-    private List<String> flags;             // todo : populate this
+    private List<MedicationFlag> flags;
 
     public MedicationModel(MedicationRequest medicationRequest, Medication sourceMedication, Practitioner sourceRequester,
                            String category) {
@@ -111,6 +112,34 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         return sourceResource;
     }
 
+    public List<Coding> getCodings() {
+        return getCodings(null);
+    }
+
+    public List<Coding> getCodings(String system) {
+        Map<String, Coding> map = new LinkedHashMap<>();
+
+        if (sourceResource.hasMedicationCodeableConcept()) {
+            for (Coding coding : sourceResource.getMedicationCodeableConcept().getCoding()) {
+                if (system == null || (coding.hasSystem() && CodeSystemUtil.matches(system, coding.getSystem())) ) {
+                    String key = coding.getSystem() + "|" + coding.getCode();
+                    map.put(key, coding);
+                }
+            }
+        }
+
+        if (sourceMedication != null && sourceMedication.hasCode()) {
+            for (Coding coding : sourceMedication.getCode().getCoding()) {
+                if (system == null || (coding.hasSystem() && CodeSystemUtil.matches(system, coding.getSystem())) ) {
+                    String key = coding.getSystem() + "|" + coding.getCode();
+                    map.put(key, coding);
+                }
+            }
+        }
+
+        return new ArrayList<>(map.values());
+    }
+
     public Medication getSourceMedication() {
         return sourceMedication;
     }
@@ -155,7 +184,11 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         return learnMore;
     }
 
-    public List<String> getFlags() {
+    public List<MedicationFlag> getFlags() {
         return flags;
+    }
+
+    public void setFlags(List<MedicationFlag> flags) {
+        this.flags = flags;
     }
 }

@@ -63,6 +63,9 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Autowired
     private QueryService queryService;
 
+    @Autowired
+    private MedicationFlagService medicationFlagService;
+
     public Endpoint getPatientLaunchEndpoint() {
         return endpointRepository.findByName(patientEndpointName);
     }
@@ -415,6 +418,10 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
                                     })
                     )
             );
+        }
+
+        for (MedicationModel mm : list) {
+            medicationFlagService.appendMedicationFlags(mm);
         }
 
         for (MedicationModel mm : list) {
