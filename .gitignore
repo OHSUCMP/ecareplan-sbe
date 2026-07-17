@@ -34,3 +34,4 @@ build/
 
 ### ignore local configurations ###
 local-config/
+log/
