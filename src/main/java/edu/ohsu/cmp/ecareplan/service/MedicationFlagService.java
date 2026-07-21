@@ -5,29 +5,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.ohsu.cmp.ecareplan.entity.MedicationFlag;
+import edu.ohsu.cmp.ecareplan.entity.MedicationFlagRxClass;
 import edu.ohsu.cmp.ecareplan.http.HttpRequest;
 import edu.ohsu.cmp.ecareplan.http.HttpResponse;
 import edu.ohsu.cmp.ecareplan.model.dataset.MedicationModel;
+import edu.ohsu.cmp.ecareplan.repository.MedicationFlagRepository;
 import org.hl7.fhir.r4.model.Coding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Service
 public class MedicationFlagService {
     private final Logger logger = LoggerFactory.getLogger(MedicationFlagService.class);
     private final Cache<String, JsonNode> cache;
     private final ExecutorService executorService;
-    private final ObjectMapper objectMapper;
 
     private static final String RXNORM_SYSTEM = "http://www.nlm.nih.gov/research/umls/rxnorm";
     private static final int POOL_SIZE = 5;
+
+    @Autowired
+    private MedicationFlagRepository repository;
 
     public MedicationFlagService() {
         cache = Caffeine.newBuilder()
@@ -35,8 +37,6 @@ public class MedicationFlagService {
                 .build();
 
         executorService = Executors.newFixedThreadPool(POOL_SIZE);
-
-        objectMapper = new ObjectMapper();
     }
 
     public void appendMedicationFlags(MedicationModel medicationModel) {
@@ -55,11 +55,20 @@ public class MedicationFlagService {
     public List<MedicationFlag> getMedicationFlags(Collection<String> rxCuis) {
         if (rxCuis == null || rxCuis.isEmpty()) return null;
 
+        Map<String, MedicationFlag> flagMap = new HashMap<>();
+        for (MedicationFlag flag : repository.findAll()) {
+            for (MedicationFlagRxClass rxClass : flag.getRxClassList()) {
+                flagMap.put(rxClass.getRxClass(), flag);
+            }
+        }
+
         Map<String, MedicationFlag> map = new LinkedHashMap<>();
 
         List<RxClassSummary> summaryList = getRxClass(rxCuis);
         for (RxClassSummary summary : summaryList) {
-            logger.debug("getMedicationFlags: found RxClassID {} for RxCui={}", summary.getClassId(), summary.getRxCui());
+            if (flagMap.containsKey(summary.getClassId())) {
+                map.put(summary.getClassId(), flagMap.get(summary.getClassId()));
+            }
         }
 
         return new ArrayList<>(map.values());
@@ -74,91 +83,80 @@ public class MedicationFlagService {
     private List<RxClassSummary> getRxClass(Collection<String> rxCuiList) {
         if (rxCuiList == null || rxCuiList.isEmpty()) return null;
 
-        // prepopulate cache
-        if (rxCuiList.size() > 1) {
-            efficientlyPopulateCacheIfNeeded(rxCuiList);
+        List<Callable<List<RxClassSummary>>> callables = new ArrayList<>();
+        for (String rxCui : rxCuiList) {
+            callables.add(new Callable<>() {
+                @Override
+                public List<RxClassSummary> call() {
+                    try {
+                        JsonNode root = getRxClassByRxCui(rxCui);
+                        JsonNode rxclassDrugInfoList = root.path("rxclassDrugInfoList");
+                        JsonNode rxclassDrugInfo = rxclassDrugInfoList.path("rxclassDrugInfo");
+
+                        if (rxclassDrugInfo.isArray()) {
+                            Map<String, RxClassSummary> map = new LinkedHashMap<>();
+                            for (JsonNode rxcdi : rxclassDrugInfo) {
+                                // first, ensure that we only consider those rxclassDrugInfo items that reference
+                                // RxCuis that we care about
+                                JsonNode mc = rxcdi.path("minConcept");
+                                String mcRxCui = mc.path("rxcui").asText();
+                                if ( ! rxCuiList.contains(mcRxCui) ) {
+                                    continue;
+                                }
+
+                                logger.debug("getRxClass: found minConcept with RxCui={}", mcRxCui);
+
+                                // this rxClassDrugInfo item references a minConcept with an rxcui that is in the list
+                                // that we care about.  grab its class and add it to the list
+
+                                JsonNode rxcmci = rxcdi.path("rxclassMinConceptItem");
+                                if (rxcmci != null && rxcmci.path("classType").asText().equals("ATC1-4")) {
+                                    String classId = rxcmci.path("classId").asText(null);
+                                    String className = rxcmci.path("className").asText(null);
+
+                                    logger.debug("getRxClass: adding classId={}, className={} for RxCui={}", classId, className, mcRxCui);
+
+                                    String key = rxCui + ":" + classId;
+                                    if ( ! map.containsKey(key) ) {
+                                        map.put(key, new RxClassSummary(mcRxCui, classId, className));
+                                    }
+                                }
+                            }
+                            return new ArrayList<>(map.values());
+                        }
+
+                    } catch (Exception e) {
+                        logger.error("Error getting MedicationFlag for rxCui={}", rxCui, e);
+                    }
+
+                    return Collections.emptyList();
+                }
+            });
         }
 
         Map<String, RxClassSummary> map = new LinkedHashMap<>();
-        for (String rxCui : rxCuiList) {
-            try {
-                JsonNode root = getRxClassByRxCui(rxCui);
-                JsonNode rxclassDrugInfoList = root.path("rxclassDrugInfoList");
-                JsonNode rxclassDrugInfo = rxclassDrugInfoList.path("rxclassDrugInfo");
 
-                if (rxclassDrugInfo.isArray()) {
-                    for (JsonNode rxcdi : rxclassDrugInfo) {
-                        // first, ensure that we only consider those rxclassDrugInfo items that reference
-                        // RxCuis that we care about
-                        JsonNode mc = rxcdi.path("minConcept");
-                        String mcRxCui = mc.path("rxcui").asText();
-                        if ( ! rxCuiList.contains(mcRxCui) ) {
-                            continue;
-                        }
-
-                        logger.debug("getRxClass: found minConcept with RxCui={}", mcRxCui);
-
-                        // this rxClassDrugInfo item references a minConcept with an rxcui that is in the list
-                        // that we care about.  grab its class and add it to the list
-
-                        JsonNode rxcmci = rxcdi.path("rxclassMinConceptItem");
-                        if (rxcmci != null && rxcmci.path("classType").asText().equals("ATC1-4")) {
-                            String classId = rxcmci.path("classId").asText(null);
-                            String className = rxcmci.path("className").asText(null);
-
-                            logger.debug("getRxClass: adding classId={}, className={} for RxCui={}", classId, className, mcRxCui);
-
-                            String key = rxCui + ":" + classId;
-                            if ( ! map.containsKey(key) ) {
-                                map.put(key, new RxClassSummary(mcRxCui, classId, className));
-                            }
+        try {
+            for (Future<List<RxClassSummary>> future : executorService.invokeAll(callables)) {
+                try {
+                    List<RxClassSummary> result = future.get();
+                    for (RxClassSummary summary : result) {
+                        if ( ! map.containsKey(summary.getClassId()) ) {
+                            map.put(summary.getClassId(), summary);
                         }
                     }
-                }
 
-            } catch (Exception e) {
-                logger.error("Error getting MedicationFlag for rxCui={}", rxCui, e);
+                } catch (ExecutionException e) {
+                    logger.error("caught {} getting RxClass for rxCuis - {}", e.getClass().getSimpleName(), e.getMessage(), e);
+                }
             }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("caught {} getting RxClass for rxCuis - {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
 
         return new ArrayList<>(map.values());
-    }
-
-    private void efficientlyPopulateCacheIfNeeded(Collection<String> rxCuiList) {
-        if (rxCuiList == null || rxCuiList.isEmpty()) return;
-
-        List<String> notYetPopulated = null;
-        for (String rxCui : rxCuiList) {
-            JsonNode jsonNode = cache.getIfPresent(rxCui);
-            if (jsonNode == null) {
-                if (notYetPopulated == null) notYetPopulated = new ArrayList<>();
-                notYetPopulated.add(rxCui);
-            }
-        }
-
-        // only prepopulate using callables if there's more than one RxCUI that hasn't been populated yet.
-        // if there's 0, all are populated.  if there's only 1, the cache will populate in the same thread.
-        // there's really only a reason to multithread this if there's more than one that needs to still be populated.
-
-        if (notYetPopulated != null && notYetPopulated.size() > 1) {
-            List<Callable<Void>> callables = new ArrayList<>();
-            for (String rxCui : notYetPopulated) {
-                callables.add(new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        getRxClassByRxCui(rxCui);
-                        return null;
-                    }
-                });
-            }
-
-            try {
-                executorService.invokeAll(callables);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.warn("interrupted while populating cache", e);
-            }
-        }
     }
 
     private JsonNode getRxClassByRxCui(String rxCui) {
@@ -167,7 +165,7 @@ public class MedicationFlagService {
                 HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + s + "&relaSource=ATCPROD");
                 if (response.getResponseCode() >= 200 && response.getResponseCode() <= 300) {
                     logger.debug("got {} response for {} : {}", response.getResponseCode(), s, response.getResponseBody());
-                    return objectMapper.readTree(response.getResponseBody());
+                    return new ObjectMapper().readTree(response.getResponseBody());
                 } else {
                     logger.error("got {} response for {} : {}", response.getResponseCode(), s, response.getResponseBody());
                     return null;

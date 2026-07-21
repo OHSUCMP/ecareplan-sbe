@@ -26,6 +26,15 @@
                     </thead>
                     <tbody>
                     <tr>
+                        <td colspan="2">
+                            {{#flags}}
+                                <div class="flag" style="background-color: {{backgroundColor}}; color: {{textColor}}; border: 1px solid black;">
+                                    {{label}}
+                                </div>
+                            {{/flags}}
+                        </td>
+                    </tr>
+                    <tr>
                         <td>{{#category}}Category: {{category}}{{/category}}</td>
                         <td>Status: {{status}}</td>
                     </tr>
