@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 @Service
 public class UserService extends BaseService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -30,6 +32,7 @@ public class UserService extends BaseService {
         } else {
             u = new User(patIdHash);
             logger.info("Persisting new user with hash " + patIdHash);
+            u.setCreated(new Date());
             u = repository.save(u);
 
             auditService.doAudit(u, AuditSeverity.INFO, "created user record");

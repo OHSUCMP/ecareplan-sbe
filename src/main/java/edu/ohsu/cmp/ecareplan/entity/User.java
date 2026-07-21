@@ -4,6 +4,7 @@ import edu.ohsu.cmp.ecareplan.util.CryptoUtil;
 import jakarta.persistence.*;
 
 import java.util.Base64;
+import java.util.Date;
 
 @Entity
 @Table(name = "user")
@@ -15,6 +16,7 @@ public class User {
 
     private String patIdHash;
     private String saltB64;
+    private Date created;
 
     protected User() {
     }
@@ -46,5 +48,13 @@ public class User {
 
     public void setSaltB64(String saltB64) {
         this.saltB64 = saltB64;
+    }
+
+    public Date getCreated() {
+        return created;
+    }
+
+    public void setCreated(Date created) {
+        this.created = created;
     }
 }

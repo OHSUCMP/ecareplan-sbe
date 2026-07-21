@@ -1,16 +1,19 @@
 create table user (
     id int not null auto_increment primary key,
     patIdHash char(64) unique not null,
-    saltB64 varchar(64) not null
+    saltB64 varchar(64) not null,
+    created datetime not null default current_timestamp
 );
 
 create table audit_data (
     id int not null auto_increment primary key,
-    userId int not null references user(id),
+    userId int not null,
     severity varchar(10) not null,
     event varchar(100) not null,
     details varchar(1000),
-    created datetime not null default current_timestamp
+    created datetime not null default current_timestamp,
+    constraint ad_fk1 foreign key (userId) references user (id)
+        on delete restrict
 );
 
 create table vsac_valueset (
@@ -103,21 +106,26 @@ create table endpoint (
 
 create table endpoint_query (
     id int not null auto_increment primary key,
-    endpointId int not null references endpoint(id),
+    endpointId int not null,
     dataSetName varchar(50) not null,
     query varchar(1000) not null,
     strategy varchar(20) not null,
-    created datetime not null default current_timestamp
+    constraint eq_fk1 foreign key (endpointId) references endpoint (id)
+        on delete cascade
 );
 
 create table user_endpoint (
     id int not null auto_increment primary key,
-    userId int not null references user(id),
-    endpointId int not null references endpoint(id),
+    userId int not null,
+    endpointId int not null,
     encryptedPatientId varchar(1000),
     encryptedRefreshToken text,
     lastSyncCompleted datetime,
-    created datetime not null default current_timestamp
+    created datetime not null default current_timestamp,
+    constraint ue_fk1 foreign key (userId) references user (id)
+        on delete restrict,
+    constraint ue_fk2 foreign key (endpointId) references endpoint (id)
+        on delete cascade
 );
 
 create unique index idxUserEndpoint on user_endpoint(userId, endpointId);
@@ -361,3 +369,50 @@ insert into resource_categorization_coding (dataSetName, codeSystemUrl, code, co
     ('VITALS', 'http://loinc.org', '8867-4', 'Heart Rate'),
     ('VITALS', 'http://loinc.org', '2708-6', 'Oxygen Saturation'),
     ('VITALS', 'http://loinc.org', '9279-1', 'Respiratory Rate');
+
+create table medication_flag (
+    id int not null auto_increment primary key,
+    label varchar(30) not null,
+    backgroundColor char(7) not null,
+    textColor char(7) not null
+);
+
+insert into medication_flag (id, label, backgroundColor, textColor) values
+    (1, 'Neuroleptics', '#FFCC00', '#000000'),
+    (2, 'Antidepressants', '#3399FF', '#FFFFFF'),
+    (3, 'Anxiolytics', '#33CC33', '#000000'),
+    (4, 'Recovery Support', '#990000', '#FFFFFF'),
+    (5, 'Opioids', '#FF3333', '#000000');
+
+create table medication_flag_rxclass (
+    id int not null auto_increment primary key,
+    medicationFlagId int not null,
+    rxClass varchar(10) unique not null,
+    constraint mfr_fk1 foreign key (medicationFlagId) references medication_flag (id)
+        on delete cascade
+);
+
+insert into medication_flag_rxclass (medicationFlagId, rxClass) values
+    (1, 'N05A'), (1, 'N05AA'), (1, 'N05AB'),
+    (1, 'N05AC'), (1, 'N05AD'), (1, 'N05AE'),
+    (1, 'N05AF'), (1, 'N05AG'), (1, 'N05AH'),
+    (1, 'N05AL'), (1, 'N05AN'), (1, 'N05AX');
+
+insert into medication_flag_rxclass (medicationFlagId, rxClass) values
+    (2, 'N06A'), (2, 'N06AA'), (2, 'N06AB'),
+    (2, 'N06AF'), (2, 'N06AG'), (2, 'N06AX');
+
+insert into medication_flag_rxclass (medicationFlagId, rxClass) values
+    (3, 'N05B'), (3, 'N05BA'), (3, 'N05BB'),
+    (3, 'N05BC'), (3, 'N05BD'), (3, 'N05BE'),
+    (3, 'N05BX');
+
+insert into medication_flag_rxclass (medicationFlagId, rxClass) values
+    (4, 'N07B'), (4, 'N07BA'), (4, 'N07BB'),
+    (4, 'N07BC');
+
+insert into medication_flag_rxclass (medicationFlagId, rxClass) values
+    (5, 'N02A'), (5, 'N02AA'), (5, 'N02AB'),
+    (5, 'N02AC'), (5, 'N02AD'), (5, 'N02AE'),
+    (5, 'N02AF'), (5, 'N02AG'), (5, 'N02AJ'),
+    (5, 'N02AX');

@@ -46,6 +46,9 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Autowired
     private QueryService queryService;
 
+    @Autowired
+    private MedicationFlagService medicationFlagService;
+
     private final ExecutorService executorService;
     private final Map<String, Map<String, ProgressModel>> sessionIdProgressMap;
 
@@ -484,6 +487,10 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                             fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
                     )
             );
+        }
+
+        for (MedicationModel mm : list) {
+            medicationFlagService.appendMedicationFlags(mm);
         }
 
         for (MedicationModel item : list) {
