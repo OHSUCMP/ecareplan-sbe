@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FhirUtil {
@@ -351,8 +352,6 @@ public class FhirUtil {
             return (T) r;
 
         } else {
-            logger.warn("found contained resource with id=" + r.getId() + ", but it is a " + r.getClass().getSimpleName() +
-                    ", not " + aClass.getSimpleName() + " as expected.");
             throw new ClassCastException("attempted to cast " + r.getClass().getSimpleName() + " to " + aClass.getSimpleName());
         }
     }
@@ -522,11 +521,32 @@ public class FhirUtil {
         }
     }
 
+    private static final Pattern ID_PATTERN = Pattern.compile("\"id\":\\s+\"([^\"]+)\"");
+
     public static String toJson(IBaseResource r) {
         FhirContext ctx = FhirContext.forR4();
         IParser parser = ctx.newJsonParser();
         parser.setPrettyPrint(true);
-        return parser.encodeResourceToString(r);
+        if (r instanceof Patient) {
+            String json = parser.encodeResourceToString(r);
+
+            StringBuilder redacted = new StringBuilder();
+            Matcher matcher = ID_PATTERN.matcher(json);
+            while (matcher.find()) {
+                String match = matcher.group();
+                String id = matcher.group(1);
+                String redactedMatch = match.replace(id, "[REDACTED]");
+
+                matcher.appendReplacement(redacted, Matcher.quoteReplacement(redactedMatch));
+            }
+
+            matcher.appendTail(redacted);
+
+            return redacted.toString();
+
+        } else {
+            return parser.encodeResourceToString(r);
+        }
     }
 
     public static String toCodeParamString(List<Coding> codings) throws ConfigurationException {

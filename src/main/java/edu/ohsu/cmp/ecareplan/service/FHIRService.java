@@ -107,7 +107,9 @@ public class FHIRService {
 
         } catch (ClassCastException cce) {
             logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), r.getClass().getName(), aClass.getName());
-            logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJson(r));
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJson(r));
+            }
             throw cce;
         }
     }
@@ -127,7 +129,7 @@ public class FHIRService {
     }
 
     public <T extends IBaseResource> T readByReference(IGenericClient client, @NotNull Class<T> aClass, String reference, Map<String, String> headers) throws DataException, ConfigurationException, IOException {
-        logger.info("read: {} ({})", reference, aClass.getSimpleName());
+        logger.info("read: {}", reference);
         String id = FhirUtil.extractIdFromReference(reference);
 
         int attempt = 0;
@@ -146,18 +148,18 @@ public class FHIRService {
                 return read.execute();
 
             } catch (InvalidRequestException ire) {
-                logger.error("caught {} reading {} with id='{}' - {}", ire.getClass().getName(), aClass.getName(), id, ire.getMessage());
+                logger.error("caught {} reading {} - {}", ire.getClass().getName(), reference, ire.getMessage());
                 throw ire;
 
             } catch (UnclassifiedServerFailureException usfe) {
                 if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
-                    logger.debug("caught HTTP 504 Bad Gateway while reading {} with id='{}' - retrying -", aClass.getName(), id);
+                    logger.debug("caught HTTP 504 Bad Gateway while reading {} - retrying -", reference);
                 } else {
                     throw usfe;
                 }
             }
         }
-        throw new DataException("failed to read " + aClass.getName() + " with id='" + id + "' after " + maxRetries + " attempts");
+        throw new DataException("failed to read " + reference + " after " + maxRetries + " attempts");
     }
 
     // search function to facilitate getting large datasets involving multi-paginated queries
@@ -335,9 +337,10 @@ public class FHIRService {
             }
 
         } catch (Exception e) {
-            logger.error("caught {} transacting {}: {}", e.getClass().getName(), resource.getClass().getSimpleName(), FhirUtil.toJson(resource), e);
+            logger.error("caught {} transacting {} - {}", e.getClass().getName(), resource.getClass().getSimpleName(), e.getMessage(), e);
 
             if (logger.isDebugEnabled()) {
+                logger.debug("resource={}", FhirUtil.toJson(resource));
                 logger.debug("outcome={}", outcome);
                 if (outcome != null) logger.debug("response status code={}", outcome.getResponseStatusCode());
                 if (outcome != null && outcome.getResponseHeaders() != null) {
@@ -346,7 +349,7 @@ public class FHIRService {
                         logger.debug("{} : {}", entry.getKey(), StringUtils.join(entry.getValue(), ","));
                     }
                 }
-                if (outcome != null && outcome.getOperationOutcome() != null) {
+                if (logger.isDebugEnabled() && outcome != null && outcome.getOperationOutcome() != null) {
                     logger.debug("response operation outcome={}", FhirUtil.toJson(outcome.getOperationOutcome()));
                 }
             }
@@ -376,7 +379,7 @@ public class FHIRService {
                     Resource resource = item.getResource();
                     if ( ! accessToken.providesWriteAccess(resource.getClass()) ) {
                         if (stripIfNotInScope) {
-                            logger.warn("stripping {} with id={} from transaction - write permission not in scope", resource.getClass().getName(), resource.getId());
+                            logger.warn("stripping {}/{} from transaction - write permission not in scope", resource.getClass().getSimpleName(), resource.getId());
                             iter.remove();
                         } else {
                             throw new ScopeException("scope does not permit writing " + resource.getClass().getName());
@@ -486,7 +489,7 @@ public class FHIRService {
                         }
                     }
                 } catch (Exception e) {
-                    logger.error("caught {} while appending supplemental resources for {} with id={}", e.getClass().getName(), resource.getClass().getSimpleName(), resource.getId(), e);
+                    logger.error("caught {} while appending supplemental resources for {}/{}", e.getClass().getName(), resource.getClass().getSimpleName(), resource.getId(), e);
                     if (e instanceof AuthenticationException ae) throw ae;
                 }
             }
