@@ -8,9 +8,9 @@ public class LogRedactor {
     private static final String REDACTION = "[REDACTED]";
 
     private static final List<Pattern> REDACTION_PATTERNS = List.of(
-            Pattern.compile("Patient/([^&\"\\s]+)"),
-            Pattern.compile("patient=([^&\"\\s]+)"),
-            Pattern.compile("subject=([^&\"\\s]+)")
+            Pattern.compile("(?i)patient/([^&\"\\s]+)"),
+            Pattern.compile("(?i)patient=([^&\"\\s]+)"),
+            Pattern.compile("(?i)subject=([^&\"\\s]+)")
     );
 
     private LogRedactor() {
