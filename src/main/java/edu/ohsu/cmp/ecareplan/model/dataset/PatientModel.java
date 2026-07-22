@@ -1,16 +1,12 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import org.hl7.fhir.r4.model.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 public class PatientModel extends BaseDataSetModel<Patient> {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
     private static final String GENDER_EXTENSION_URL = "http://hl7.org/fhir/StructureDefinition/patient-genderIdentity";
 
     private final String name;
@@ -35,10 +31,7 @@ public class PatientModel extends BaseDataSetModel<Patient> {
         }
         if      (usualName != null)     this.name = usualName;
         else if (officialName != null)  this.name = officialName;
-        else {
-            logger.warn("no USUAL or OFFICIAL name for patient with id={} - using default", id);
-            this.name = defaultName;
-        }
+        else                            this.name = defaultName;
 
         if (patient.getBirthDate() != null) {
             LocalDate start = patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -47,25 +40,20 @@ public class PatientModel extends BaseDataSetModel<Patient> {
         }
 
         if (patient.hasExtension(GENDER_EXTENSION_URL)) {
-            logger.debug("gender-identity extension found for Patient with id={}", id);
-
             Extension ext = patient.getExtensionByUrl(GENDER_EXTENSION_URL);
             CodeableConcept cc = (CodeableConcept) ext.getValue();
             if (cc.hasCoding()) {
                 Coding c = cc.getCodingFirstRep();
 
                 if (c.hasDisplay()) {
-                    logger.debug("setting gender={} from extension Coding.display for Patient with id={}", c.getDisplay(), id);
                     gender = c.getDisplay();
 
                 } else if (c.hasCode()) {
-                    logger.debug("setting gender={} from extension Coding.code for Patient with id={}", c.getCode(), id);
                     gender = c.getCode();
                 }
             }
 
             if (gender == null && cc.hasText()) {
-                logger.debug("setting gender={} from extension CodeableConcept.text for Patient with id={}", cc.getText(), id);
                 gender = cc.getText();
             }
         }
