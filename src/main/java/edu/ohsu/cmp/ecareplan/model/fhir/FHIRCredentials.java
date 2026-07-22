@@ -17,13 +17,7 @@ public class FHIRCredentials {
 
     @Override
     public String toString() {
-        return "FHIRCredentials{" +
-                "clientId='" + clientId + '\'' +
-                ", serverURL='" + serverURL + '\'' +
-                ", bearerToken='" + bearerToken + '\'' +
-                ", patientId='" + patientId + '\'' +
-                ", userId='" + userId + '\'' +
-                '}';
+        return "FHIRCredentials{[REDACTED]}";
     }
 
     public String getClientId() {
