@@ -107,7 +107,9 @@ public class FHIRService {
 
         } catch (ClassCastException cce) {
             logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), r.getClass().getName(), aClass.getName());
-            logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJson(r));
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJson(r));
+            }
             throw cce;
         }
     }
@@ -335,9 +337,10 @@ public class FHIRService {
             }
 
         } catch (Exception e) {
-            logger.error("caught {} transacting {}: {}", e.getClass().getName(), resource.getClass().getSimpleName(), FhirUtil.toJson(resource), e);
+            logger.error("caught {} transacting {} - {}", e.getClass().getName(), resource.getClass().getSimpleName(), e.getMessage(), e);
 
             if (logger.isDebugEnabled()) {
+                logger.debug("resource={}", FhirUtil.toJson(resource));
                 logger.debug("outcome={}", outcome);
                 if (outcome != null) logger.debug("response status code={}", outcome.getResponseStatusCode());
                 if (outcome != null && outcome.getResponseHeaders() != null) {
@@ -346,7 +349,7 @@ public class FHIRService {
                         logger.debug("{} : {}", entry.getKey(), StringUtils.join(entry.getValue(), ","));
                     }
                 }
-                if (outcome != null && outcome.getOperationOutcome() != null) {
+                if (logger.isDebugEnabled() && outcome != null && outcome.getOperationOutcome() != null) {
                     logger.debug("response operation outcome={}", FhirUtil.toJson(outcome.getOperationOutcome()));
                 }
             }
