@@ -33,6 +33,12 @@ public class CryptoUtil {
 
     private static final int IV_LENGTH = 16;
 
+    // to address SemGrep-identified vulnerability:
+    // Using CBC with PKCS5Padding is susceptible to padding oracle attacks. A malicious actor could
+    //          discern the difference between plaintext with valid or invalid padding. Further, CBC mode does not
+    //          include any integrity checks. Use 'AES/GCM/NoPadding' instead.
+    private static final String CIPHER = "AES/GCM/NoPadding";
+
     public static X509Certificate readCertificate(File certFile) throws IOException, CertificateException {
         try (FileInputStream fis = new FileInputStream(certFile)) {
             CertificateFactory factory = CertificateFactory.getInstance("X.509");
@@ -69,7 +75,7 @@ public class CryptoUtil {
     }
 
     public static String encrypt(Object obj, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidParameterSpecException, IllegalBlockSizeException, BadPaddingException {
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher cipher = Cipher.getInstance(CIPHER);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         byte[] iv = randomBytes(IV_LENGTH);
 
@@ -99,7 +105,7 @@ public class CryptoUtil {
 
     public static String decrypt(String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         byte[] payload = Base64.decodeBase64(encryptedDataB64);
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher cipher = Cipher.getInstance(CIPHER);
 
         byte[] iv = new byte[IV_LENGTH];
         byte[] encryptedBytes = new byte[payload.length - IV_LENGTH];

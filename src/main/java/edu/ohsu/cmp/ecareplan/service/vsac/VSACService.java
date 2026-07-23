@@ -62,6 +62,13 @@ public class VSACService {
         String xml = getRawValueSet(oid);
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+        // to address SemGrep-identified vulnerability:
+        // DOCTYPE declarations are enabled for this DocumentBuilderFactory. This is vulnerable to XML external
+        //          entity attacks. Disable this by setting the feature "http://apache.org/xml/features/disallow-
+        //          doctype-decl" to true.
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+
         DocumentBuilder builder = factory.newDocumentBuilder();
 
         InputStream in = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
