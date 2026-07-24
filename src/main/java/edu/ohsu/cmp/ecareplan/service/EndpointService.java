@@ -30,6 +30,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidParameterSpecException;
@@ -94,7 +95,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElseThrow();
     }
 
-    public UserEndpoint createUserEndpoint(Long userId, Long endpointId, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
+    public UserEndpoint createUserEndpoint(Long userId, Long endpointId, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         UserEndpoint ue = new UserEndpoint();
         ue.setUserId(userId);
         ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
@@ -110,7 +111,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return userEndpointRepository.save(ue);
     }
 
-    public UserEndpoint updateUserEndpointRefreshToken(UserEndpoint userEndpoint, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException {
+    public UserEndpoint updateUserEndpointRefreshToken(UserEndpoint userEndpoint, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         userEndpoint.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
         return userEndpointRepository.save(userEndpoint);
     }
