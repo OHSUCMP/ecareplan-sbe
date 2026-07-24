@@ -341,6 +341,8 @@ public class UserWorkspace {
 
                 if ( loadFromSDS && ! sdsEndpointMap.containsKey(endpoint.getId()) ) {
                     sdsEndpointMap.put(endpoint.getId(), endpoint);
+                } else if ( ! loadFromSDS ) {
+                    sdsEndpointMap.remove(endpoint.getId());
                 }
             }
         };
