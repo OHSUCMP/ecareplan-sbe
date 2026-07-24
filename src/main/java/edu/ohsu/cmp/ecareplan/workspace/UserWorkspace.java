@@ -312,24 +312,28 @@ public class UserWorkspace {
                 updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
                 int count = 0;
                 int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
-                for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
-                    try {
-                        updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float)max));
-                        cache.invalidate(buildCacheKey(dataSet, endpoint));
-                        if (loadFromSDS) {
-                            getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
-                        } else {
-                            getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
-                            sdsService.shareToSDS(sessionId, dataSet, endpoint);
-                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
-                            endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
-                        }
+                try {
+                    for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
+                        try {
+                            updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float) max));
+                            cache.invalidate(buildCacheKey(dataSet, endpoint));
+                            if (loadFromSDS) {
+                                getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
+                            } else {
+                                getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
+                                sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                            }
 
-                    } catch (Exception e) {
-                        logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                        addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
-                        // todo : depending on the type of error, perhaps retry?
+                        } catch (Exception e) {
+                            logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
+                            addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
+                            // todo : depending on the type of error, perhaps retry?
+                        }
                     }
+
+                } finally {
+                    UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                    endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
                 }
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
