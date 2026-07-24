@@ -7,13 +7,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -32,6 +33,7 @@ public class CryptoUtil {
     private static final String PKCS8_FOOTER = "-----END PRIVATE KEY-----";
 
     private static final int IV_LENGTH = 12; // suggested IV length for GCM
+    private static final int GCM_TAG_LENGTH_BITS = 128;
 
     // to address SemGrep-identified vulnerability:
     // Using CBC with PKCS5Padding is susceptible to padding oracle attacks. A malicious actor could
@@ -74,22 +76,25 @@ public class CryptoUtil {
         return new SecretKeySpec(tmp.getEncoded(), "AES");
     }
 
-    public static String encrypt(Object obj, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidParameterSpecException, IllegalBlockSizeException, BadPaddingException {
+    public static String encrypt(Object obj, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidParameterSpecException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         Cipher cipher = Cipher.getInstance(CIPHER);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         byte[] iv = randomBytes(IV_LENGTH);
-
-        byte[] encryptedBytes;
-        if (obj instanceof String s) {
-            encryptedBytes = cipher.doFinal(s.getBytes());
-        } else {
-            Gson gson = new GsonBuilder().create();
-            encryptedBytes = cipher.doFinal(gson.toJson(obj).getBytes());
-        }
 
         if (iv.length != IV_LENGTH) {
             throw new InvalidParameterSpecException("IV length must be " + IV_LENGTH + " bytes");
         }
+
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+
+        byte[] plaintextBytes;
+        if (obj instanceof String s) {
+            plaintextBytes = s.getBytes(StandardCharsets.UTF_8);
+        } else {
+            Gson gson = new GsonBuilder().create();
+            plaintextBytes = gson.toJson(obj).getBytes(StandardCharsets.UTF_8);
+        }
+
+        byte[] encryptedBytes = cipher.doFinal(plaintextBytes);
 
         byte[] payload = new byte[IV_LENGTH + encryptedBytes.length];
         int i = 0;
@@ -101,6 +106,11 @@ public class CryptoUtil {
         }
 
         return Base64.encodeBase64String(payload);
+    }
+
+    public static <T> T decrypt(Class<T> clazz, String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+        Gson gson = new GsonBuilder().create();
+        return gson.fromJson(decrypt(encryptedDataB64, secretKey), clazz);
     }
 
     public static String decrypt(String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
@@ -119,13 +129,8 @@ public class CryptoUtil {
             i++;
         }
 
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
         byte[] bytes = cipher.doFinal(encryptedBytes);
-        return new String(bytes);
-    }
-
-    public static <T> T decrypt(Class<T> clazz, String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
-        Gson gson = new GsonBuilder().create();
-        return gson.fromJson(decrypt(encryptedDataB64, secretKey), clazz);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 }
