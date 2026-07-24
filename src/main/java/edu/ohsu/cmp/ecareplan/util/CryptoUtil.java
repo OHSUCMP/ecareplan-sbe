@@ -31,7 +31,7 @@ public class CryptoUtil {
     private static final String PKCS8_HEADER = "-----BEGIN PRIVATE KEY-----";
     private static final String PKCS8_FOOTER = "-----END PRIVATE KEY-----";
 
-    private static final int IV_LENGTH = 16;
+    private static final int IV_LENGTH = 12; // suggested IV length for GCM
 
     // to address SemGrep-identified vulnerability:
     // Using CBC with PKCS5Padding is susceptible to padding oracle attacks. A malicious actor could
