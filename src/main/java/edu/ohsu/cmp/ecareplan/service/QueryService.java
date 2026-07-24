@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @Service
@@ -26,16 +27,20 @@ public class QueryService extends BaseService {
         List<QueryModel> list = new ArrayList<>();
 
         for (EndpointQuery endpointQuery : endpointQueryRepository.findByEndpointIdAndDataSetName(endpoint.getId(), dataSet.getName())) {
-            if ( ! FHIRStrategy.DISABLED.equals(endpointQuery.getStrategy()) ) {
-                list.add(new QueryModel(endpointQuery));
-            }
+            list.add(new QueryModel(endpointQuery));
         }
 
         if (list.isEmpty()) {
             for (DefaultQuery query : defaultQueryRepository.findByDataSetName(dataSet.getName())) {
-                if ( ! FHIRStrategy.DISABLED.equals(query.getStrategy()) ) {
-                    list.add(new QueryModel(query));
-                }
+                list.add(new QueryModel(query));
+            }
+        }
+
+        Iterator<QueryModel> iter = list.iterator();
+        while (iter.hasNext()) {
+            QueryModel qm = iter.next();
+            if (FHIRStrategy.DISABLED.equals(qm.getStrategy())) {
+                iter.remove();
             }
         }
 
