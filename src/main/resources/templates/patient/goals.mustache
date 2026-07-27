@@ -39,11 +39,11 @@
                             <td colspan="2">Status: {{consolidatedStatus}}</td>
                         </tr>
                     {{/consolidatedStatus}}
-                    {{#firstNote}}
+                    {{#notes}}
                         <tr>
-                            <td colspan="2">Note: {{firstNote}}</td>
+                            <td colspan="2">Note: {{.}}</td>
                         </tr>
-                    {{/firstNote}}
+                    {{/notes}}
                     <tr>
                         <td colspan="2">Source: {{sourceEndpointName}}</td>
                     </tr>
