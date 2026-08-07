@@ -15,10 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class AssessmentService extends BaseService {
@@ -30,22 +27,58 @@ public class AssessmentService extends BaseService {
     public List<AssessmentModel> getAssessmentModels(String sessionId) {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
 
+        // prepare - split everything out by their respective endpoints - we don't want to inadvertently combine resources from different endpoints
+        Map<String, String> sourceEndpointMap = new LinkedHashMap<>();
+        Map<String, List<QuestionnaireResponseModel>> questionnaireResponseMap = new LinkedHashMap<>();
+        Map<String, List<SurveyObservationModel>> observationResponseMap = new LinkedHashMap<>();
+
+        for (QuestionnaireResponseModel qrm : workspace.getAllDataSetModels(DataSet.QUESTIONNAIRE_RESPONSES)) {
+            if ( ! sourceEndpointMap.containsKey(qrm.getSourceEndpointIss()) ) {
+                sourceEndpointMap.put(qrm.getSourceEndpointIss(), qrm.getSourceEndpointName());
+            }
+            if ( ! questionnaireResponseMap.containsKey(qrm.getSourceEndpointIss()) ) {
+                questionnaireResponseMap.put(qrm.getSourceEndpointIss(), new ArrayList<>());
+            }
+            questionnaireResponseMap.get(qrm.getSourceEndpointIss()).add(qrm);
+        }
+
+        for (SurveyObservationModel som : workspace.getAllDataSetModels(DataSet.SURVEY_OBSERVATIONS)) {
+            if ( ! sourceEndpointMap.containsKey(som.getSourceEndpointIss()) ) {
+                sourceEndpointMap.put(som.getSourceEndpointIss(), som.getSourceEndpointName());
+            }
+            if ( ! observationResponseMap.containsKey(som.getSourceEndpointIss()) ) {
+                observationResponseMap.put(som.getSourceEndpointIss(), new ArrayList<>());
+            }
+            observationResponseMap.get(som.getSourceEndpointIss()).add(som);
+        }
+
         List<AssessmentModel> list = new ArrayList<>();
+
+
         for (Assessment assessment : assessmentRepository.findByActiveTrue()) {
-            List<QuestionnaireResponse> responseList = new ArrayList<>();
-            for (QuestionnaireResponseModel qrm : workspace.getAllDataSetModels(DataSet.QUESTIONNAIRE_RESPONSES)) {
-                if (qrm.getSourceResource().hasQuestionnaire() &&
-                        Strings.CS.equals(qrm.getSourceResource().getQuestionnaire(), assessment.getQuestionnaire().getUrl())) {
-                    responseList.add(qrm.getSourceResource());
+            for (Map.Entry<String, String> sourceEndpoint : sourceEndpointMap.entrySet()) {
+                List<QuestionnaireResponse> responseList = new ArrayList<>();
+
+                if (questionnaireResponseMap.containsKey(sourceEndpoint.getKey())) {
+                    for (QuestionnaireResponseModel qrm : questionnaireResponseMap.get(sourceEndpoint.getKey())) {
+                        if (qrm.getSourceResource().hasQuestionnaire() &&
+                                Strings.CS.equals(qrm.getSourceResource().getQuestionnaire(), assessment.getQuestionnaire().getUrl())) {
+                            responseList.add(qrm.getSourceResource());
+                        }
+                    }
+                }
+
+                if (observationResponseMap.containsKey(sourceEndpoint.getKey())) {
+                    List<QuestionnaireResponse> observationResponseList = convertObservations(assessment, observationResponseMap.get(sourceEndpoint.getKey()));
+                    if (observationResponseList != null && ! observationResponseList.isEmpty()) {
+                        responseList.addAll(observationResponseList);
+                    }
+                }
+
+                if ( ! responseList.isEmpty() ) {
+                    list.add(new AssessmentModel(assessment, responseList, sourceEndpoint.getKey(), sourceEndpoint.getValue()));
                 }
             }
-
-            List<QuestionnaireResponse> observationResponseList = convertObservations(assessment, workspace.getAllDataSetModels(DataSet.SURVEY_OBSERVATIONS));
-            if (observationResponseList != null) {
-                responseList.addAll(observationResponseList);
-            }
-
-            list.add(new AssessmentModel(assessment, responseList));
         }
 
         return list;

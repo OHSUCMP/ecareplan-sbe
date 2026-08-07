@@ -17,7 +17,45 @@
     <h1>Assessments</h1>
     <div class="cardContainer">
         {{#assessmentModels}}
-            <div class="card">
+            <div class="card" data-label="{{label}}">
+                <table>
+                    <thead>
+                    <tr>
+                        <td>{{label}}</td>
+                        {{#learnMoreUrl}}
+                            <td>{{#learnMoreUrl}}<a href="{{learnMoreUrl}}" target="_blank">Learn More</a>{{/learnMoreUrl}}</td>
+                        {{/learnMoreUrl}}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>(graph)</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <td colspan="2">History of {{label}}</td>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#responseSummaryList}}
+                                    <tr>
+                                        <td>{{authored}}</td>
+                                        <td>{{score}}</td>
+                                        <td>{{interpretation}}</td>
+                                    </tr>
+                                {{/responseSummaryList}}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">Source: {{sourceEndpointName}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/assessmentModels}}
     </div>
