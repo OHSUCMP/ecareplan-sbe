@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -53,6 +54,7 @@ public class ValueSetService extends BaseService {
             if (existing != null) {
                 logger.info("updating existing ValueSet with oid={}", oid);
                 existing.update(fresh);
+                existing.setUpdated(new Date());
                 repository.save(existing);
 
             } else {
