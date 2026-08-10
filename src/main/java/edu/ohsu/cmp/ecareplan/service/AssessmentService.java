@@ -7,6 +7,7 @@ import edu.ohsu.cmp.ecareplan.model.dataset.SurveyObservationModel;
 import edu.ohsu.cmp.ecareplan.model.view.AssessmentModel;
 import edu.ohsu.cmp.ecareplan.repository.AssessmentRepository;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
+import edu.ohsu.cmp.ecareplan.util.NumberUtil;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import org.apache.commons.lang3.Strings;
 import org.hl7.fhir.r4.model.*;
@@ -56,14 +57,16 @@ public class AssessmentService extends BaseService {
 
 
         for (Assessment assessment : assessmentRepository.findByActiveTrue()) {
+            List<AssessmentModel.ResponseSummary> responseList = new ArrayList<>();
+
             for (Map.Entry<String, String> sourceEndpoint : sourceEndpointMap.entrySet()) {
-                List<QuestionnaireResponse> responseList = new ArrayList<>();
+                List<QuestionnaireResponse> questionnaireResponseList = new ArrayList<>();
 
                 if (questionnaireResponseMap.containsKey(sourceEndpoint.getKey())) {
                     for (QuestionnaireResponseModel qrm : questionnaireResponseMap.get(sourceEndpoint.getKey())) {
                         if (qrm.getSourceResource().hasQuestionnaire() &&
                                 Strings.CS.equals(qrm.getSourceResource().getQuestionnaire(), assessment.getQuestionnaire().getUrl())) {
-                            responseList.add(qrm.getSourceResource());
+                            questionnaireResponseList.add(qrm.getSourceResource());
                         }
                     }
                 }
@@ -71,13 +74,15 @@ public class AssessmentService extends BaseService {
                 if (observationResponseMap.containsKey(sourceEndpoint.getKey())) {
                     List<QuestionnaireResponse> observationResponseList = convertObservations(assessment, observationResponseMap.get(sourceEndpoint.getKey()));
                     if (observationResponseList != null && ! observationResponseList.isEmpty()) {
-                        responseList.addAll(observationResponseList);
+                        questionnaireResponseList.addAll(observationResponseList);
                     }
                 }
 
-                if ( ! responseList.isEmpty() ) {
-                    list.add(new AssessmentModel(assessment, responseList, sourceEndpoint.getKey(), sourceEndpoint.getValue()));
-                }
+                responseList.addAll(buildResponseSummaryList(assessment.getQuestionnaire(), questionnaireResponseList, assessment.isScored(), sourceEndpoint.getKey(), sourceEndpoint.getValue()));
+            }
+
+            if ( ! responseList.isEmpty() ) {
+                list.add(new AssessmentModel(assessment, responseList));
             }
         }
 
@@ -166,5 +171,129 @@ public class AssessmentService extends BaseService {
                 collectMatchingItems(item.getItem(), members, responseItems);
             }
         }
+    }
+
+    private List<AssessmentModel.ResponseSummary> buildResponseSummaryList(Questionnaire questionnaire, List<QuestionnaireResponse> questionnaireResponseList,
+                                                                           boolean isScored,
+                                                                           String sourceEndpointIss, String sourceEndpointName) {
+        if (questionnaireResponseList == null) return null;
+
+        List<AssessmentModel.ResponseSummary> list = new ArrayList<>();
+
+        for (QuestionnaireResponse qr : questionnaireResponseList) {
+            try {
+                if (qr == null || !qr.hasAuthored()) continue;
+                Number score = extractResponseScore(questionnaire, qr, isScored);
+                list.add(new AssessmentModel.ResponseSummary(qr, score, interpretScore(questionnaire, score), sourceEndpointIss, sourceEndpointName));
+            } catch (Exception e) {
+                logger.error("caught {} building response summary for QuestionnaireResponse {} - {}", e.getClass().getSimpleName(), qr.getId(), e.getMessage(), e);
+            }
+        }
+
+        return list;
+    }
+
+    private static final String EXTENSION_RANGE_SCORE_INTERPRETATION_URL = "range-score-interpretation";
+    private static final String EXTENSION_RANGE_URL = "range";
+    private static final String EXTENSION_INTERPRETATION_URL = "interpretation";
+
+    private String interpretScore(Questionnaire questionnaire, Number score) {
+        Questionnaire.QuestionnaireItemComponent scoreItem = findScoreItem(questionnaire.getItem());
+        if (scoreItem != null) {
+            for (Extension rangeInterpretation : scoreItem.getExtensionsByUrl(EXTENSION_RANGE_SCORE_INTERPRETATION_URL)) {
+                if (rangeInterpretation.hasExtension(EXTENSION_RANGE_URL) && rangeInterpretation.hasExtension(EXTENSION_INTERPRETATION_URL)) {
+                    Extension range = rangeInterpretation.getExtensionByUrl(EXTENSION_RANGE_URL);
+                    if (range.hasValue() && range.getValue() instanceof Range r) {
+                        if (r.hasLow() && r.hasHigh() &&
+                                r.getLow().hasValue() && r.getLow().getValue().compareTo(NumberUtil.toBigDecimal(score)) <= 0 &&
+                                r.getHigh().hasValue() && r.getHigh().getValue().compareTo(NumberUtil.toBigDecimal(score)) >= 0) {
+                            Extension interpretation = rangeInterpretation.getExtensionByUrl(EXTENSION_INTERPRETATION_URL);
+                            if (interpretation.hasValue() && interpretation.getValue() instanceof StringType st) {
+                                return st.getValue();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private Number extractResponseScore(Questionnaire questionnaire, QuestionnaireResponse qr, boolean isScored) {
+        if (isScored) {
+            Questionnaire.QuestionnaireItemComponent scoreItem = findScoreItem(questionnaire.getItem());
+            if (scoreItem != null) {
+                return findScoreValueByLinkId(qr.getItem(), scoreItem.getLinkId());
+            }
+        }
+
+        return null;
+    }
+
+    private Number findScoreValueByLinkId(List<QuestionnaireResponse.QuestionnaireResponseItemComponent> items, String targetLinkId) {
+        if (items == null) return null;
+
+        for (QuestionnaireResponse.QuestionnaireResponseItemComponent item: items) {
+            if (item.hasLinkId() && item.getLinkId().equals(targetLinkId) && item.hasAnswer() && ! item.getAnswer().isEmpty()) {
+                QuestionnaireResponse.QuestionnaireResponseItemAnswerComponent answer = item.getAnswerFirstRep();
+                return extractAnswerValue(answer);
+            }
+
+            if (item.hasItem() && ! item.getItem().isEmpty()) {
+                Number result = findScoreValueByLinkId(item.getItem(), targetLinkId);
+                if (result != null) {
+                    return result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private Number extractAnswerValue(QuestionnaireResponse.QuestionnaireResponseItemAnswerComponent answer) {
+        if (answer.hasValueIntegerType()) {
+            return answer.getValueIntegerType().getValue();
+        } else if (answer.hasValueDecimalType()) {
+            return answer.getValueDecimalType().getValue();
+        } else if (answer.hasValueQuantity()) {
+            return answer.getValueQuantity().getValue();
+        }
+        return null;
+    }
+
+    private Questionnaire.QuestionnaireItemComponent findScoreItem(List<Questionnaire.QuestionnaireItemComponent> itemList) {
+        if (itemList == null) return null;
+
+        for (Questionnaire.QuestionnaireItemComponent item : itemList) {
+            if (isScoreQuestion(item)) {
+                return item;
+            }
+
+            if (item.hasItem() && ! item.getItem().isEmpty()) {
+                Questionnaire.QuestionnaireItemComponent found = findScoreItem(item.getItem());
+                if (found != null) return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static final String EXTENSION_QUESTIONNAIRE_UNIT_URL = "http://hl7.org/fhir/StructureDefinition/questionnaire-unit";
+    private static final String CODE_CARE_PLAN_SCORE = "care-plan-score";
+
+    private boolean isScoreQuestion(Questionnaire.QuestionnaireItemComponent item) {
+        if (item == null) return false;
+
+        for (Extension extension : item.getExtensionsByUrl(EXTENSION_QUESTIONNAIRE_UNIT_URL)) {
+            if (extension.hasValue()) {
+                Type value = extension.getValue();
+                if (value instanceof Coding c) {
+                    return c.hasCode() && c.getCode().equals(CODE_CARE_PLAN_SCORE);
+                }
+            }
+        }
+
+        return false;
     }
 }

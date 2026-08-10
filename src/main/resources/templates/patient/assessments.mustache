@@ -18,7 +18,7 @@
     <div class="cardContainer">
         {{#assessmentModels}}
             <div class="card" data-label="{{label}}">
-                <table>
+                <table style="width:100%">
                     <thead>
                     <tr>
                         <td>{{label}}</td>
@@ -29,14 +29,20 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td>(graph)</td>
+                        <td colspan="2">(graph)</td>
                     </tr>
                     <tr>
                         <td colspan="2">
-                            <table>
+                            <table style="width:100%">
                                 <thead>
                                 <tr>
-                                    <td colspan="2">History of {{label}}</td>
+                                    <td colspan="4">History of {{label}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Authored Date</td>
+                                    <td>Score</td>
+                                    <td>Interpretation</td>
+                                    <td>Source</td>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -45,14 +51,12 @@
                                         <td>{{authored}}</td>
                                         <td>{{score}}</td>
                                         <td>{{interpretation}}</td>
+                                        <td>{{sourceEndpointName}}</td>
                                     </tr>
                                 {{/responseSummaryList}}
                                 </tbody>
                             </table>
                         </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
                     </tr>
                     </tbody>
                 </table>
