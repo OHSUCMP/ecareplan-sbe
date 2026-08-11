@@ -105,16 +105,6 @@ public class ConditionModel extends BaseDataSetModel<Condition> {
         return asserter;
     }
 
-    public String getAuthor() {
-        if (StringUtils.isNotBlank(recorder)) {
-            return recorder;
-        } else if (StringUtils.isNotBlank(asserter)) {
-            return asserter;
-        } else {
-            return "Unknown";
-        }
-    }
-
     public List<String> getNotes() {
         return notes;
     }

@@ -29,12 +29,19 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <td colspan="2">{{author}}</td>
-                    </tr>
+                    {{#asserter}}
+                        <tr>
+                            <td colspan="2">Asserted by: {{asserter}}</td>
+                        </tr>
+                    {{/asserter}}
+                    {{#recorder}}
+                        <tr>
+                            <td colspan="2">Recorded by: {{recorder}}</td>
+                        </tr>
+                    {{/recorder}}
                     {{#recordedDate}}
                         <tr>
-                            <td colspan="2">Recorded: {{recordedDate}}</td>
+                            <td colspan="2">Recorded on: {{recordedDate}}</td>
                         </tr>
                     {{/recordedDate}}
                     {{#onsetDate}}
