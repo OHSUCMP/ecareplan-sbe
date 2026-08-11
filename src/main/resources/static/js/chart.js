@@ -26,7 +26,7 @@ function createLineChart(options, data) {
     if (container) {
         container.style.minWidth = LINE_CHART_MIN_WIDTH + 'px';
         container.style.maxWidth = LINE_CHART_MAX_WIDTH + 'px';
-        container.style.aspectRatio = LINE_CHART_ASPECT_RATIO;
+        container.style.aspectRatio = LINE_CHART_ASPECT_RATIO + '';
     }
 
     // `canvas` is an instruction for this helper, not a Chart.js option.
