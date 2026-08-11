@@ -32,7 +32,9 @@
                     <tbody>
                     <tr>
                         <td>{{#expressedBy}}{{expressedBy}}{{/expressedBy}}</td>
-                        <td>Start: {{startDate}}</td>
+                        {{#startDate}}
+                            <td>Start: {{startDate}}</td>
+                        {{/startDate}}
                     </tr>
                     {{#consolidatedStatus}}
                         <tr>
