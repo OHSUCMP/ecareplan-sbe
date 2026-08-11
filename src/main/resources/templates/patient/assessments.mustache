@@ -17,19 +17,152 @@
     <h1>Assessments</h1>
     <div class="cardContainer">
         {{#assessmentModels}}
-            <div class="card">
+            <div class="card assessment-card" data-label="{{label}}">
+                <table style="width:100%">
+                    <thead>
+                    <tr>
+                        <td>{{label}}</td>
+                        {{#learnMoreUrl}}
+                            <td>{{#learnMoreUrl}}<a href="{{learnMoreUrl}}" target="_blank">Learn More</a>{{/learnMoreUrl}}</td>
+                        {{/learnMoreUrl}}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <div class="chart-container">
+                                <canvas class="chart" aria-label="Chart of {{label}} scores"></canvas>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <table style="width:100%">
+                                <thead>
+                                <tr>
+                                    <td colspan="4">History of {{label}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Authored Date</td>
+                                    <td>Score</td>
+                                    <td>Interpretation</td>
+                                    <td>Source</td>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#responseSummaryList}}
+                                    <tr class="chart-response" data-authored="{{authored}}" data-score="{{score}}">
+                                        <td>{{authored}}</td>
+                                        <td>{{score}}</td>
+                                        <td>{{interpretation}}</td>
+                                        <td>{{sourceEndpointName}}</td>
+                                    </tr>
+                                {{/responseSummaryList}}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         {{/assessmentModels}}
     </div>
 </div>
 
 <script type="text/javascript">
+    function getChartOptions(measure) {
+        return {
+            responsive: true,
+            maintainAspectRatio: true,
+            elements: {
+                line: {
+                    tension: 0
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Total ' + measure + ' Scores'
+                },
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(items) {
+                            return items.length > 0
+                                ? formatChartDate(items[0].parsed.x)
+                                : '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 7,
+                        callback: function(value) {
+                            return formatChartDate(value);
+                        }
+                    },
+                    grid: {
+                        offset: false
+                    }
+                },
+                y: {
+                    beginAtZero: false
+                }
+            }
+        };
+    }
+
+    function formatChartDate(timestamp) {
+        const date = new Date(Number(timestamp));
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return (date.getMonth() + 1) + '/' + date.getDate() + '/'
+            + String(date.getFullYear()).slice(-2);
+    }
+
+    function getChartData(responses) {
+        return {
+            datasets: [
+                {
+                    data: responses.map((response) => ({
+                        x: new Date(response.authored).getTime(),
+                        y: response.score
+                    })),
+                    borderColor: 'rgb(48, 96, 128)',
+                    fill: false
+                }
+            ]
+        };
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        $('.assessment-card').each(function() {
+            const card = $(this);
+            const responses = card.find('.chart-response').map(function() {
+                return {
+                    authored: $(this).attr('data-authored'),
+                    score: Number($(this).attr('data-score'))
+                };
+            }).get().reverse();
+
+            const canvas = card.find('.chart')[0];
+            createLineChart(
+                Object.assign(getChartOptions(card.attr('data-label')), { canvas: canvas }),
+                getChartData(responses)
+            );
+        });
     });
 </script>
 

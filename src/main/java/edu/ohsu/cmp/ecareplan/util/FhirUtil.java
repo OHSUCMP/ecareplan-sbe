@@ -480,7 +480,7 @@ public class FhirUtil {
         boolean useMatch = (!a.hasUse() && !b.hasUse()) ||
                 (a.hasUse() && b.hasUse() && a.getUse() == b.getUse());
         boolean systemMatch = (!a.hasSystem() && !b.hasSystem()) ||
-                (a.hasSystem() && b.hasSystem() && a.getSystem().equals(b.getSystem()));
+                (a.hasSystem() && b.hasSystem() && CodeSystemUtil.matches(a.getSystem(), b.getSystem()));
         boolean valueMatch = (!a.hasValue() && !b.hasValue()) ||
                 (a.hasValue() && b.hasValue() && a.getValue().equals(b.getValue()));
 
@@ -647,7 +647,7 @@ public class FhirUtil {
 
         // if system is specified, c must have a system that matches it
         if (spec.hasSystem()) {
-            boolean systemMatches = c.hasSystem() && c.getSystem().equals(spec.getSystem());
+            boolean systemMatches = c.hasSystem() && CodeSystemUtil.matches(c.getSystem(), spec.getSystem());
             if (systemMatches) {
                 if (sb != null) sb.append("MATCH system='").append(spec.getSystem()).append("' ");
             } else {
