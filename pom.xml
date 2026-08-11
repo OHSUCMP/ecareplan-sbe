@@ -199,6 +199,14 @@
             <version>7.2.0</version>
             <scope>compile</scope>
         </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/org.webjars.npm/chart.js -->
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>chart.js</artifactId>
+            <version>4.5.1</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

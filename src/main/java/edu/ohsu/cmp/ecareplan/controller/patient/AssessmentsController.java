@@ -25,6 +25,10 @@ public class AssessmentsController extends BasePatientController {
         if (sessionService.exists(sessionId)) {
             setCommonViewComponents(sessionId, model);
 
+            model.addAttribute("pageWebjars", new String[] { "chart.js/dist/chart.umd.min.js" });
+            model.addAttribute("pageScripts", new String[] { "chart.js" });
+            model.addAttribute("pageStyles", new String[] { "chart.css" });
+
             model.addAttribute("assessmentModels", assessmentService.getAssessmentModels(sessionId));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/assessments");

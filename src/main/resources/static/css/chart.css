@@ -1,0 +1,13 @@
+.chart-container {
+    position: relative;
+    width: 100%;
+    min-width: 200px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.chart {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
