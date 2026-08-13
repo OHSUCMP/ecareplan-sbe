@@ -35,9 +35,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class UserWorkspace {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -52,7 +50,6 @@ public class UserWorkspace {
     private final Long userId;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
-    private final Map<Long, Endpoint> sdsEndpointMap;
     private final Map<Long, String> endpointPatientIdMap;
     private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
 
@@ -102,14 +99,11 @@ public class UserWorkspace {
         }
 
         userEndpointCredentialsMap = new LinkedHashMap<>();
-        sdsEndpointMap = new LinkedHashMap<>();
+        endpointPatientIdMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
         UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
-        addEndpointWithCredentials(launchUserEndpoint, launchCredentials);
-
-        endpointPatientIdMap = new LinkedHashMap<>();
-        endpointPatientIdMap.put(launcherEndpoint.getId(), launchCredentials.getPatientId());
+        configureUserEndpointCredentials(launchUserEndpoint, launchCredentials);
 
         cache = Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)
@@ -190,7 +184,7 @@ public class UserWorkspace {
             model.setCurrent(percentComplete);
 
         } else {
-            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, 0, 100));
+            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, percentComplete, 100));
         }
     }
 
@@ -204,13 +198,7 @@ public class UserWorkspace {
 
     private synchronized void clearCompletedProgress() {
         if (endpointIdProgressMap != null) {
-            Iterator<ProgressModel> iter = endpointIdProgressMap.values().iterator();
-            while (iter.hasNext()) {
-                ProgressModel pm = iter.next();
-                if (pm.getStatus() == ProgressStatus.COMPLETED) {
-                    iter.remove();
-                }
-            }
+            endpointIdProgressMap.values().removeIf(pm -> pm.getStatus() == ProgressStatus.COMPLETED);
             if (endpointIdProgressMap.isEmpty()) {
                 endpointIdProgressMap = null;
             }
@@ -227,42 +215,36 @@ public class UserWorkspace {
         return audience;
     }
 
-    public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint e) {
-        return userEndpointCredentialsMap.containsKey(e.getId()) ?
-                userEndpointCredentialsMap.get(e.getId()).getCredentialsWithClient() :
+    public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint endpoint) {
+        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
+        return uec != null ?
+                uec.getCredentialsWithClient() :
                 null;
     }
 
-    public boolean addEndpointWithCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
-        if ( ! userEndpointCredentialsMap.containsKey(userEndpoint.getEndpoint().getId()) ) {
-            IGenericClient client = FhirUtil.buildClient(
-                    credentials.getServerURL(),
-                    credentials.getBearerToken(),
-                    socketTimeout
-            );
-            FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
+    public void configureUserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
+        IGenericClient client = FhirUtil.buildClient(
+                credentials.getServerURL(),
+                credentials.getBearerToken(),
+                socketTimeout
+        );
+        FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
 
-            Date expiresAt;
-            try {
-                expiresAt = parseExpiresAt(credentials.getBearerToken());
+        Date expiresAt;
+        try {
+            expiresAt = parseExpiresAt(credentials.getBearerToken());
 
-            } catch (Exception e) {
-                logger.warn("couldn't parse token for session={} - will auto-expire token in 1 hour", sessionId);
-                logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
+        } catch (Exception e) {
+            logger.warn("couldn't parse token for session={} - will auto-expire token in 1 hour", sessionId);
+            logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
 
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(new Date());
-                cal.add(Calendar.HOUR_OF_DAY, 1);
-                expiresAt = cal.getTime();
-            }
-
-            userEndpointCredentialsMap.put(userEndpoint.getEndpoint().getId(), new UserEndpointCredentials(userEndpoint, fcc, expiresAt));
-
-            return true;
-
-        } else {
-            return false;
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(new Date());
+            cal.add(Calendar.HOUR_OF_DAY, 1);
+            expiresAt = cal.getTime();
         }
+
+        userEndpointCredentialsMap.put(userEndpoint.getEndpoint().getId(), new UserEndpointCredentials(userEndpoint, fcc, expiresAt));
     }
 
     public Long getUserId() {
@@ -271,57 +253,50 @@ public class UserWorkspace {
 
     public void populate() {
         clearCompletedProgress();
-        Map<Long, Endpoint> endpointMap = new HashMap<>();
-
-        // first process endpoints for which we have current authenticated credentials
-        for (Endpoint endpoint : getAllActiveEndpoints()) {
-            populateEndpoint(endpoint, false);
-            endpointMap.put(endpoint.getId(), endpoint);
-        }
-
-        // next, iterate over all other endpoints that have been synced to the SDS
-        // for which we don't have any current authenticated credentials, and load those
-        // from the SDS
-        for (UserEndpoint userEndpoint : endpointService.getAllUserEndpoints(userId)) {
-            Endpoint endpoint = userEndpoint.getEndpoint();
-            if ( ! endpointMap.containsKey(endpoint.getId()) ) {
-                if (userEndpoint.getLastSyncCompleted() != null) {
-                    populateEndpoint(endpoint, true);
-                    endpointMap.put(endpoint.getId(), endpoint);
-                }
-            }
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+            populateEndpoint(ue.getEndpoint());
         }
     }
 
-    public void populateEndpoint(Endpoint endpoint, boolean loadFromSDS) {
+    public void populateEndpoint(Endpoint endpoint) {
         // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
         //        this function should use that to automatically obtain a fresh authentication token
         //        if a valid one isn't present, prior to populating data sets
+
+        // preliminary sanity check
+        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint.getId());
+        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
+        if (uec == null && ue.getLastSyncCompleted() == null) {
+            logger.debug("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS", endpoint.getName());
+            return;
+        }
+        boolean loadFromEndpoint = uec != null;
 
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 clearCompletedProgress();
 
-                if (loadFromSDS) {
-                    sdsEndpointMap.remove(endpoint.getId());
-                }
-
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
                 updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
                 int count = 0;
                 int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
+                List<Future<Void>> futures = new ArrayList<>();
                 try {
                     for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
                         try {
                             updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float) max));
                             cache.invalidate(buildCacheKey(dataSet, endpoint));
-                            if (loadFromSDS) {
-                                getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
-                            } else {
+
+                            if (loadFromEndpoint) {
                                 getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
-                                sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                                Future<Void> future = sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                                if (future != null) {
+                                    futures.add(future);
+                                }
+                            } else {
+                                getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
                             }
 
                         } catch (Exception e) {
@@ -332,18 +307,28 @@ public class UserWorkspace {
                     }
 
                 } finally {
-                    UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
-                    endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
+                    if (loadFromEndpoint) {
+                        try {
+                            for (Future<Void> future : futures) {
+                                future.get(); // waits until this task completes
+                            }
+                            logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
+                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                            endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
+
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException("Interrupted while sharing data to SDS", e);
+                        } catch (ExecutionException | CancellationException e) {
+                            logger.error("Failed while sharing data to SDS", e);
+                            addProgressError(endpoint, "Error sharing data to SDS: " + e.getMessage());
+                        }
+                    }
                 }
+
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
                 updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
-
-                if ( loadFromSDS && ! sdsEndpointMap.containsKey(endpoint.getId()) ) {
-                    sdsEndpointMap.put(endpoint.getId(), endpoint);
-                } else if ( ! loadFromSDS ) {
-                    sdsEndpointMap.remove(endpoint.getId());
-                }
             }
         };
 
@@ -357,7 +342,6 @@ public class UserWorkspace {
         cache.cleanUp();
 
         userEndpointCredentialsMap.clear();
-        sdsEndpointMap.clear();
         endpointPatientIdMap.clear();
     }
 
@@ -475,21 +459,13 @@ public class UserWorkspace {
 
     public List<EndpointModel> getAllActiveEndpointModels() {
         List<EndpointModel> list = new ArrayList<>();
-        for (Endpoint endpoint : getAllActiveEndpoints()) {
-            list.add(new EndpointModel(endpoint));
-        }
-        return list;
-    }
-
-    private List<Endpoint> getAllActiveEndpoints() {
-        List<Endpoint> list = new ArrayList<>();
 
         Date now = new Date();
         Iterator<UserEndpointCredentials> uecIterator = userEndpointCredentialsMap.values().iterator();
         while (uecIterator.hasNext()) {
             UserEndpointCredentials uec = uecIterator.next();
             if (uec.getExpiresAt().after(now)) {
-                list.add(uec.getUserEndpoint().getEndpoint());
+                list.add(new EndpointModel(uec.getUserEndpoint().getEndpoint()));
             } else {
                 uecIterator.remove();
             }
@@ -498,14 +474,22 @@ public class UserWorkspace {
         return list;
     }
 
-    private List<Endpoint> getAllSDSEndpoints() {
-        return new ArrayList<>(sdsEndpointMap.values());
+    private UserEndpointCredentials getUserEndpointCredentials(Endpoint endpoint) {
+        if (userEndpointCredentialsMap.containsKey(endpoint.getId())) {
+            UserEndpointCredentials uec = userEndpointCredentialsMap.get(endpoint.getId());
+            if (uec.getExpiresAt().after(new Date())) {
+                return uec;
+            } else {
+                userEndpointCredentialsMap.remove(endpoint.getId());
+            }
+        }
+        return null;
     }
 
     private static final class UserEndpointCredentials {
-        private UserEndpoint userEndpoint;
-        private FHIRCredentialsWithClient credentialsWithClient;
-        private Date expiresAt;
+        private final UserEndpoint userEndpoint;
+        private final FHIRCredentialsWithClient credentialsWithClient;
+        private final Date expiresAt;
 
         public UserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentialsWithClient credentialsWithClient, Date expiresAt) {
             this.userEndpoint = userEndpoint;
@@ -528,16 +512,21 @@ public class UserWorkspace {
 
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
-        for (Endpoint endpoint : getAllActiveEndpoints()) {
-            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
-            if (dataSetModels != null) {
-                list.addAll(dataSetModels);
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+            Endpoint endpoint = null;
+            if (ue.getLastSyncCompleted() != null) {
+                endpoint = ue.getEndpoint();
+            } else {
+                UserEndpointCredentials uec = getUserEndpointCredentials(ue.getEndpoint());
+                if (uec != null) {
+                    endpoint = ue.getEndpoint();
+                }
             }
-        }
-        for (Endpoint endpoint : getAllSDSEndpoints()) {
-            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
-            if (dataSetModels != null) {
-                list.addAll(dataSetModels);
+            if (endpoint != null) {
+                List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
+                if (dataSetModels != null) {
+                    list.addAll(dataSetModels);
+                }
             }
         }
         return list;
@@ -548,7 +537,7 @@ public class UserWorkspace {
 /// Data Set Caching Functions
 
     private String buildCacheKey(DataSet<?> dataSet, Endpoint e) {
-        return dataSet.getName() + "-" + e.getIss();  // use iss instead of name.  it's possible that multiple
+        return dataSet.getName() + "|" + e.getIss();  // use iss instead of name.  it's possible that multiple
                                                       // data sets will have different names but point to the same
                                                       // iss.  ultimately, it's the iss we care about, irrespective
                                                       // of what the user sees.  this will help prevent duplicates.
@@ -655,7 +644,9 @@ public class UserWorkspace {
             logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
                     userId, endpoint.getName(), (System.currentTimeMillis() - start));
 
-            return list;
+            return list != null ?
+                    list :
+                    List.of();
         });
     }
 }
