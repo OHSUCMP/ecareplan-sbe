@@ -39,7 +39,7 @@ function renderProgressData(progressData) {
     $.each(progressData, function(i, item) {
         html += '<div class="progress">';
         html += '<div>' + item.label + ': ' + item.message;
-        if (item.percentComplete) {
+        if (item.percentComplete !== null) {
             html += ' (' + item.percentComplete + '%)';
         }
         html += '</div>';
