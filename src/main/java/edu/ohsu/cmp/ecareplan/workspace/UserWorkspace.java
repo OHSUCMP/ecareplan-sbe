@@ -18,6 +18,8 @@ import edu.ohsu.cmp.ecareplan.model.dataset.BaseDataSetModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
+import edu.ohsu.cmp.ecareplan.model.progress.EndpointReadProgressModel;
 import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
@@ -63,7 +65,7 @@ public class UserWorkspace {
 
     private Long currentlyLaunchingEndpointId = null;
 
-    private volatile Map<Long, ProgressModel> endpointIdProgressMap = null;
+    private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
 
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
                             FHIRCredentials launchCredentials, Integer socketTimeout) {
@@ -104,6 +106,8 @@ public class UserWorkspace {
         Endpoint launcherEndpoint = getLauncherEndpoint();
         UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
         configureUserEndpointCredentials(launchUserEndpoint, launchCredentials);
+
+        endpointReadProgressMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
         cache = Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)
@@ -160,50 +164,41 @@ public class UserWorkspace {
         }
     }
 
-    public synchronized List<ProgressModel> getCurrentProgress() {
-        List<ProgressModel> list = new ArrayList<>();
-        if (endpointIdProgressMap != null) {
-            list.addAll(endpointIdProgressMap.values());
-        }
-        List<ProgressModel> sdsList = sdsService.getCurrentProgress(sessionId);
+    public synchronized List<IProgress> getCurrentProgress() {
+        List<IProgress> list = new ArrayList<>(endpointReadProgressMap.values());
+        List<IProgress> sdsList = sdsService.getCurrentProgress(sessionId);
         if (sdsList != null) {
             list.addAll(sdsList);
         }
         return list;
     }
 
-    private synchronized void updateProgress(Endpoint endpoint, ProgressStatus status, String message, Integer percentComplete) {
-        if (endpointIdProgressMap == null) {
-            endpointIdProgressMap = new LinkedHashMap<>();
+    public synchronized List<IProgress> getCurrentProgress(DataSet<?> dataSet) {
+        List<IProgress> list = new ArrayList<>();
+        for (EndpointReadProgressModel model : endpointReadProgressMap.values()) {
+            list.add(model.getDataSetReadProgressModel(dataSet));
         }
+        List<IProgress> sdsList = sdsService.getCurrentProgress(sessionId, dataSet);
+        if (sdsList != null) {
+            list.addAll(sdsList);
+        }
+        return list;
+    }
 
-        if (endpointIdProgressMap.containsKey(endpoint.getId())) {
-            ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
-            model.setStatus(status);
-            model.setMessage(message);
-            model.setCurrent(percentComplete);
-
-        } else {
-            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, percentComplete, 100));
+    private synchronized void updateProgress(Endpoint endpoint, DataSet<?> dataSet, ProgressStatus status) {
+        if (endpointReadProgressMap.containsKey(endpoint.getId())) {
+            endpointReadProgressMap.get(endpoint.getId()).setStatus(dataSet, status);
         }
     }
 
-    private synchronized void addProgressError(Endpoint endpoint, String error) {
-        if (endpointIdProgressMap == null) return;
-        if (endpointIdProgressMap.containsKey(endpoint.getId())) {
-            ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
-            model.addError(error);
+    private synchronized void addProgressError(Endpoint endpoint, DataSet<?> dataSet, String error) {
+        if (endpointReadProgressMap.containsKey(endpoint.getId())) {
+            endpointReadProgressMap.get(endpoint.getId()).addError(dataSet, error);
         }
     }
 
     private synchronized void clearCompletedProgress() {
-        if (endpointIdProgressMap != null) {
-            endpointIdProgressMap.values().removeIf(pm -> pm.getStatus() == ProgressStatus.COMPLETED);
-            if (endpointIdProgressMap.isEmpty()) {
-                endpointIdProgressMap = null;
-            }
-        }
-
+        endpointReadProgressMap.values().removeIf(pm -> pm.getStatus() == ProgressStatus.COMPLETED);
         sdsService.clearCompletedProgress(sessionId);
     }
 
@@ -272,22 +267,21 @@ public class UserWorkspace {
         }
         boolean loadFromEndpoint = uec != null;
 
+        clearCompletedProgress();
+        endpointReadProgressMap.put(endpoint.getId(), new EndpointReadProgressModel(endpoint));
+
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                clearCompletedProgress();
 
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
-                updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
-                int count = 0;
-                int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
                 List<Future<Void>> futures = new ArrayList<>();
                 try {
                     for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
                         try {
-                            updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float) max));
-                            cache.invalidate(buildCacheKey(dataSet, endpoint));
+                            updateProgress(endpoint, dataSet, ProgressStatus.RUNNING);
+                            cache.invalidate(buildDataSetEndpointKey(dataSet, endpoint));
 
                             if (loadFromEndpoint) {
                                 getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
@@ -301,8 +295,12 @@ public class UserWorkspace {
 
                         } catch (Exception e) {
                             logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                            addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
+                            addProgressError(endpoint, dataSet, e.getMessage());
+
                             // todo : depending on the type of error, perhaps retry?
+
+                        } finally {
+                            updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
                         }
                     }
 
@@ -319,16 +317,15 @@ public class UserWorkspace {
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                             throw new IllegalStateException("Interrupted while sharing data to SDS", e);
+
                         } catch (ExecutionException | CancellationException e) {
                             logger.error("Failed while sharing data to SDS", e);
-                            addProgressError(endpoint, "Error sharing data to SDS: " + e.getMessage());
                         }
                     }
                 }
 
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
-                updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
             }
         };
 
@@ -536,16 +533,16 @@ public class UserWorkspace {
 ///////////////////////////////////////////////////////////////////////////////////////
 /// Data Set Caching Functions
 
-    private String buildCacheKey(DataSet<?> dataSet, Endpoint e) {
-        return dataSet.getName() + "|" + e.getIss();  // use iss instead of name.  it's possible that multiple
-                                                      // data sets will have different names but point to the same
-                                                      // iss.  ultimately, it's the iss we care about, irrespective
-                                                      // of what the user sees.  this will help prevent duplicates.
+    private String buildDataSetEndpointKey(DataSet<?> dataSet, Endpoint endpoint) {
+        return dataSet.getName() + "|" + endpoint.getIss();  // use iss instead of name.  it's possible that multiple
+                                                             // data sets will have different names but point to the same
+                                                             // iss.  ultimately, it's the iss we care about, irrespective
+                                                             // of what the user sees.  this will help prevent duplicates.
     }
 
     @SuppressWarnings("unchecked")
     public <T extends BaseDataSetModel<?>> List<T> getCachedDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
-        List<T> list = (List<T>) cache.getIfPresent(buildCacheKey(dataSet, endpoint));
+        List<T> list = (List<T>) cache.getIfPresent(buildDataSetEndpointKey(dataSet, endpoint));
         return list != null ?
                 list :
                 new ArrayList<>();
@@ -554,7 +551,7 @@ public class UserWorkspace {
 
     @SuppressWarnings("unchecked")
     public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint, IDataSetBuilder dataSetBuilder) {
-        return (List<T>) cache.get(buildCacheKey(dataSet, endpoint), s -> {
+        return (List<T>) cache.get(buildDataSetEndpointKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
             logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,
                     endpoint.getName());

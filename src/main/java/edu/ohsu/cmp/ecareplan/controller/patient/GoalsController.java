@@ -3,13 +3,17 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.GoalModel;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.ArrayList;
@@ -27,6 +31,9 @@ public class GoalsController extends BasePatientController {
             UserWorkspace workspace = userWorkspaceService.get(sessionId);
 
             setCommonViewComponents(sessionId, model);
+
+            model.addAttribute("pageScripts", new String[] { "progress.js" });
+            model.addAttribute("pageStyles", new String[] { "progress.css" });
 
             List<GoalModel> goalModels = workspace.getAllDataSetModels(DataSet.GOALS);
             model.addAttribute("personalHealthGoalModels", filterPersonalHealthGoals(goalModels));
@@ -62,5 +69,16 @@ public class GoalsController extends BasePatientController {
             }
         }
         return list;
+    }
+
+    @PostMapping("progress")
+    public ResponseEntity<List<IProgress>> getCurrentProgress(HttpSession session) {
+        if (userWorkspaceService.exists(session.getId())) {
+            List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.GOALS);
+            return new ResponseEntity<>(list, HttpStatus.OK);
+
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     }
 }

@@ -14,6 +14,8 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Assessments</h1>
     <div class="cardContainer">
         {{#assessmentModels}}
@@ -70,6 +72,10 @@
 </div>
 
 <script type="text/javascript">
+    function getProgressEndpoint() {
+        return "/patient/assessments/progress";
+    }
+
     function getChartOptions(measure) {
         return {
             responsive: true,

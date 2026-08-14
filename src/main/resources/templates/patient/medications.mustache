@@ -14,6 +14,8 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Medications</h1>
     <div class="cardContainer">
         {{#medicationModels}}
@@ -68,6 +70,9 @@
 </div>
 
 <script type="text/javascript">
+    function getProgressEndpoint() {
+        return "/patient/medications/progress";
+    }
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;

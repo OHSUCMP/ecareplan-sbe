@@ -6,7 +6,9 @@ import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
+import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
@@ -14,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,6 +24,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/patient")
@@ -71,8 +76,8 @@ public class PatientHomeController extends BasePatientController {
                 Endpoint endpoint = userEndpoint.getEndpoint();
                 if (endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
                     FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
-                    workspace.addEndpointWithCredentials(userEndpoint, credentials);
-                    workspace.populateEndpoint(userEndpoint.getEndpoint(), false);
+                    workspace.configureUserEndpointCredentials(userEndpoint, credentials);
+                    workspace.populateEndpoint(userEndpoint.getEndpoint());
                     auditService.doAudit(session.getId(), AuditSeverity.INFO, "endpoint connected", "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
                     return ResponseEntity.ok("handshake completed");
                 }
@@ -113,6 +118,28 @@ public class PatientHomeController extends BasePatientController {
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
             return "redirect:/patient/launch";
+        }
+    }
+
+    @PostMapping("progress")
+    public ResponseEntity<List<IProgress>> getCurrentProgress(HttpSession session) {
+        if (userWorkspaceService.exists(session.getId())) {
+            List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress();
+            return new ResponseEntity<>(list, HttpStatus.OK);
+
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @PostMapping("patient-models")
+    public ResponseEntity<List<PatientModel>> getPatientModels(HttpSession session) {
+        String sessionId = session.getId();
+        if (userWorkspaceService.exists(sessionId)) {
+            UserWorkspace workspace = userWorkspaceService.get(sessionId);
+            return ResponseEntity.ok(workspace.getAllDataSetModels(DataSet.PATIENT));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 }

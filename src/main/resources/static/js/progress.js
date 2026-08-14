@@ -38,13 +38,17 @@ function renderProgressData(progressData) {
     let html = '';
     $.each(progressData, function(i, item) {
         html += '<div class="progress">';
-        html += '<div>' + item.label + ': ' + item.message + ' (' + item.percentComplete + '%)</div>';
+        html += '<div>' + item.label + ': ' + item.message;
+        if (item.percentComplete) {
+            html += ' (' + item.percentComplete + '%)';
+        }
+        html += '</div>';
         if (item.errors && item.errors.length > 0) {
-            html += '<div>Errors:<ul>';
+            html += '<br/>Errors:<ul>';
             $.each(item.errors, function(j, error) {
                 html += '<li>' + error + '</li>';
-            })
-            html += '</ul></div>';
+            });
+            html += '</ul>';
         }
         html += '</div>';
     });
@@ -54,7 +58,7 @@ function renderProgressData(progressData) {
 function getCurrentProgress(_callback) {
     $.ajax({
         method: "POST",
-        url: "/current-progress"
+        url: getProgressEndpoint()
     }).done(function(progressData) {
         _callback(progressData);
     });

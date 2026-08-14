@@ -14,6 +14,8 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Health Goals</h1>
     <p>
         <input type="button" value="Add a New Goal" onclick="window.location.href='/patient/goals/add'" />
@@ -91,6 +93,9 @@
 </div>
 
 <script type="text/javascript">
+    function getProgressEndpoint() {
+        return "/patient/goals/progress";
+    }
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
