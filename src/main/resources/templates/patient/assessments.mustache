@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -72,8 +73,8 @@
 </div>
 
 <script type="text/javascript">
-    function getProgressEndpoint() {
-        return "/patient/assessments/progress";
+    function getBasePath() {
+        return "/patient/assessments";
     }
 
     function getChartOptions(measure) {

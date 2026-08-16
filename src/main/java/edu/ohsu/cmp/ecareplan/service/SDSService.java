@@ -65,6 +65,20 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         sessionIdProgressMap.clear();
     }
 
+    public void shutdown(String sessionId) {
+        logger.info("Shutting down SDS service operations for session {}", sessionId);
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            for (ShareProgressModel pm : sessionIdProgressMap.get(sessionId).values()) {
+                if ( ! pm.getFuture().isDone() && ! pm.getFuture().isCancelled() ) {
+                    logger.info("Cancelling future for endpoint={} dataSet={} for session {}", pm.getEndpoint().getIss(), pm.getDataSet(), sessionId);
+                    pm.getFuture().cancel(true);
+                }
+            }
+            sessionIdProgressMap.get(sessionId).clear();
+            sessionIdProgressMap.remove(sessionId);
+        }
+    }
+
     public List<IProgress> getCurrentProgress(String sessionId) {
         return sessionIdProgressMap.containsKey(sessionId) ?
                 new ArrayList<>(sessionIdProgressMap.get(sessionId).values()) :
@@ -103,12 +117,16 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         return null;
     }
 
-    public void clearCompletedProgress(String sessionId) {
+    public void resetEndpointProgress(String sessionId, Endpoint endpoint) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> pm.getStatus() == ProgressStatus.COMPLETED);
-            if (sessionIdProgressMap.get(sessionId).isEmpty()) {
-                sessionIdProgressMap.remove(sessionId);
-            }
+            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
+        }
+    }
+
+    public void resetAllProgress(String sessionId) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            sessionIdProgressMap.get(sessionId).clear();
+            sessionIdProgressMap.remove(sessionId);
         }
     }
 

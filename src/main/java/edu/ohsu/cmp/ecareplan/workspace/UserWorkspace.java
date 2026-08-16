@@ -18,8 +18,8 @@ import edu.ohsu.cmp.ecareplan.model.dataset.BaseDataSetModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
-import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.model.progress.EndpointReadProgressModel;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
@@ -31,9 +31,12 @@ import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.crypto.SecretKey;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
@@ -66,6 +69,8 @@ public class UserWorkspace {
     private Long currentlyLaunchingEndpointId = null;
 
     private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
+
+    private volatile SseEmitter emitter = null;
 
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
                             FHIRCredentials launchCredentials, Integer socketTimeout) {
@@ -197,9 +202,61 @@ public class UserWorkspace {
         }
     }
 
-    private synchronized void clearCompletedProgress() {
-        endpointReadProgressMap.values().removeIf(pm -> pm.getStatus() == ProgressStatus.COMPLETED);
-        sdsService.clearCompletedProgress(sessionId);
+    private synchronized void resetAllProgress() {
+        endpointReadProgressMap.clear();
+        sdsService.resetAllProgress(sessionId);
+    }
+
+    private synchronized void resetEndpointProgress(Endpoint endpoint) {
+        endpointReadProgressMap.values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
+        sdsService.resetEndpointProgress(sessionId, endpoint);
+    }
+
+    public synchronized SseEmitter createNewEmitter() {
+        if (this.emitter != null) {
+            try {
+                this.emitter.complete();
+            } catch (Exception e) {
+                // do nothing
+            }
+        }
+
+        SseEmitter newEmitter = new SseEmitter(600000L);
+        newEmitter.onCompletion(() -> clearEmitter(newEmitter));
+        newEmitter.onTimeout(() -> clearEmitter(newEmitter));
+        newEmitter.onError((ex) -> clearEmitter(newEmitter));
+
+        logger.debug("Created new emitter {} for session {}", newEmitter, sessionId);
+
+        this.emitter = newEmitter;
+        return this.emitter;
+    }
+
+    private synchronized void clearEmitter(SseEmitter emitterToRemove) {
+        // this function needs to take emitterToRemove as a parameter to ensure that an old emitter's event
+        // doesn't inadvertently affect the current emitter, if they're different
+        if (this.emitter == emitterToRemove) {
+            this.emitter = null;
+        }
+    }
+
+    private void sendNotification(String eventName, Map<String, String> payload) {
+        SseEmitter currentEmitter = this.emitter;
+        if (currentEmitter != null) {
+            try {
+                currentEmitter.send(SseEmitter.event().name(eventName).data(payload, MediaType.APPLICATION_JSON));
+            } catch (IOException e) {
+                logger.error("Error sending {} notification", eventName, e);
+                clearEmitter(currentEmitter);
+            }
+        }
+    }
+
+    private void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
+        sendNotification("dataset-update", Map.of(
+                "dataSet", dataSet.toString(),
+                "endpointId", endpoint.getId().toString()
+        ));
     }
 
     public String getSessionId() {
@@ -247,7 +304,7 @@ public class UserWorkspace {
     }
 
     public void populate() {
-        clearCompletedProgress();
+        resetAllProgress();
         for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
             populateEndpoint(ue.getEndpoint());
         }
@@ -267,7 +324,7 @@ public class UserWorkspace {
         }
         boolean loadFromEndpoint = uec != null;
 
-        clearCompletedProgress();
+        resetEndpointProgress(endpoint);
         endpointReadProgressMap.put(endpoint.getId(), new EndpointReadProgressModel(endpoint));
 
         Runnable runnable = new Runnable() {
@@ -301,6 +358,7 @@ public class UserWorkspace {
 
                         } finally {
                             updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
+                            notifyDataSetUpdated(dataSet, endpoint);
                         }
                     }
 
@@ -345,6 +403,9 @@ public class UserWorkspace {
     public void shutdown() {
         logger.info("shutting down workspace for session={}", sessionId);
         secretKey = null;
+        endpointReadProgressMap.clear();
+        sdsService.shutdown(sessionId);
+        emitter = null;
         ExecutorUtil.shutdownAndAwaitTermination(executorService, 60);
         clearCacheAndCredentials();
         shutdownJobs();

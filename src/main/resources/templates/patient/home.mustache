@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -26,11 +27,8 @@
     <div id="progressContainer" class="hidden"></div>
 
     <h2>Patient Records</h2>
-    <ol>
-        {{#patientModels}}
-        <li>{{name}} (age: {{age}}, gender: {{gender}})</li>
-        {{/patientModels}}
-    </ol>
+    <div id="modelsContainer">
+    </div>
 
     <h2>Add a Health Record Account</h2>
     <p>
@@ -52,8 +50,20 @@
 </div>
 
 <script type="text/javascript">
-    function getProgressEndpoint() {
-        return "/patient/progress";
+    function getBasePath() {
+        return "/patient";
+    }
+
+    function renderModels(models) {
+        let container = $('#modelsContainer');
+        if (models && models.length > 0) {
+            let html = '<ol>';
+            models.forEach(function(model) {
+                html += '<li>' + model.name + ' (age: ' + model.age + ', gender: ' + model.gender + ')</li>';
+            });
+            html += '</ol>';
+            container.html(html);
+        }
     }
 
     $(document).ready(function() {
@@ -61,7 +71,9 @@
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE();
     });
 </script>
 

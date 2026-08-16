@@ -15,8 +15,17 @@ function refreshProgress() {
     });
 }
 
+function getCurrentProgress(_callback) {
+    $.ajax({
+        method: "POST",
+        url: getBasePath() + '/progress'
+    }).done(function(progressData) {
+        _callback(progressData);
+    });
+}
+
 function isAnyProgressRunning(progressData) {
-    const runningStatuses = new Set(['INITIALIZING', 'RUNNING']);
+    const runningStatuses = new Set(['WAITING_TO_START', 'RUNNING']);
     return Array.isArray(progressData)
         && progressData.some(item => runningStatuses.has(item.status));
 }
@@ -55,12 +64,28 @@ function renderProgressData(progressData) {
     return html;
 }
 
-function getCurrentProgress(_callback) {
+function getDataSets() {
+    return $('#dataSets').html().split(',').map(s => s.trim());
+}
+
+function initializeSSE() {
+    const eventSource = new EventSource(getBasePath() + '/sse');
+
+    eventSource.addEventListener("dataset-update", function(event) {
+        const eventData = JSON.parse(event.data);
+        if (getDataSets().includes(eventData.dataSet)) {
+            console.log("dataset-update: dataSet=" + eventData.dataSet + ", endpointId=" + eventData.endpointId);
+            getUpdatedModels(renderModels);
+        }
+    });
+}
+
+function getUpdatedModels(_callback) {
     $.ajax({
         method: "POST",
-        url: getProgressEndpoint()
-    }).done(function(progressData) {
-        _callback(progressData);
+        url: getBasePath() + '/models'
+    }).done(function(updatedModels) {
+        _callback(updatedModels);
     });
 }
 

@@ -5,6 +5,7 @@ import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class DataSetReadProgressModel extends BaseProgressModel implements IProgress {
@@ -13,13 +14,14 @@ public class DataSetReadProgressModel extends BaseProgressModel implements IProg
     private final ProgressStatus status;
     private final List<String> errors;
 
-    public DataSetReadProgressModel(DataSet<?> dataSet, Endpoint endpoint, ProgressStatus status, List<String> errors) {
+    public DataSetReadProgressModel(DataSet<?> dataSet, Endpoint endpoint, ProgressStatus status, List<String> errors, Date lastUpdated) {
         this.dataSet = dataSet;
         this.endpoint = endpoint;
         this.status = status;
         this.errors = errors != null ?
                 new ArrayList<>(errors) :
                 new ArrayList<>();
+        this.lastUpdated = lastUpdated;
     }
 
     @Override

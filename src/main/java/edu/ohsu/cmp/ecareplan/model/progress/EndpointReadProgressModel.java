@@ -18,6 +18,11 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
             dataSetStatusMap.put(dataSet, ProgressStatus.WAITING_TO_START);
         }
         dataSetErrorsMap = new LinkedHashMap<>();
+        lastUpdated = new Date();
+    }
+
+    public Endpoint getEndpoint() {
+        return endpoint;
     }
 
     @Override
@@ -41,6 +46,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
 
     public void setStatus(DataSet<?> dataSet, ProgressStatus status) {
         dataSetStatusMap.put(dataSet, status);
+        lastUpdated = new Date();
     }
 
     @Override
@@ -87,9 +93,10 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
             dataSetErrorsMap.put(dataSet, new ArrayList<>());
         }
         dataSetErrorsMap.get(dataSet).add(error);
+        lastUpdated = new Date();
     }
 
     public DataSetReadProgressModel getDataSetReadProgressModel(DataSet<?> dataSet) {
-        return new DataSetReadProgressModel(dataSet, endpoint, getStatus(dataSet), getErrors(dataSet));
+        return new DataSetReadProgressModel(dataSet, endpoint, getStatus(dataSet), getErrors(dataSet), lastUpdated);
     }
 }

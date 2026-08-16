@@ -1,6 +1,10 @@
 package edu.ohsu.cmp.ecareplan.model.progress;
 
+import java.util.Date;
+
 public abstract class BaseProgressModel implements IProgress {
+    protected Date lastUpdated;
+
     @Override
     public Integer getPercentComplete() {
         if (getCurrent() == null || getTotal() == null) return null;
@@ -12,5 +16,10 @@ public abstract class BaseProgressModel implements IProgress {
                     getCurrent() :
                     Math.round(getCurrent() * 100 / (float) getTotal());
         }
+    }
+
+    @Override
+    public Date getLastUpdated() {
+        return lastUpdated;
     }
 }

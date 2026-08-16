@@ -8,12 +8,14 @@ import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -30,9 +32,10 @@ public class CareTeamController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "progress.js" });
-            model.addAttribute("pageStyles", new String[] { "progress.css" });
+            model.addAttribute("pageScripts", new String[] { "dataset.js" });
+            model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
+            model.addAttribute("dataSets", DataSet.CARE_TEAMS);
             model.addAttribute("careTeamModels", workspace.getAllDataSetModels(DataSet.CARE_TEAMS));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/care-team");
@@ -54,5 +57,12 @@ public class CareTeamController extends BasePatientController {
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getEmitter(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                userWorkspaceService.get(session.getId()).createNewEmitter() :
+                null;
     }
 }

@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -51,9 +52,10 @@
 </div>
 
 <script type="text/javascript">
-    function getProgressEndpoint() {
-        return "/patient/immunizations/progress";
+    function getBasePath() {
+        return "/patient/immunizations";
     }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;

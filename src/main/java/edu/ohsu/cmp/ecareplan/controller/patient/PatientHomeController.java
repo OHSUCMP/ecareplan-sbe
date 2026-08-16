@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -106,10 +108,11 @@ public class PatientHomeController extends BasePatientController {
 
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "progress.js" });
-            model.addAttribute("pageStyles", new String[] { "progress.css" });
+            model.addAttribute("pageScripts", new String[] { "dataset.js" });
+            model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
-            model.addAttribute("patientModels", workspace.getAllDataSetModels(DataSet.PATIENT));
+            model.addAttribute("dataSets", DataSet.PATIENT);
+//            model.addAttribute("patientModels", workspace.getAllDataSetModels(DataSet.PATIENT));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
 
@@ -132,7 +135,7 @@ public class PatientHomeController extends BasePatientController {
         }
     }
 
-    @PostMapping("patient-models")
+    @PostMapping("models")
     public ResponseEntity<List<PatientModel>> getPatientModels(HttpSession session) {
         String sessionId = session.getId();
         if (userWorkspaceService.exists(sessionId)) {
@@ -141,5 +144,12 @@ public class PatientHomeController extends BasePatientController {
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+    }
+
+    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getEmitter(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                userWorkspaceService.get(session.getId()).createNewEmitter() :
+                null;
     }
 }

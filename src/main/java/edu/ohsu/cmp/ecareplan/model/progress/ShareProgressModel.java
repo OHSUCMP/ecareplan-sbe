@@ -5,6 +5,7 @@ import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Future;
 
@@ -24,6 +25,7 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
         this.current = current;
         this.total = total;
         this.errors = new ArrayList<>();
+        this.lastUpdated = new Date();
     }
 
     public DataSet<?> getDataSet() {
@@ -61,6 +63,7 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
 
     public void setStatus(ProgressStatus status) {
         this.status = status;
+        lastUpdated = new Date();
     }
 
     @Override
@@ -70,6 +73,7 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
 
     public void setCurrent(Integer current) {
         this.current = current;
+        lastUpdated = new Date();
     }
 
     @Override
@@ -95,6 +99,7 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
 
     public void addError(String error) {
         errors.add(error);
+        lastUpdated = new Date();
     }
 
     public Future<Void> getFuture() {
