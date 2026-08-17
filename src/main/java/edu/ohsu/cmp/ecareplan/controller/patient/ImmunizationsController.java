@@ -47,13 +47,9 @@ public class ImmunizationsController extends BasePatientController {
 
     @PostMapping("progress")
     public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
-        if (userWorkspaceService.exists(session.getId())) {
-            List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.IMMUNIZATIONS);
-            return new ResponseEntity<>(list, HttpStatus.OK);
-
-        } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.IMMUNIZATIONS)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @PostMapping("models")
@@ -63,7 +59,7 @@ public class ImmunizationsController extends BasePatientController {
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getEmitter(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
                 userWorkspaceService.get(session.getId()).createNewEmitter() :

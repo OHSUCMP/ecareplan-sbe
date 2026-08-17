@@ -64,7 +64,7 @@ public class VitalsController extends BasePatientController {
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getEmitter(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
                 userWorkspaceService.get(session.getId()).createNewEmitter() :

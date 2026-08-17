@@ -58,10 +58,10 @@ public class AssessmentsController extends BasePatientController {
             List<IProgress> list = new ArrayList<>();
             list.addAll(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.QUESTIONNAIRE_RESPONSES));
             list.addAll(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.SURVEY_OBSERVATIONS));
-            return new ResponseEntity<>(list, HttpStatus.OK);
+            return ResponseEntity.ok(list);
 
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
