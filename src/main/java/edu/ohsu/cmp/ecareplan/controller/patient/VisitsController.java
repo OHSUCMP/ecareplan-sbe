@@ -3,7 +3,6 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.EncounterModel;
-import edu.ohsu.cmp.ecareplan.model.dataset.ServiceRequestModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -18,12 +17,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
 @RequestMapping("/patient/interactions")
-public class InteractionsController extends BasePatientController {
+public class VisitsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @GetMapping(value = {"", "/"})
@@ -37,9 +35,9 @@ public class InteractionsController extends BasePatientController {
 
             model.addAttribute("dataSets", DataSet.ENCOUNTERS + "," + DataSet.SERVICE_REQUESTS);
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/interactions");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/visits");
 
-            return "patient/interactions";
+            return "visits";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
@@ -49,32 +47,19 @@ public class InteractionsController extends BasePatientController {
 
     @PostMapping("progress")
     public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
-        if (userWorkspaceService.exists(session.getId())) {
-            List<IProgress> list = new ArrayList<>();
-            list.addAll(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.ENCOUNTERS));
-            list.addAll(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.SERVICE_REQUESTS));
-            return new ResponseEntity<>(list, HttpStatus.OK);
-
-        } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.ENCOUNTERS)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    @PostMapping("encounterModels")
-    public ResponseEntity<List<EncounterModel>> getEncounterModels(HttpSession session) {
+    @PostMapping("models")
+    public ResponseEntity<List<EncounterModel>> getModels(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
                 ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.ENCOUNTERS)) :
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    @PostMapping("serviceRequestModels")
-    public ResponseEntity<List<ServiceRequestModel>> getServiceRequestModels(HttpSession session) {
-        return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.SERVICE_REQUESTS)) :
-                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
-
-    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getEmitter(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
                 userWorkspaceService.get(session.getId()).createNewEmitter() :
