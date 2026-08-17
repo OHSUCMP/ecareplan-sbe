@@ -104,15 +104,12 @@ public class PatientHomeController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-
             setCommonViewComponents(sessionId, model);
 
             model.addAttribute("pageScripts", new String[] { "dataset.js" });
             model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
             model.addAttribute("dataSets", DataSet.PATIENT);
-//            model.addAttribute("patientModels", workspace.getAllDataSetModels(DataSet.PATIENT));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
 
@@ -125,7 +122,7 @@ public class PatientHomeController extends BasePatientController {
     }
 
     @PostMapping("progress")
-    public ResponseEntity<List<IProgress>> getCurrentProgress(HttpSession session) {
+    public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
         if (userWorkspaceService.exists(session.getId())) {
             List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress();
             return new ResponseEntity<>(list, HttpStatus.OK);
@@ -136,14 +133,10 @@ public class PatientHomeController extends BasePatientController {
     }
 
     @PostMapping("models")
-    public ResponseEntity<List<PatientModel>> getPatientModels(HttpSession session) {
-        String sessionId = session.getId();
-        if (userWorkspaceService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-            return ResponseEntity.ok(workspace.getAllDataSetModels(DataSet.PATIENT));
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    public ResponseEntity<List<PatientModel>> getModels(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.PATIENT)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

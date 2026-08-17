@@ -1,9 +1,9 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.CareTeamModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
-import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +28,12 @@ public class CareTeamController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-
             setCommonViewComponents(sessionId, model);
 
             model.addAttribute("pageScripts", new String[] { "dataset.js" });
             model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
             model.addAttribute("dataSets", DataSet.CARE_TEAMS);
-            model.addAttribute("careTeamModels", workspace.getAllDataSetModels(DataSet.CARE_TEAMS));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/care-team");
 
@@ -49,7 +46,7 @@ public class CareTeamController extends BasePatientController {
     }
 
     @PostMapping("progress")
-    public ResponseEntity<List<IProgress>> getCurrentProgress(HttpSession session) {
+    public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
         if (userWorkspaceService.exists(session.getId())) {
             List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.CARE_TEAMS);
             return new ResponseEntity<>(list, HttpStatus.OK);
@@ -57,6 +54,13 @@ public class CareTeamController extends BasePatientController {
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @PostMapping("models")
+    public ResponseEntity<List<CareTeamModel>> getModels(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.CARE_TEAMS)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

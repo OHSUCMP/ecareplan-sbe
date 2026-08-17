@@ -23,6 +23,10 @@
     </p>
 
     <h2>Personal Health Goals</h2>
+    <div id="personalHealthModelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#personalHealthGoalModels}}
             <div class="card">
@@ -59,6 +63,10 @@
     </div>
 
     <h2>Goals Affiliated with a Recent Hospitalization</h2>
+    <div id="hospitalizationModelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#hospitalizationGoalModels}}
             <div class="card">
@@ -98,12 +106,35 @@
         return "/patient/goals";
     }
 
+    function renderModels(models) {
+        let container = $('#modelsContainer');
+        if (models && models.length > 0) {
+            let cards = [];
+            let id = 1;
+            models.forEach(function(model) {
+                cards.push(renderCard('card_' + id, buildCardData(model)));
+                id ++;
+            });
+            container.html(cards.join('\n'));
+        }
+    }
+
+    function buildCardData(model) {
+        return {
+            title: model.description,
+            rows: [],
+            history: null
+        };
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE();
     });
 </script>
 

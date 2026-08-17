@@ -1,9 +1,10 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.Consolidated;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
+import edu.ohsu.cmp.ecareplan.model.dataset.LabResultModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
-import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +29,12 @@ public class LabResultsController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-
             setCommonViewComponents(sessionId, model);
 
             model.addAttribute("pageScripts", new String[] { "dataset.js" });
             model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
             model.addAttribute("dataSets", DataSet.LAB_RESULTS);
-            model.addAttribute("labResultModels", consolidate(workspace.getAllDataSetModels(DataSet.LAB_RESULTS)));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/lab-results");
 
@@ -49,7 +47,7 @@ public class LabResultsController extends BasePatientController {
     }
 
     @PostMapping("progress")
-    public ResponseEntity<List<IProgress>> getCurrentProgress(HttpSession session) {
+    public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
         if (userWorkspaceService.exists(session.getId())) {
             List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.LAB_RESULTS);
             return new ResponseEntity<>(list, HttpStatus.OK);
@@ -57,6 +55,13 @@ public class LabResultsController extends BasePatientController {
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @PostMapping("models")
+    public ResponseEntity<List<Consolidated<LabResultModel>>> getModels(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(consolidate(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.LAB_RESULTS))) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

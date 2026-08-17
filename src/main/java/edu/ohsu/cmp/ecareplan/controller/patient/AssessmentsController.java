@@ -3,6 +3,7 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
+import edu.ohsu.cmp.ecareplan.model.view.AssessmentModel;
 import edu.ohsu.cmp.ecareplan.service.AssessmentService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -40,7 +41,6 @@ public class AssessmentsController extends BasePatientController {
             model.addAttribute("pageStyles", new String[] { "dataset.css", "chart.css" });
 
             model.addAttribute("dataSets", DataSet.QUESTIONNAIRE_RESPONSES + "," + DataSet.SURVEY_OBSERVATIONS);
-            model.addAttribute("assessmentModels", assessmentService.getAssessmentModels(sessionId));
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/assessments");
 
@@ -53,7 +53,7 @@ public class AssessmentsController extends BasePatientController {
     }
 
     @PostMapping("progress")
-    public ResponseEntity<List<IProgress>> getCurrentProgress(HttpSession session) {
+    public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
         if (userWorkspaceService.exists(session.getId())) {
             List<IProgress> list = new ArrayList<>();
             list.addAll(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.QUESTIONNAIRE_RESPONSES));
@@ -63,6 +63,13 @@ public class AssessmentsController extends BasePatientController {
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @PostMapping("models")
+    public ResponseEntity<List<AssessmentModel>> getModels(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(assessmentService.getAssessmentModels(session.getId())) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

@@ -22,6 +22,10 @@
         <input type="button" value="Add a Health Concern" onclick="window.location.href='/patient/conditions/add'" />
     </p>
 
+    <div id="modelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#conditionModels}}
             <div class="card">
@@ -72,12 +76,35 @@
         return "/patient/conditions";
     }
 
+    function renderModels(models) {
+        let container = $('#modelsContainer');
+        if (models && models.length > 0) {
+            let cards = [];
+            let id = 1;
+            models.forEach(function(model) {
+                cards.push(renderCard('card_' + id, buildCardData(model)));
+                id ++;
+            });
+            container.html(cards.join('\n'));
+        }
+    }
+
+    function buildCardData(model) {
+        return {
+            title: model.name,
+            rows: [],
+            history: null
+        };
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE();
     });
 </script>
 

@@ -18,6 +18,10 @@
     <div id="progressContainer" class="hidden"></div>
 
     <h1>Assessments</h1>
+    <div id="modelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#assessmentModels}}
             <div class="card assessment-card" data-label="{{label}}">
@@ -75,6 +79,54 @@
 <script type="text/javascript">
     function getBasePath() {
         return "/patient/assessments";
+    }
+
+    function renderModels(models) {
+        let container = $('#modelsContainer');
+        if (models && models.length > 0) {
+            let cards = [];
+            let id = 1;
+            models.forEach(function(model) {
+                cards.push(renderCard('card_' + id, buildCardData(model)));
+                id ++;
+            });
+            container.html(cards.join('\n'));
+        }
+
+        renderCharts();
+    }
+
+    function buildCardData(model) {
+        return {
+            title: model.name,
+            rows: [],
+            history: buildHistoryData(model)
+        };
+    }
+
+    function buildHistoryData(model) {
+        if (model && model.responseSummaryList && model.responseSummaryList.length > 0) {
+            return [];
+        }
+        return null;
+    }
+
+    function renderCharts() {
+        $('.assessment-card').each(function() {
+            const card = $(this);
+            const responses = card.find('.chart-response').map(function() {
+                return {
+                    authored: $(this).attr('data-authored'),
+                    score: Number($(this).attr('data-score'))
+                };
+            }).get().reverse();
+
+            const canvas = card.find('.chart')[0];
+            createLineChart(
+                    Object.assign(getChartOptions(card.attr('data-label')), { canvas: canvas }),
+                    getChartData(responses)
+            );
+        });
     }
 
     function getChartOptions(measure) {
@@ -155,21 +207,9 @@
             return;
         }
 
-        $('.assessment-card').each(function() {
-            const card = $(this);
-            const responses = card.find('.chart-response').map(function() {
-                return {
-                    authored: $(this).attr('data-authored'),
-                    score: Number($(this).attr('data-score'))
-                };
-            }).get().reverse();
-
-            const canvas = card.find('.chart')[0];
-            createLineChart(
-                Object.assign(getChartOptions(card.attr('data-label')), { canvas: canvas }),
-                getChartData(responses)
-            );
-        });
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE();
     });
 </script>
 

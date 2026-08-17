@@ -255,7 +255,7 @@ public class UserWorkspace {
     private void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
         sendNotification("dataset-update", Map.of(
                 "dataSet", dataSet.toString(),
-                "endpointId", endpoint.getId().toString()
+                "endpoint", endpoint.getName()
         ));
     }
 

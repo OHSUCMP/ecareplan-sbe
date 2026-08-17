@@ -18,6 +18,10 @@
     <div id="progressContainer" class="hidden"></div>
 
     <h1>Lab Results</h1>
+    <div id="modelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#labResultModels}}
             <div class="card">
@@ -63,6 +67,35 @@
 <script type="text/javascript">
     function getBasePath() {
         return "/patient/lab-results";
+    }
+
+    function renderModels(models) {
+        let container = $('#modelsContainer');
+        if (models && models.length > 0) {
+            let cards = [];
+            let id = 1;
+            models.forEach(function(model) {
+                cards.push(renderCard('card_' + id, buildCardData(model)));
+                id ++;
+            });
+            container.html(cards.join('\n'));
+        }
+    }
+
+    function buildCardData(model) {
+        return {
+            title: model.mostRecentData.description,
+            rows: [],
+            history: buildHistoryData(model)
+        };
+    }
+
+    function buildHistoryData(model) {
+        if (model && model.historicalData && model.historicalData.length > 0) {
+            return [];
+        } else {
+            return null;
+        }
     }
 
     $(document).ready(function() {

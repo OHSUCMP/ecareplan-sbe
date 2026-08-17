@@ -18,6 +18,10 @@
     <div id="progressContainer" class="hidden"></div>
 
     <h1>Visits</h1>
+    <div id="encounterModelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#encounterModels}}
             <div class="card">
@@ -52,6 +56,10 @@
     </div>
 
     <h1>Upcoming Tests and Procedures</h1>
+    <div id="serviceRequestModelsContainer">
+        Loading...
+    </div>
+
     <div class="cardContainer">
         {{#serviceRequestModels}}
             <div class="card">
@@ -97,12 +105,35 @@
         return "/patient/interactions";
     }
 
+    function renderModels(models) {
+        let container = $('#modelsContainer');
+        if (models && models.length > 0) {
+            let cards = [];
+            let id = 1;
+            models.forEach(function(model) {
+                cards.push(renderCard('card_' + id, buildCardData(model)));
+                id ++;
+            });
+            container.html(cards.join('\n'));
+        }
+    }
+
+    function buildCardData(model) {
+        return {
+            title: model.description,
+            rows: [],
+            history: null
+        };
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE();
     });
 </script>
 
