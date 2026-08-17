@@ -20,8 +20,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 
 @Controller
-@RequestMapping("/patient/conditions")
-public class ConditionsController extends BasePatientController {
+@RequestMapping("/patient/health-concerns")
+public class HealthConcernsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @GetMapping(value = {"", "/"})
@@ -35,9 +35,9 @@ public class ConditionsController extends BasePatientController {
 
             model.addAttribute("dataSets", DataSet.CONDITIONS);
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/conditions");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/health-concerns");
 
-            return "patient/conditions";
+            return "patient/health-concerns";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
@@ -47,13 +47,9 @@ public class ConditionsController extends BasePatientController {
 
     @PostMapping("progress")
     public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
-        if (userWorkspaceService.exists(session.getId())) {
-            List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.CONDITIONS);
-            return new ResponseEntity<>(list, HttpStatus.OK);
-
-        } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.CONDITIONS)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @PostMapping("models")
@@ -63,7 +59,7 @@ public class ConditionsController extends BasePatientController {
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getEmitter(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
                 userWorkspaceService.get(session.getId()).createNewEmitter() :
