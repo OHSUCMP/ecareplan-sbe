@@ -21,45 +21,6 @@
     <div id="modelsContainer">
         Loading...
     </div>
-
-    <div class="cardContainer">
-        {{#careTeamModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {{#period}}
-                        <tr>
-                            <td colspan="2">Time Period: {{period}}</td>
-                        </tr>
-                    {{/period}}
-                    <tr>
-                        <td colspan="2">
-                            <table>
-                                <tbody>
-                                {{#participants}}
-                                    <tr>
-                                        <td>{{name}}</td>
-                                        <td>{{#role}}{{role}}{{/role}}</td>
-                                        <td>{{#period}}{{period}}{{/period}}</td>
-                                    </tr>
-                                {{/participants}}
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/careTeamModels}}
-    </div>
 </div>
 
 <script type="text/javascript">
@@ -68,11 +29,19 @@
     }
 
     function buildCardData(model) {
-        return {
-            title: model.description,
-            rows: [],
-            history: null
-        };
+        let card = {};
+        card.title = model.description;
+        card.rows = [];
+        if (model.period) {
+            card.rows.push(['Time Period: ' + model.period]);
+        }
+        if (model.participants) {
+            model.participants.forEach(function(participant) {
+                card.rows.push([participant.name, participant.role ?? null, participant.period ?? null]);
+            })
+        }
+        card.rows.push(['Source: ' + model.sourceEndpointName]);
+        return card;
     }
 
     $(document).ready(function() {
