@@ -9,7 +9,7 @@ function renderCard(id, card) {
         '<div class="row g-2 mb-3">' +
         renderCardRows(id, card.rows) +
         '</div>' + // row
-        renderCardHistory(id, history) +
+        renderCardHistory(id, card.history) +
         '</div>' + // card-body
         '</div>' + // card
         '</div>' + // col
@@ -129,14 +129,14 @@ function getDataSets() {
     return $('#dataSets').html().split(',').map(s => s.trim());
 }
 
-function initializeSSE() {
+function initializeSSE(_callback) {
     const eventSource = new EventSource(getBasePath() + '/sse');
 
     eventSource.addEventListener("dataset-update", function(event) {
         const eventData = JSON.parse(event.data);
         if (getDataSets().includes(eventData.dataSet)) {
             console.log("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint);
-            getUpdatedModels(renderModels);
+            getUpdatedModels(_callback);
         }
     });
 }
@@ -145,9 +145,21 @@ function getUpdatedModels(_callback) {
     $.ajax({
         method: "POST",
         url: getBasePath() + '/models'
-    }).done(function(updatedModels) {
-        _callback(updatedModels);
+    }).done(function(models) {
+        _callback(models);
     });
+}
+
+function renderModels(models) {
+    if (models && models.length > 0) {
+        let cards = [];
+        let id = 1;
+        models.forEach(function(model) {
+            cards.push(renderCard('card_' + id, buildCardData(model)));
+            id ++;
+        });
+        $('#modelsContainer').html(cards.join('\n'));
+    }
 }
 
 $(document).ready(function() {

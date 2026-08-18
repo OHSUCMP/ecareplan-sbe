@@ -55,26 +55,25 @@
         return "/patient";
     }
 
-    function renderModels(models) {
-        let container = $('#modelsContainer');
-        if (models && models.length > 0) {
-            let html = '<ol>';
-            models.forEach(function(model) {
-                html += '<li>' + model.name + ' (age: ' + model.age + ', gender: ' + model.gender + ')</li>';
-            });
-            html += '</ol>';
-            container.html(html);
-        }
-    }
-
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
+        let renderPatientModels = function(models) {
+            if (models && models.length > 0) {
+                let html = '<ol>';
+                models.forEach(function(model) {
+                    html += '<li>' + model.name + ' (age: ' + model.age + ', gender: ' + model.gender + ')</li>';
+                });
+                html += '</ol>';
+                $('#modelsContainer').html(html);
+            }
+        }
+
         // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderModels);
-        initializeSSE();
+        getUpdatedModels(renderPatientModels);
+        initializeSSE(renderPatientModels);
     });
 </script>
 
