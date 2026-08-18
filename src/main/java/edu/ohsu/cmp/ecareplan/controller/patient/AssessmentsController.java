@@ -67,9 +67,15 @@ public class AssessmentsController extends BasePatientController {
 
     @PostMapping("models")
     public ResponseEntity<List<AssessmentModel>> getModels(HttpSession session) {
-        return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(assessmentService.getAssessmentModels(session.getId())) :
-                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (userWorkspaceService.exists(session.getId())) {
+            List<AssessmentModel> list = assessmentService.getAssessmentModels(session.getId());
+            return ResponseEntity.ok(list);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+//        return userWorkspaceService.exists(session.getId()) ?
+//                ResponseEntity.ok(assessmentService.getAssessmentModels(session.getId())) :
+//                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

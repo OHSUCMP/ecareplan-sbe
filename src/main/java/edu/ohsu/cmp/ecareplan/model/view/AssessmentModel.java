@@ -1,8 +1,6 @@
 package edu.ohsu.cmp.ecareplan.model.view;
 
 import edu.ohsu.cmp.ecareplan.entity.Assessment;
-import org.hl7.fhir.r4.model.Questionnaire;
-import org.hl7.fhir.r4.model.QuestionnaireResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +18,6 @@ public class AssessmentModel {
     private final Boolean scored;
     private final String codeSystem;
     private final String code;
-    private final Questionnaire questionnaire;
     private final List<ResponseSummary> responseSummaryList;
 
     public AssessmentModel(Assessment assessment, List<ResponseSummary> responseSummaryList) {
@@ -32,12 +29,11 @@ public class AssessmentModel {
         this.scored = assessment.isScored();
         this.codeSystem = assessment.getCodeSystem();
         this.code = assessment.getCode();
-        this.questionnaire = assessment.getQuestionnaire();
 
         if (responseSummaryList != null) {
             for (ResponseSummary responseSummary : responseSummaryList) {
                 // verify that the response summary is for the same questionnaire as the assessment
-                if ( ! responseSummary.getQuestionnaireResponse().getQuestionnaire().equals(assessment.getQuestionnaire().getUrl()) ) {
+                if ( ! responseSummary.getQuestionnaire().equals(assessment.getQuestionnaire().getUrl()) ) {
                     throw new IllegalArgumentException("Response summary questionnaire does not match assessment questionnaire");
                 }
             }
@@ -79,16 +75,12 @@ public class AssessmentModel {
         return code;
     }
 
-    public Questionnaire getQuestionnaire() {
-        return questionnaire;
-    }
-
     public List<ResponseSummary> getResponseSummaryList() {
         return responseSummaryList;
     }
 
     public static final class ResponseSummary {
-        private final QuestionnaireResponse questionnaireResponse;
+        private final String questionnaire;
         private final Date authored;
         private final Number score;
         private final String interpretation;
@@ -96,17 +88,17 @@ public class AssessmentModel {
         private final String sourceEndpointName;
 
 
-        public ResponseSummary(QuestionnaireResponse questionnaireResponse, Number score, String interpretation, String sourceEndpointIss, String sourceEndpointName) {
-            this.questionnaireResponse = questionnaireResponse;
-            this.authored = questionnaireResponse.getAuthored();
+        public ResponseSummary(String questionnaire, Date authored, Number score, String interpretation, String sourceEndpointIss, String sourceEndpointName) {
+            this.questionnaire = questionnaire;
+            this.authored = authored;
             this.score = score;
             this.interpretation = interpretation;
             this.sourceEndpointIss = sourceEndpointIss;
             this.sourceEndpointName = sourceEndpointName;
         }
 
-        public QuestionnaireResponse getQuestionnaireResponse() {
-            return questionnaireResponse;
+        public String getQuestionnaire() {
+            return questionnaire;
         }
 
         public Date getAuthored() {

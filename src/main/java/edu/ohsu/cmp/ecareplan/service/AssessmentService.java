@@ -184,7 +184,9 @@ public class AssessmentService extends BaseService {
             try {
                 if (qr == null || !qr.hasAuthored()) continue;
                 Number score = extractResponseScore(questionnaire, qr, isScored);
-                list.add(new AssessmentModel.ResponseSummary(qr, score, interpretScore(questionnaire, score), sourceEndpointIss, sourceEndpointName));
+                list.add(new AssessmentModel.ResponseSummary(qr.getQuestionnaire(), qr.getAuthored(), score,
+                        interpretScore(questionnaire, score),
+                        sourceEndpointIss, sourceEndpointName));
             } catch (Exception e) {
                 logger.error("caught {} building response summary for QuestionnaireResponse {} - {}", e.getClass().getSimpleName(), qr.getId(), e.getMessage(), e);
             }
