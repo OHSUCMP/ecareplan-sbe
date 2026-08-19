@@ -23,6 +23,16 @@
     </div>
 </div>
 
+<style>
+    span.flag {
+        border: 1px solid black;
+        display: inline-block;
+        padding: 2px 4px 2px 4px;
+        border-radius: 4px;
+        margin: 2px;
+    }
+</style>
+
 <script type="text/javascript">
     function getBasePath() {
         return "/patient/medications";
@@ -32,17 +42,15 @@
         let card = {};
         card.title = model.conceptName;
         card.rows = [];
-        if (model.flags) {
+        if (model.flags && model.flags.length > 0) {
             card.rows.push([ 'Flags: ' + renderFlags(model.flags) ]);
         }
-        card.rows.push([ model.expressedBy ?? '(Unknown)', (model.startDate ? 'Start: ' + model.startDate : '') ]);
-        if (model.consolidatedStatus) {
-            model.consolidatedStatus.forEach(function(status) {
-                card.rows.push([ 'Status: ' + status ]);
-            });
+        if (model.category || model.status) {
+            card.rows.push([ (model.category ? 'Category: ' + model.category : ''), (model.status ? 'Status: ' + model.status : '') ]);
         }
-        card.rows.push([ 'Category: ' + model.category, 'Status: ' + model.status ]);
-        card.rows.push([ 'Ordered On: ' + model.authoredOn, 'By: ' + model.requester ]);
+        if (model.authoredOn || model.requester) {
+            card.rows.push([ (model.authoredOn ? 'Ordered On: ' + model.authoredOn : ''), (model.requester ? 'By: ' + model.requester : '') ]);
+        }
         if (model.dosageInstructions) {
             model.dosageInstructions.forEach(function(dosageInstruction) {
                 card.rows.push([ dosageInstruction ]);
@@ -65,7 +73,7 @@
     function renderFlags(flags) {
         if (!flags || flags.length === 0) return '';
         return flags.map(function(flag) {
-            return '<div class="flag" style="background-color: ' + flag.backgroundColor + '; color: ' + flag.textColor + '; border: 1px solid black;">' + flag.label + '</div>';
+            return '<span class="flag" style="background-color: ' + flag.backgroundColor + '; color: ' + flag.textColor + ';">' + flag.label + '</span>';
         }).join(' ');
     }
 

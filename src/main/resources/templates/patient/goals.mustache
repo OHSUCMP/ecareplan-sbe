@@ -36,7 +36,9 @@
         let card = {};
         card.title = model.description ?? '(No Description)';
         card.rows = [];
-        card.rows.push([ model.expressedBy ?? '(Unknown)', (model.startDate ? 'Start: ' + model.startDate : '') ]);
+        if (model.expressedBy || model.startDate) {
+            card.rows.push([ (model.expressedBy ? 'Expressed by: ' + model.expressedBy : ''), (model.startDate ? 'Start: ' + model.startDate : '') ]);
+        }
         if (model.consolidatedStatus) {
             card.rows.push([ 'Status: ' + model.consolidatedStatus ]);
         }
