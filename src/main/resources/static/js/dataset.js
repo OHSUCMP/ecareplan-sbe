@@ -3,17 +3,12 @@ function renderCard(id, card) {
         '<div class="col">' +
         '<div class="card h-100 shadow-sm">' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">' +
-        '<h3 class="card-title mb-0">' + card.title +
-
-        // todo : if it exists, card.learnMoreUrl should appear in the same header bar as card.title, but
-        //        right-aligned, and in smaller text.  it should be a hyperlink with the text "Learn More" that directs
-        //        to the specified URL
-
-        '</h3>' +
+        '<h3 class="card-title mb-0">' + card.title + '</h3>' +
         '</div>' + // card-header
         '<div class="card-body">' +
-        (typeof renderCardChartContainer === 'function' ? renderCardChartContainer(id, card.chart) : '') +
+        '<div class="row g-2 mb-3">' +
         renderCardRows(id, card.rows) +
+        '</div>' + // row
         renderCardHistory(id, card.history) +
         '</div>' + // card-body
         '</div>' + // card
@@ -24,9 +19,9 @@ function renderCard(id, card) {
 function renderCardRows(baseId, rows) {
     if (!rows || rows.length === 0) return '';
 
-    let html = '<div class="row g-2 mb-3">';
+    let html = '';
 
-    rows.forEach(function (row, rowIndex) {
+    rows.forEach(function(row, rowIndex) {
         if (!row || row.length === 0) return;
 
         html += '<div class="col-12" id="' + baseId + '-row-' + rowIndex + '">';
@@ -43,8 +38,6 @@ function renderCardRows(baseId, rows) {
         html += '</div>';
         html += '</div>';
     });
-
-    html += '</div>'; // row
 
     return html;
 }
@@ -225,10 +218,6 @@ function renderModels(models) {
             id ++;
         });
         $('#modelsContainer').html(cards.join('\n'));
-    }
-
-    if (typeof renderCharts === 'function') {
-        renderCharts();
     }
 }
 
