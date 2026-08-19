@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -14,66 +15,76 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Medications</h1>
-    <div class="cardContainer">
-        {{#medicationModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{conceptName}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td colspan="2">
-                            {{#flags}}
-                                <div class="flag" style="background-color: {{backgroundColor}}; color: {{textColor}}; border: 1px solid black;">
-                                    {{label}}
-                                </div>
-                            {{/flags}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{{#category}}Category: {{category}}{{/category}}</td>
-                        <td>Status: {{status}}</td>
-                    </tr>
-                    <tr>
-                        <td>Ordered On: {{#authoredOn}}{{authoredOn}}{{/authoredOn}}</td>
-                        <td>By: {{#requester}}{{requester}}{{/requester}}</td>
-                    </tr>
-                    {{#dosageInstructions}}
-                        <tr>
-                            <td colspan="2">{{dosageInstruction}}</td>
-                        </tr>
-                    {{/dosageInstructions}}
-                    {{#reasons}}
-                        <tr>
-                            <td colspan="2">Reason: {{.}}</td>
-                        </tr>
-                    {{/reasons}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Note: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/medicationModels}}
+    <div id="modelsContainer">
+        Loading...
     </div>
 </div>
 
+<style>
+    span.flag {
+        border: 1px solid black;
+        display: inline-block;
+        padding: 2px 4px 2px 4px;
+        border-radius: 4px;
+        margin: 2px;
+    }
+</style>
+
 <script type="text/javascript">
+    function getBasePath() {
+        return "/patient/medications";
+    }
+
+    function buildCardData(model) {
+        let card = {};
+        card.title = model.conceptName;
+        card.rows = [];
+        if (model.flags && model.flags.length > 0) {
+            card.rows.push([ 'Flags: ' + renderFlags(model.flags) ]);
+        }
+        if (model.category || model.status) {
+            card.rows.push([ (model.category ? 'Category: ' + model.category : ''), (model.status ? 'Status: ' + model.status : '') ]);
+        }
+        if (model.authoredOn || model.requester) {
+            card.rows.push([ (model.authoredOn ? 'Ordered On: ' + model.authoredOn : ''), (model.requester ? 'By: ' + model.requester : '') ]);
+        }
+        if (model.dosageInstructions) {
+            model.dosageInstructions.forEach(function(dosageInstruction) {
+                card.rows.push([ dosageInstruction ]);
+            });
+        }
+        if (model.reasons) {
+            model.reasons.forEach(function(reason) {
+                card.rows.push([ 'Reason: ' + reason ]);
+            });
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
+    }
+
+    function renderFlags(flags) {
+        if (!flags || flags.length === 0) return '';
+        return flags.map(function(flag) {
+            return '<span class="flag" style="background-color: ' + flag.backgroundColor + '; color: ' + flag.textColor + ';">' + flag.label + '</span>';
+        }).join(' ');
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE(renderModels);
     });
 </script>
 

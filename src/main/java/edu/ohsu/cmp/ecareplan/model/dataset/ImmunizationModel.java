@@ -35,4 +35,20 @@ public class ImmunizationModel extends BaseDataSetModel<Immunization> {
     public Immunization toResourceForSDSExport() {
         return sourceResource;
     }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Date getEffectiveDate() {
+        return effectiveDate;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public List<String> getNotes() {
+        return notes;
+    }
 }

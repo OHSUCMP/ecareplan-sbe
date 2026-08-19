@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.ohsu.cmp.ecareplan.entity.MedicationFlag;
 import edu.ohsu.cmp.ecareplan.util.CodeSystemUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
@@ -8,7 +9,10 @@ import org.hl7.fhir.r4.model.*;
 import java.util.*;
 
 public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
+    @JsonIgnore
     private final Medication sourceMedication;
+
+    @JsonIgnore
     private final Practitioner sourceRequester;
 
     private final String category;
@@ -112,6 +116,7 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         return sourceResource;
     }
 
+    @JsonIgnore
     public List<Coding> getCodings() {
         return getCodings(null);
     }

@@ -6,7 +6,9 @@ import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
+import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
@@ -14,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,6 +25,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/patient")
@@ -71,8 +78,8 @@ public class PatientHomeController extends BasePatientController {
                 Endpoint endpoint = userEndpoint.getEndpoint();
                 if (endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
                     FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
-                    workspace.addEndpointWithCredentials(userEndpoint, credentials);
-                    workspace.populateEndpoint(userEndpoint.getEndpoint(), false);
+                    workspace.configureUserEndpointCredentials(userEndpoint, credentials);
+                    workspace.populateEndpoint(userEndpoint.getEndpoint());
                     auditService.doAudit(session.getId(), AuditSeverity.INFO, "endpoint connected", "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
                     return ResponseEntity.ok("handshake completed");
                 }
@@ -97,14 +104,12 @@ public class PatientHomeController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "progress.js" });
-            model.addAttribute("pageStyles", new String[] { "progress.css" });
+            model.addAttribute("pageScripts", new String[] { "dataset.js" });
+            model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
-            model.addAttribute("patientModels", workspace.getAllDataSetModels(DataSet.PATIENT));
+            model.addAttribute("dataSets", DataSet.PATIENT);
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
 
@@ -114,5 +119,30 @@ public class PatientHomeController extends BasePatientController {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
             return "redirect:/patient/launch";
         }
+    }
+
+    @PostMapping("progress")
+    public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
+        if (userWorkspaceService.exists(session.getId())) {
+            List<IProgress> list = userWorkspaceService.get(session.getId()).getCurrentProgress();
+            return new ResponseEntity<>(list, HttpStatus.OK);
+
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @PostMapping("models")
+    public ResponseEntity<List<PatientModel>> getModels(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.PATIENT)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getEmitter(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                userWorkspaceService.get(session.getId()).createNewEmitter() :
+                null;
     }
 }

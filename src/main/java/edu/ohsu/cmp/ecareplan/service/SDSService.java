@@ -5,11 +5,12 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
-import edu.ohsu.cmp.ecareplan.model.ProgressModel;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
+import edu.ohsu.cmp.ecareplan.model.progress.ShareProgressModel;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
 import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
@@ -24,8 +25,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class SDSService extends BaseService implements IDataSetBuilder {
@@ -50,7 +53,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     private MedicationFlagService medicationFlagService;
 
     private final ExecutorService executorService;
-    private final Map<String, Map<String, ProgressModel>> sessionIdProgressMap;
+    private final Map<String, Map<String, ShareProgressModel>> sessionIdProgressMap;
 
     public SDSService() {
         executorService = Executors.newFixedThreadPool(POOL_SIZE);
@@ -62,41 +65,91 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         sessionIdProgressMap.clear();
     }
 
-    public List<ProgressModel> getCurrentProgress(String sessionId) {
+    public void shutdown(String sessionId) {
+        logger.info("Shutting down SDS service operations for session {}", sessionId);
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            for (ShareProgressModel pm : sessionIdProgressMap.get(sessionId).values()) {
+                if ( ! pm.getFuture().isDone() && ! pm.getFuture().isCancelled() ) {
+                    logger.info("Cancelling future for endpoint={} dataSet={} for session {}", pm.getEndpoint().getIss(), pm.getDataSet(), sessionId);
+                    pm.getFuture().cancel(true);
+                }
+            }
+            sessionIdProgressMap.get(sessionId).clear();
+            sessionIdProgressMap.remove(sessionId);
+        }
+    }
+
+    public List<IProgress> getCurrentProgress(String sessionId) {
         return sessionIdProgressMap.containsKey(sessionId) ?
                 new ArrayList<>(sessionIdProgressMap.get(sessionId).values()) :
                 null;
     }
 
-    public void clearCompletedProgress(String sessionId) {
+    public List<IProgress> getCurrentProgress(String sessionId, DataSet<?> dataSet) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            Iterator<ProgressModel> iter = sessionIdProgressMap.get(sessionId).values().iterator();
-            while (iter.hasNext()) {
-                ProgressModel pm = iter.next();
-                if (pm.getStatus() == ProgressStatus.COMPLETED) {
-                    iter.remove();
+            List<IProgress> list = null;
+            for (ShareProgressModel pm : sessionIdProgressMap.get(sessionId).values()) {
+                if (pm.getDataSet().equals(dataSet)) {
+                    if (list == null) {
+                        list = new ArrayList<>();
+                    }
+                    list.add(pm);
                 }
             }
-            if (sessionIdProgressMap.get(sessionId).isEmpty()) {
-                sessionIdProgressMap.remove(sessionId);
+            return list;
+        }
+        return null;
+    }
+
+    public List<IProgress> getCurrentProgress(String sessionId, Endpoint endpoint) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            List<IProgress> list = null;
+            for (ShareProgressModel pm : sessionIdProgressMap.get(sessionId).values()) {
+                if (pm.getEndpoint().getId().equals(endpoint.getId())) {
+                    if (list == null) {
+                        list = new ArrayList<>();
+                    }
+                    list.add(pm);
+                }
             }
+            return list;
+        }
+        return null;
+    }
+
+    public void resetEndpointProgress(String sessionId, Endpoint endpoint) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
         }
     }
 
-    public void shareToSDS(String sessionId, DataSet<?> dataSet, Endpoint endpoint) {
+    public void resetAllProgress(String sessionId) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            sessionIdProgressMap.get(sessionId).clear();
+            sessionIdProgressMap.remove(sessionId);
+        }
+    }
+
+    private String buildKey(DataSet<?> dataSet, Endpoint endpoint) {
+        return dataSet.getName() + "|" + endpoint.getIss();
+    }
+
+    public Future<Void> shareToSDS(String sessionId, DataSet<?> dataSet, Endpoint endpoint) {
         if ( ! sessionIdProgressMap.containsKey(sessionId) ) {
             sessionIdProgressMap.put(sessionId, Collections.synchronizedMap(new LinkedHashMap<>()));
         }
 
-        if (sessionIdProgressMap.get(sessionId).containsKey(dataSet.getName())) {
-            ProgressModel progress = sessionIdProgressMap.get(sessionId).get(dataSet.getName());
+        String key = buildKey(dataSet, endpoint);
+
+        if (sessionIdProgressMap.get(sessionId).containsKey(key)) {
+            ShareProgressModel progress = sessionIdProgressMap.get(sessionId).get(key);
             switch (progress.getStatus()) {
-                case INITIALIZING:
+                case WAITING_TO_START:
                 case RUNNING:
-                    logger.warn("Sharing of {} for session={} is already in progress", dataSet.getName(), sessionId);
-                    return;
+                    logger.warn("Sharing of {} from {} for session={} is already in progress", dataSet.getName(), endpoint.getName(), sessionId);
+                    return progress.getFuture();
                 case COMPLETED:
-                    sessionIdProgressMap.get(sessionId).remove(dataSet.getName());
+                    sessionIdProgressMap.get(sessionId).remove(key);
             }
         }
 
@@ -105,30 +158,23 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
         List<? extends BaseDataSetModel<?>> list = workspace.getCachedDataSetModelsForEndpoint(dataSet, endpoint);
 
-        ProgressStatus status;
-        String message;
-        if (list.isEmpty()) {
-            status = ProgressStatus.COMPLETED;
-            message = "No data to share.";
-        } else {
-            status = ProgressStatus.INITIALIZING;
-            message = "Initializing...";
-        }
+        ProgressStatus status = list.isEmpty() ?
+                ProgressStatus.COMPLETED :
+                ProgressStatus.WAITING_TO_START;
 
-        final ProgressModel progress = new ProgressModel("Sharing " + dataSet.getName() + " resources to SDS", status, message, 0, list.size());;
+        final ShareProgressModel progress = new ShareProgressModel(dataSet, endpoint, status, 0, list.size());
 
-        sessionIdProgressMap.get(sessionId).put(dataSet.getName(), progress);
+        sessionIdProgressMap.get(sessionId).put(key, progress);
 
         if (ProgressStatus.COMPLETED.equals(progress.getStatus())) {
-            return;
+            return null;
         }
 
-        Runnable shareRunnable = new Runnable() {
+        Callable<Void> callable = new Callable<Void>() {
             @Override
-            public void run() {
-                if (ProgressStatus.INITIALIZING.equals(progress.getStatus())) {
+            public Void call() {
+                if (ProgressStatus.WAITING_TO_START.equals(progress.getStatus())) {
                     progress.setStatus(ProgressStatus.RUNNING);
-                    progress.setMessage("Processing...");
                 }
 
                 final int maxAttempts = 10;
@@ -181,27 +227,29 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                         logger.debug(e.getMessage(), e);
 
                     } finally {
-                        if (progress.getCurrent() < progress.getMax()) {
-                            progress.incrementCurrent();
+                        if (progress.getCurrent() < progress.getTotal()) {
+                            progress.setCurrent(progress.getCurrent() + 1);
                         }
 
-                        if (progress.getCurrent().equals(progress.getMax())) {
+                        if (progress.getCurrent().equals(progress.getTotal())) {
                             progress.setStatus(ProgressStatus.COMPLETED);
-                            progress.setMessage("Sharing complete.");
                         }
                     }
                 }
 
-                if ( ! progress.getCurrent().equals(progress.getMax()) ) {
+                if ( ! progress.getCurrent().equals(progress.getTotal()) ) {
                     logger.warn("somehow got through all list items for " + dataSet.getName() +
                             " from " + endpoint.getName() + ", but progress current != max?  that's weird.  investigate?");
                     progress.setStatus(ProgressStatus.COMPLETED);
-                    progress.setMessage("Sharing complete.");
                 }
+
+                return null;
             }
         };
 
-        executorService.submit(shareRunnable);
+        Future<Void> future = executorService.submit(callable);
+        progress.setFuture(future);
+        return future;
     }
 
     @Override

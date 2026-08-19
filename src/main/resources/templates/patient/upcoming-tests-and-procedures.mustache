@@ -17,7 +17,7 @@
 
     <div id="progressContainer" class="hidden"></div>
 
-    <h1>Immunizations</h1>
+    <h1>Upcoming Tests and Procedures</h1>
     <div id="modelsContainer">
         Loading...
     </div>
@@ -25,16 +25,23 @@
 
 <script type="text/javascript">
     function getBasePath() {
-        return "/patient/immunizations";
+        return "/patient/upcoming-tests-and-procedures";
     }
 
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';
         card.rows = [];
-        card.rows.push([ 'Administered on: ' + (model.effectiveDate ?? '(Unknown)') ]);
-        if (model.location) {
-            card.rows.push([ 'Location: ' + model.location ]);
+        if (model.requester) {
+            card.rows.push([ 'Requested by: ' + model.requester ]);
+        }
+        if (model.authoredOn) {
+            card.rows.push([ 'Ordered on: ' + model.authoredOn ]);
+        }
+        if (model.reasons) {
+            model.reasons.forEach(function(reason) {
+                card.rows.push([ 'Reason: ' + reason ]);
+            });
         }
         if (model.notes) {
             model.notes.forEach(function(note) {

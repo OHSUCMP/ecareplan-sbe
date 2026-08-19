@@ -55,7 +55,6 @@ public class AssessmentService extends BaseService {
 
         List<AssessmentModel> list = new ArrayList<>();
 
-
         for (Assessment assessment : assessmentRepository.findByActiveTrue()) {
             List<AssessmentModel.ResponseSummary> responseList = new ArrayList<>();
 

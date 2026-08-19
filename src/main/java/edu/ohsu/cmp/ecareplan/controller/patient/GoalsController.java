@@ -3,14 +3,19 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.GoalModel;
-import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,13 +29,12 @@ public class GoalsController extends BasePatientController {
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
-            UserWorkspace workspace = userWorkspaceService.get(sessionId);
-
             setCommonViewComponents(sessionId, model);
 
-            List<GoalModel> goalModels = workspace.getAllDataSetModels(DataSet.GOALS);
-            model.addAttribute("personalHealthGoalModels", filterPersonalHealthGoals(goalModels));
-            model.addAttribute("hospitalizationGoalModels", filterHospitalizationGoals(goalModels));
+            model.addAttribute("pageScripts", new String[] { "dataset.js" });
+            model.addAttribute("pageStyles", new String[] { "dataset.css" });
+
+            model.addAttribute("dataSets", DataSet.GOALS);
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/goals");
 
@@ -62,5 +66,26 @@ public class GoalsController extends BasePatientController {
             }
         }
         return list;
+    }
+
+    @PostMapping("progress")
+    public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.GOALS)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @PostMapping("models")
+    public ResponseEntity<List<GoalModel>> getModels(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.GOALS)) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @GetMapping(value = "sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getEmitter(HttpSession session) {
+        return userWorkspaceService.exists(session.getId()) ?
+                userWorkspaceService.get(session.getId()).createNewEmitter() :
+                null;
     }
 }

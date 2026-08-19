@@ -1,8 +1,8 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.dataset.ConditionModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
-import edu.ohsu.cmp.ecareplan.model.dataset.MedicationModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -20,8 +20,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 
 @Controller
-@RequestMapping("/patient/medications")
-public class MedicationsController extends BasePatientController {
+@RequestMapping("/patient/health-concerns")
+public class HealthConcernsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @GetMapping(value = {"", "/"})
@@ -33,11 +33,11 @@ public class MedicationsController extends BasePatientController {
             model.addAttribute("pageScripts", new String[] { "dataset.js" });
             model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
-            model.addAttribute("dataSets", DataSet.MEDICATIONS);
+            model.addAttribute("dataSets", DataSet.CONDITIONS);
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/medications");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/health-concerns");
 
-            return "patient/medications";
+            return "patient/health-concerns";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
@@ -48,14 +48,14 @@ public class MedicationsController extends BasePatientController {
     @PostMapping("progress")
     public ResponseEntity<List<IProgress>> getProgress(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.MEDICATIONS)) :
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getCurrentProgress(DataSet.CONDITIONS)) :
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @PostMapping("models")
-    public ResponseEntity<List<MedicationModel>> getModels(HttpSession session) {
+    public ResponseEntity<List<ConditionModel>> getModels(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.MEDICATIONS)) :
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.CONDITIONS)) :
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 

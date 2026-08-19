@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.model.view;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.ohsu.cmp.ecareplan.entity.Assessment;
 import org.hl7.fhir.r4.model.Questionnaire;
 import org.hl7.fhir.r4.model.QuestionnaireResponse;
@@ -20,7 +21,10 @@ public class AssessmentModel {
     private final Boolean scored;
     private final String codeSystem;
     private final String code;
+
+    @JsonIgnore
     private final Questionnaire questionnaire;
+
     private final List<ResponseSummary> responseSummaryList;
 
     public AssessmentModel(Assessment assessment, List<ResponseSummary> responseSummaryList) {
@@ -88,7 +92,9 @@ public class AssessmentModel {
     }
 
     public static final class ResponseSummary {
+        @JsonIgnore
         private final QuestionnaireResponse questionnaireResponse;
+
         private final Date authored;
         private final Number score;
         private final String interpretation;

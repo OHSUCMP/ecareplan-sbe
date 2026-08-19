@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -14,54 +15,43 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Care Team</h1>
-    <div class="cardContainer">
-        {{#careTeamModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {{#period}}
-                        <tr>
-                            <td colspan="2">Time Period: {{period}}</td>
-                        </tr>
-                    {{/period}}
-                    <tr>
-                        <td colspan="2">
-                            <table>
-                                <tbody>
-                                {{#participants}}
-                                    <tr>
-                                        <td>{{name}}</td>
-                                        <td>{{#role}}{{role}}{{/role}}</td>
-                                        <td>{{#period}}{{period}}{{/period}}</td>
-                                    </tr>
-                                {{/participants}}
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/careTeamModels}}
+    <div id="modelsContainer">
+        Loading...
     </div>
 </div>
 
 <script type="text/javascript">
+    function getBasePath() {
+        return "/patient/care-team";
+    }
+
+    function buildCardData(model) {
+        let card = {};
+        card.title = model.description;
+        card.rows = [];
+        if (model.period) {
+            card.rows.push(['Time Period: ' + model.period]);
+        }
+        if (model.participants) {
+            model.participants.forEach(function(participant) {
+                card.rows.push([participant.name, participant.role ?? null, participant.period ?? null]);
+            });
+        }
+        card.rows.push(['Source: ' + model.sourceEndpointName]);
+        return card;
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE(renderModels);
     });
 </script>
 

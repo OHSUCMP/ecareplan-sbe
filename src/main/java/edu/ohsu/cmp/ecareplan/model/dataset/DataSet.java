@@ -68,6 +68,11 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
         this.priority = priority;
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
+
     public String getName() {
         return name;
     }

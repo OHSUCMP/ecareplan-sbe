@@ -1,7 +1,7 @@
 package edu.ohsu.cmp.ecareplan.model;
 
 public enum ProgressStatus {
-    INITIALIZING,
+    WAITING_TO_START,
     RUNNING,
     COMPLETED
 }

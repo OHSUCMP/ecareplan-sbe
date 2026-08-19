@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -14,89 +15,50 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Health Goals</h1>
     <p>
         <input type="button" value="Add a New Goal" onclick="window.location.href='/patient/goals/add'" />
     </p>
 
-    <h2>Personal Health Goals</h2>
-    <div class="cardContainer">
-        {{#personalHealthGoalModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>{{#expressedBy}}{{expressedBy}}{{/expressedBy}}</td>
-                        {{#startDate}}
-                            <td>Start: {{startDate}}</td>
-                        {{/startDate}}
-                    </tr>
-                    {{#consolidatedStatus}}
-                        <tr>
-                            <td colspan="2">Status: {{consolidatedStatus}}</td>
-                        </tr>
-                    {{/consolidatedStatus}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Note: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/personalHealthGoalModels}}
-    </div>
-
-    <h2>Goals Affiliated with a Recent Hospitalization</h2>
-    <div class="cardContainer">
-        {{#hospitalizationGoalModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{#description}}{{description}}{{/description}}{{^description}}(No Description){{/description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>{{#expressedBy}}{{expressedBy}}{{/expressedBy}}</td>
-                        <td>{{#startDate}}Start: {{startDate}}{{/startDate}}</td>
-                    </tr>
-                    {{#consolidatedStatus}}
-                        <tr>
-                            <td colspan="2">Status: {{consolidatedStatus}}</td>
-                        </tr>
-                    {{/consolidatedStatus}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Note: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/hospitalizationGoalModels}}
+    <div id="modelsContainer">
+        Loading...
     </div>
 </div>
 
 <script type="text/javascript">
+    function getBasePath() {
+        return "/patient/goals";
+    }
+
+    function buildCardData(model) {
+        let card = {};
+        card.title = model.description ?? '(No Description)';
+        card.rows = [];
+        if (model.expressedBy || model.startDate) {
+            card.rows.push([ (model.expressedBy ? 'Expressed by: ' + model.expressedBy : ''), (model.startDate ? 'Start: ' + model.startDate : '') ]);
+        }
+        if (model.consolidatedStatus) {
+            card.rows.push([ 'Status: ' + model.consolidatedStatus ]);
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE(renderModels);
     });
 </script>
 

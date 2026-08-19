@@ -18,6 +18,8 @@ import edu.ohsu.cmp.ecareplan.model.dataset.BaseDataSetModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.progress.EndpointReadProgressModel;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
@@ -29,15 +31,16 @@ import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.crypto.SecretKey;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class UserWorkspace {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -52,7 +55,6 @@ public class UserWorkspace {
     private final Long userId;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
-    private final Map<Long, Endpoint> sdsEndpointMap;
     private final Map<Long, String> endpointPatientIdMap;
     private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
 
@@ -66,7 +68,9 @@ public class UserWorkspace {
 
     private Long currentlyLaunchingEndpointId = null;
 
-    private volatile Map<Long, ProgressModel> endpointIdProgressMap = null;
+    private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
+
+    private volatile SseEmitter emitter = null;
 
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
                             FHIRCredentials launchCredentials, Integer socketTimeout) {
@@ -102,14 +106,13 @@ public class UserWorkspace {
         }
 
         userEndpointCredentialsMap = new LinkedHashMap<>();
-        sdsEndpointMap = new LinkedHashMap<>();
+        endpointPatientIdMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
         UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
-        addEndpointWithCredentials(launchUserEndpoint, launchCredentials);
+        configureUserEndpointCredentials(launchUserEndpoint, launchCredentials);
 
-        endpointPatientIdMap = new LinkedHashMap<>();
-        endpointPatientIdMap.put(launcherEndpoint.getId(), launchCredentials.getPatientId());
+        endpointReadProgressMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
         cache = Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)
@@ -166,57 +169,94 @@ public class UserWorkspace {
         }
     }
 
-    public synchronized List<ProgressModel> getCurrentProgress() {
-        List<ProgressModel> list = new ArrayList<>();
-        if (endpointIdProgressMap != null) {
-            list.addAll(endpointIdProgressMap.values());
-        }
-        List<ProgressModel> sdsList = sdsService.getCurrentProgress(sessionId);
+    public synchronized List<IProgress> getCurrentProgress() {
+        List<IProgress> list = new ArrayList<>(endpointReadProgressMap.values());
+        List<IProgress> sdsList = sdsService.getCurrentProgress(sessionId);
         if (sdsList != null) {
             list.addAll(sdsList);
         }
         return list;
     }
 
-    private synchronized void updateProgress(Endpoint endpoint, ProgressStatus status, String message, Integer percentComplete) {
-        if (endpointIdProgressMap == null) {
-            endpointIdProgressMap = new LinkedHashMap<>();
+    public synchronized List<IProgress> getCurrentProgress(DataSet<?> dataSet) {
+        List<IProgress> list = new ArrayList<>();
+        for (EndpointReadProgressModel model : endpointReadProgressMap.values()) {
+            list.add(model.getDataSetReadProgressModel(dataSet));
         }
+        List<IProgress> sdsList = sdsService.getCurrentProgress(sessionId, dataSet);
+        if (sdsList != null) {
+            list.addAll(sdsList);
+        }
+        return list;
+    }
 
-        if (endpointIdProgressMap.containsKey(endpoint.getId())) {
-            ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
-            model.setStatus(status);
-            model.setMessage(message);
-            model.setCurrent(percentComplete);
-
-        } else {
-            endpointIdProgressMap.put(endpoint.getId(), new ProgressModel(endpoint.getName(), status, message, 0, 100));
+    private synchronized void updateProgress(Endpoint endpoint, DataSet<?> dataSet, ProgressStatus status) {
+        if (endpointReadProgressMap.containsKey(endpoint.getId())) {
+            endpointReadProgressMap.get(endpoint.getId()).setStatus(dataSet, status);
         }
     }
 
-    private synchronized void addProgressError(Endpoint endpoint, String error) {
-        if (endpointIdProgressMap == null) return;
-        if (endpointIdProgressMap.containsKey(endpoint.getId())) {
-            ProgressModel model = endpointIdProgressMap.get(endpoint.getId());
-            model.addError(error);
+    private synchronized void addProgressError(Endpoint endpoint, DataSet<?> dataSet, String error) {
+        if (endpointReadProgressMap.containsKey(endpoint.getId())) {
+            endpointReadProgressMap.get(endpoint.getId()).addError(dataSet, error);
         }
     }
 
-    private synchronized void clearCompletedProgress() {
-        if (endpointIdProgressMap != null) {
-            Iterator<ProgressModel> iter = endpointIdProgressMap.values().iterator();
-            while (iter.hasNext()) {
-                ProgressModel pm = iter.next();
-                if (pm.getStatus() == ProgressStatus.COMPLETED) {
-                    iter.remove();
-                }
-            }
-            if (endpointIdProgressMap.isEmpty()) {
-                endpointIdProgressMap = null;
+    private synchronized void resetAllProgress() {
+        endpointReadProgressMap.clear();
+        sdsService.resetAllProgress(sessionId);
+    }
+
+    private synchronized void resetEndpointProgress(Endpoint endpoint) {
+        endpointReadProgressMap.values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
+        sdsService.resetEndpointProgress(sessionId, endpoint);
+    }
+
+    public synchronized SseEmitter createNewEmitter() {
+        if (this.emitter != null) {
+            try {
+                this.emitter.complete();
+            } catch (Exception e) {
+                // do nothing
             }
         }
 
-        sdsService.clearCompletedProgress(sessionId);
+        SseEmitter newEmitter = new SseEmitter(600000L);
+        newEmitter.onCompletion(() -> clearEmitter(newEmitter));
+        newEmitter.onTimeout(() -> clearEmitter(newEmitter));
+        newEmitter.onError((ex) -> clearEmitter(newEmitter));
+
+        logger.debug("Created new emitter {} for session {}", newEmitter, sessionId);
+
+        this.emitter = newEmitter;
+        return this.emitter;
+    }
+
+    private synchronized void clearEmitter(SseEmitter emitterToRemove) {
+        // this function needs to take emitterToRemove as a parameter to ensure that an old emitter's event
+        // doesn't inadvertently affect the current emitter, if they're different
+        if (this.emitter == emitterToRemove) {
+            this.emitter = null;
+        }
+    }
+
+    private void sendNotification(String eventName, Map<String, String> payload) {
+        SseEmitter currentEmitter = this.emitter;
+        if (currentEmitter != null) {
+            try {
+                currentEmitter.send(SseEmitter.event().name(eventName).data(payload, MediaType.APPLICATION_JSON));
+            } catch (IOException e) {
+                logger.error("Error sending {} notification", eventName, e);
+                clearEmitter(currentEmitter);
+            }
+        }
+    }
+
+    private void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
+        sendNotification("dataset-update", Map.of(
+                "dataSet", dataSet.toString(),
+                "endpoint", endpoint.getName()
+        ));
     }
 
     public String getSessionId() {
@@ -227,42 +267,36 @@ public class UserWorkspace {
         return audience;
     }
 
-    public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint e) {
-        return userEndpointCredentialsMap.containsKey(e.getId()) ?
-                userEndpointCredentialsMap.get(e.getId()).getCredentialsWithClient() :
+    public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint endpoint) {
+        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
+        return uec != null ?
+                uec.getCredentialsWithClient() :
                 null;
     }
 
-    public boolean addEndpointWithCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
-        if ( ! userEndpointCredentialsMap.containsKey(userEndpoint.getEndpoint().getId()) ) {
-            IGenericClient client = FhirUtil.buildClient(
-                    credentials.getServerURL(),
-                    credentials.getBearerToken(),
-                    socketTimeout
-            );
-            FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
+    public void configureUserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
+        IGenericClient client = FhirUtil.buildClient(
+                credentials.getServerURL(),
+                credentials.getBearerToken(),
+                socketTimeout
+        );
+        FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
 
-            Date expiresAt;
-            try {
-                expiresAt = parseExpiresAt(credentials.getBearerToken());
+        Date expiresAt;
+        try {
+            expiresAt = parseExpiresAt(credentials.getBearerToken());
 
-            } catch (Exception e) {
-                logger.warn("couldn't parse token for session={} - will auto-expire token in 1 hour", sessionId);
-                logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
+        } catch (Exception e) {
+            logger.warn("couldn't parse token for session={} - will auto-expire token in 1 hour", sessionId);
+            logger.debug("caught {} parsing bearer token for session={} - {}", e.getClass().getName(), sessionId, e.getMessage(), e);
 
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(new Date());
-                cal.add(Calendar.HOUR_OF_DAY, 1);
-                expiresAt = cal.getTime();
-            }
-
-            userEndpointCredentialsMap.put(userEndpoint.getEndpoint().getId(), new UserEndpointCredentials(userEndpoint, fcc, expiresAt));
-
-            return true;
-
-        } else {
-            return false;
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(new Date());
+            cal.add(Calendar.HOUR_OF_DAY, 1);
+            expiresAt = cal.getTime();
         }
+
+        userEndpointCredentialsMap.put(userEndpoint.getEndpoint().getId(), new UserEndpointCredentials(userEndpoint, fcc, expiresAt));
     }
 
     public Long getUserId() {
@@ -270,80 +304,86 @@ public class UserWorkspace {
     }
 
     public void populate() {
-        clearCompletedProgress();
-        Map<Long, Endpoint> endpointMap = new HashMap<>();
-
-        // first process endpoints for which we have current authenticated credentials
-        for (Endpoint endpoint : getAllActiveEndpoints()) {
-            populateEndpoint(endpoint, false);
-            endpointMap.put(endpoint.getId(), endpoint);
-        }
-
-        // next, iterate over all other endpoints that have been synced to the SDS
-        // for which we don't have any current authenticated credentials, and load those
-        // from the SDS
-        for (UserEndpoint userEndpoint : endpointService.getAllUserEndpoints(userId)) {
-            Endpoint endpoint = userEndpoint.getEndpoint();
-            if ( ! endpointMap.containsKey(endpoint.getId()) ) {
-                if (userEndpoint.getLastSyncCompleted() != null) {
-                    populateEndpoint(endpoint, true);
-                    endpointMap.put(endpoint.getId(), endpoint);
-                }
-            }
+        resetAllProgress();
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+            populateEndpoint(ue.getEndpoint());
         }
     }
 
-    public void populateEndpoint(Endpoint endpoint, boolean loadFromSDS) {
+    public void populateEndpoint(Endpoint endpoint) {
         // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
         //        this function should use that to automatically obtain a fresh authentication token
         //        if a valid one isn't present, prior to populating data sets
 
+        // preliminary sanity check
+        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint.getId());
+        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
+        if (uec == null && ue.getLastSyncCompleted() == null) {
+            logger.debug("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS", endpoint.getName());
+            return;
+        }
+        boolean loadFromEndpoint = uec != null;
+
+        resetEndpointProgress(endpoint);
+        endpointReadProgressMap.put(endpoint.getId(), new EndpointReadProgressModel(endpoint));
+
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                clearCompletedProgress();
-
-                if (loadFromSDS) {
-                    sdsEndpointMap.remove(endpoint.getId());
-                }
 
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
-                updateProgress(endpoint, ProgressStatus.INITIALIZING, "Initializing", 0);
-                int count = 0;
-                int max = DataSet.ALL_DATASETS_BY_PRIORITY.size();
+                List<Future<Void>> futures = new ArrayList<>();
                 try {
                     for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
                         try {
-                            updateProgress(endpoint, ProgressStatus.RUNNING, "Populating " + dataSet.getName(), Math.round(count++ * 100 / (float) max));
-                            cache.invalidate(buildCacheKey(dataSet, endpoint));
-                            if (loadFromSDS) {
-                                getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
-                            } else {
+                            updateProgress(endpoint, dataSet, ProgressStatus.RUNNING);
+                            cache.invalidate(buildDataSetEndpointKey(dataSet, endpoint));
+
+                            if (loadFromEndpoint) {
                                 getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
-                                sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                                Future<Void> future = sdsService.shareToSDS(sessionId, dataSet, endpoint);
+                                if (future != null) {
+                                    futures.add(future);
+                                }
+                            } else {
+                                getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
                             }
 
                         } catch (Exception e) {
                             logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                            addProgressError(endpoint, "Error populating " + dataSet.getName() + ": " + e.getMessage());
+                            addProgressError(endpoint, dataSet, e.getMessage());
+
                             // todo : depending on the type of error, perhaps retry?
+
+                        } finally {
+                            updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
+                            notifyDataSetUpdated(dataSet, endpoint);
                         }
                     }
 
                 } finally {
-                    UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
-                    endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
+                    if (loadFromEndpoint) {
+                        try {
+                            for (Future<Void> future : futures) {
+                                future.get(); // waits until this task completes
+                            }
+                            logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
+                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                            endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
+
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException("Interrupted while sharing data to SDS", e);
+
+                        } catch (ExecutionException | CancellationException e) {
+                            logger.error("Failed while sharing data to SDS", e);
+                        }
+                    }
                 }
+
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
-                updateProgress(endpoint, ProgressStatus.COMPLETED, "Completed (took " + runtime + " ms)", 100);
-
-                if ( loadFromSDS && ! sdsEndpointMap.containsKey(endpoint.getId()) ) {
-                    sdsEndpointMap.put(endpoint.getId(), endpoint);
-                } else if ( ! loadFromSDS ) {
-                    sdsEndpointMap.remove(endpoint.getId());
-                }
             }
         };
 
@@ -357,13 +397,15 @@ public class UserWorkspace {
         cache.cleanUp();
 
         userEndpointCredentialsMap.clear();
-        sdsEndpointMap.clear();
         endpointPatientIdMap.clear();
     }
 
     public void shutdown() {
         logger.info("shutting down workspace for session={}", sessionId);
         secretKey = null;
+        endpointReadProgressMap.clear();
+        sdsService.shutdown(sessionId);
+        emitter = null;
         ExecutorUtil.shutdownAndAwaitTermination(executorService, 60);
         clearCacheAndCredentials();
         shutdownJobs();
@@ -475,21 +517,13 @@ public class UserWorkspace {
 
     public List<EndpointModel> getAllActiveEndpointModels() {
         List<EndpointModel> list = new ArrayList<>();
-        for (Endpoint endpoint : getAllActiveEndpoints()) {
-            list.add(new EndpointModel(endpoint));
-        }
-        return list;
-    }
-
-    private List<Endpoint> getAllActiveEndpoints() {
-        List<Endpoint> list = new ArrayList<>();
 
         Date now = new Date();
         Iterator<UserEndpointCredentials> uecIterator = userEndpointCredentialsMap.values().iterator();
         while (uecIterator.hasNext()) {
             UserEndpointCredentials uec = uecIterator.next();
             if (uec.getExpiresAt().after(now)) {
-                list.add(uec.getUserEndpoint().getEndpoint());
+                list.add(new EndpointModel(uec.getUserEndpoint().getEndpoint()));
             } else {
                 uecIterator.remove();
             }
@@ -498,14 +532,22 @@ public class UserWorkspace {
         return list;
     }
 
-    private List<Endpoint> getAllSDSEndpoints() {
-        return new ArrayList<>(sdsEndpointMap.values());
+    private UserEndpointCredentials getUserEndpointCredentials(Endpoint endpoint) {
+        if (userEndpointCredentialsMap.containsKey(endpoint.getId())) {
+            UserEndpointCredentials uec = userEndpointCredentialsMap.get(endpoint.getId());
+            if (uec.getExpiresAt().after(new Date())) {
+                return uec;
+            } else {
+                userEndpointCredentialsMap.remove(endpoint.getId());
+            }
+        }
+        return null;
     }
 
     private static final class UserEndpointCredentials {
-        private UserEndpoint userEndpoint;
-        private FHIRCredentialsWithClient credentialsWithClient;
-        private Date expiresAt;
+        private final UserEndpoint userEndpoint;
+        private final FHIRCredentialsWithClient credentialsWithClient;
+        private final Date expiresAt;
 
         public UserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentialsWithClient credentialsWithClient, Date expiresAt) {
             this.userEndpoint = userEndpoint;
@@ -528,16 +570,21 @@ public class UserWorkspace {
 
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
-        for (Endpoint endpoint : getAllActiveEndpoints()) {
-            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
-            if (dataSetModels != null) {
-                list.addAll(dataSetModels);
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+            Endpoint endpoint = null;
+            if (ue.getLastSyncCompleted() != null) {
+                endpoint = ue.getEndpoint();
+            } else {
+                UserEndpointCredentials uec = getUserEndpointCredentials(ue.getEndpoint());
+                if (uec != null) {
+                    endpoint = ue.getEndpoint();
+                }
             }
-        }
-        for (Endpoint endpoint : getAllSDSEndpoints()) {
-            List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
-            if (dataSetModels != null) {
-                list.addAll(dataSetModels);
+            if (endpoint != null) {
+                List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
+                if (dataSetModels != null) {
+                    list.addAll(dataSetModels);
+                }
             }
         }
         return list;
@@ -547,16 +594,16 @@ public class UserWorkspace {
 ///////////////////////////////////////////////////////////////////////////////////////
 /// Data Set Caching Functions
 
-    private String buildCacheKey(DataSet<?> dataSet, Endpoint e) {
-        return dataSet.getName() + "-" + e.getIss();  // use iss instead of name.  it's possible that multiple
-                                                      // data sets will have different names but point to the same
-                                                      // iss.  ultimately, it's the iss we care about, irrespective
-                                                      // of what the user sees.  this will help prevent duplicates.
+    private String buildDataSetEndpointKey(DataSet<?> dataSet, Endpoint endpoint) {
+        return dataSet.getName() + "|" + endpoint.getIss();  // use iss instead of name.  it's possible that multiple
+                                                             // data sets will have different names but point to the same
+                                                             // iss.  ultimately, it's the iss we care about, irrespective
+                                                             // of what the user sees.  this will help prevent duplicates.
     }
 
     @SuppressWarnings("unchecked")
     public <T extends BaseDataSetModel<?>> List<T> getCachedDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint) {
-        List<T> list = (List<T>) cache.getIfPresent(buildCacheKey(dataSet, endpoint));
+        List<T> list = (List<T>) cache.getIfPresent(buildDataSetEndpointKey(dataSet, endpoint));
         return list != null ?
                 list :
                 new ArrayList<>();
@@ -565,7 +612,7 @@ public class UserWorkspace {
 
     @SuppressWarnings("unchecked")
     public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint, IDataSetBuilder dataSetBuilder) {
-        return (List<T>) cache.get(buildCacheKey(dataSet, endpoint), s -> {
+        return (List<T>) cache.get(buildDataSetEndpointKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
             logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,
                     endpoint.getName());
@@ -655,7 +702,9 @@ public class UserWorkspace {
             logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
                     userId, endpoint.getName(), (System.currentTimeMillis() - start));
 
-            return list;
+            return list != null ?
+                    list :
+                    List.of();
         });
     }
 }

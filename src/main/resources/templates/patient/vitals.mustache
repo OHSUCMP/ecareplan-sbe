@@ -1,6 +1,7 @@
 {{>layout/header}}
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
+<div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
     {{#systemStatusMessage}}
@@ -14,56 +15,57 @@
         </div>
     {{/systemStatusMessage}}
 
+    <div id="progressContainer" class="hidden"></div>
+
     <h1>Vitals</h1>
-    <div class="cardContainer">
-        {{#vitalsModels}}
-            <div class="card">
-                <table>
-                    {{#mostRecentData}}
-                        <thead>
-                        <tr>
-                            <td colspan="2">{{description}}</td>
-                        </tr>
-                        </thead>
-                    <tbody>
-                    <tr>
-                        <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
-                        <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
-                    </tr>
-                    {{#performers}}
-                    <tr>
-                        <td colspan="2">{{.}}</td>
-                    </tr>
-                    {{/performers}}
-                    {{#notes}}
-                    <tr>
-                        <td colspan="2">Note: {{.}}</td>
-                    </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    {{/mostRecentData}}
-                    {{#historicalData}}
-                    <tr>
-                        <td>{{#resultText}}{{resultText}}{{/resultText}}</td>
-                        <td>{{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}</td>
-                    </tr>
-                    {{/historicalData}}
-                </tbody>
-                </table>
-            </div>
-        {{/vitalsModels}}
+    <div id="modelsContainer">
+        Loading...
     </div>
 </div>
 
 <script type="text/javascript">
+    function getBasePath() {
+        return "/patient/vitals";
+    }
+
+    function buildCardData(model) {
+        let card = {};
+        card.title = model.mostRecentData.description;
+
+        card.rows = [];
+        card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', model.mostRecentData.effectiveDate ?? '(No Date)' ]);
+        if (model.mostRecentData.performers) {
+            model.mostRecentData.performers.forEach(function(performer) {
+                card.rows.push([ performer ]);
+            });
+        }
+        if (model.mostRecentData.notes) {
+            model.mostRecentData.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
+
+        if (model.historicalData && model.historicalData.length > 0) {
+            card.history = {};
+            card.history.headers = [ 'Result', 'Effective Date' ];
+            card.history.rows = [];
+            model.historicalData.forEach(function(data) {
+                card.history.rows.push([ data.resultText ?? '(No Result)', data.effectiveDate ?? '(No Date)' ]);
+            });
+        }
+
+        return card;
+    }
+
     $(document).ready(function() {
         if ($('#sessionEstablished').text() !== 'true') {
             return;
         }
 
-        // todo : things that should happen once the page has loaded
+        // on page load, get the list of models before SSE triggers
+        getUpdatedModels(renderModels);
+        initializeSSE(renderModels);
     });
 </script>
 
