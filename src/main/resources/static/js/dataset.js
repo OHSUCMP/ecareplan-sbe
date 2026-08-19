@@ -239,5 +239,15 @@ $(document).ready(function() {
     if ($('#sessionEstablished').text() !== 'true') {
         return;
     }
-    refreshProgress();
+
+    getCurrentProgress(function(progressData) {
+        if (progressData) {
+            if ( ! isAllProgressComplete(progressData) ) {
+                let el = $('#progressContainer');
+                $(el).html(renderProgressData(progressData));
+                $(el).removeClass('hidden');
+                setTimeout(refreshProgress, 5000);
+            }
+        }
+    });
 });
