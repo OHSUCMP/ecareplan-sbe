@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-@RequestMapping("/patient/goals")
-public class GoalsController extends BasePatientController {
+@RequestMapping("/patient/health-goals")
+public class HealthGoalsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @GetMapping(value = {"", "/"})
@@ -36,9 +36,9 @@ public class GoalsController extends BasePatientController {
 
             model.addAttribute("dataSets", DataSet.GOALS);
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/goals");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/health-goals");
 
-            return "patient/goals";
+            return "patient/health-goals";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
