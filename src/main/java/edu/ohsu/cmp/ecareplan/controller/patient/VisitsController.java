@@ -20,7 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 
 @Controller
-@RequestMapping("/patient/interactions")
+@RequestMapping("/patient/visits")
 public class VisitsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -33,11 +33,11 @@ public class VisitsController extends BasePatientController {
             model.addAttribute("pageScripts", new String[] { "dataset.js" });
             model.addAttribute("pageStyles", new String[] { "dataset.css" });
 
-            model.addAttribute("dataSets", DataSet.ENCOUNTERS + "," + DataSet.SERVICE_REQUESTS);
+            model.addAttribute("dataSets", DataSet.ENCOUNTERS);
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/visits");
 
-            return "visits";
+            return "patient/visits";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);

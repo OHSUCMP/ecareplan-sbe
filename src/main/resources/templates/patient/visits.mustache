@@ -21,39 +21,6 @@
     <div id="modelsContainer">
         Loading...
     </div>
-
-    <div class="cardContainer">
-        {{#encounterModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>{{#serviceType}}Type: {{serviceType}}{{/serviceType}}</td>
-                        <td>{{#period}}Date (range): {{period}}{{/period}}</td>
-                    </tr>
-                    {{#reasons}}
-                        <tr>
-                            <td colspan="2">{{.}}</td>
-                        </tr>
-                    {{/reasons}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">{{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/encounterModels}}
-    </div>
 </div>
 
 <script type="text/javascript">
@@ -62,11 +29,24 @@
     }
 
     function buildCardData(model) {
-        return {
-            title: model.description,
-            rows: [],
-            history: null
-        };
+        let card = {};
+        card.title = model.description ?? '(No Description)';
+        card.rows = [];
+        if (model.serviceType || model.period) {
+            card.rows.push([ (model.serviceType ? 'Type: ' + model.serviceType : ''), (model.period ? 'Date (range): ' + model.period : '')]);
+        }
+        if (model.reasons) {
+            model.reasons.forEach(function(reason) {
+                card.rows.push([ 'Reason: ' + reason ]);
+            });
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
     }
 
     $(document).ready(function() {

@@ -18,59 +18,8 @@
     <div id="progressContainer" class="hidden"></div>
 
     <h1>Medications</h1>
-    <div class="modelsContainer">
+    <div id="modelsContainer">
         Loading...
-    </div>
-
-    <div class="cardContainer">
-        {{#medicationModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{conceptName}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td colspan="2">
-                            {{#flags}}
-                                <div class="flag" style="background-color: {{backgroundColor}}; color: {{textColor}}; border: 1px solid black;">
-                                    {{label}}
-                                </div>
-                            {{/flags}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{{#category}}Category: {{category}}{{/category}}</td>
-                        <td>Status: {{status}}</td>
-                    </tr>
-                    <tr>
-                        <td>Ordered On: {{#authoredOn}}{{authoredOn}}{{/authoredOn}}</td>
-                        <td>By: {{#requester}}{{requester}}{{/requester}}</td>
-                    </tr>
-                    {{#dosageInstructions}}
-                        <tr>
-                            <td colspan="2">{{dosageInstruction}}</td>
-                        </tr>
-                    {{/dosageInstructions}}
-                    {{#reasons}}
-                        <tr>
-                            <td colspan="2">Reason: {{.}}</td>
-                        </tr>
-                    {{/reasons}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Note: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/medicationModels}}
     </div>
 </div>
 
@@ -80,11 +29,44 @@
     }
 
     function buildCardData(model) {
-        return {
-            title: model.conceptName,
-            rows: [],
-            history: null
-        };
+        let card = {};
+        card.title = model.conceptName;
+        card.rows = [];
+        if (model.flags) {
+            card.rows.push([ 'Flags: ' + renderFlags(model.flags) ]);
+        }
+        card.rows.push([ model.expressedBy ?? '(Unknown)', (model.startDate ? 'Start: ' + model.startDate : '') ]);
+        if (model.consolidatedStatus) {
+            model.consolidatedStatus.forEach(function(status) {
+                card.rows.push([ 'Status: ' + status ]);
+            });
+        }
+        card.rows.push([ 'Category: ' + model.category, 'Status: ' + model.status ]);
+        card.rows.push([ 'Ordered On: ' + model.authoredOn, 'By: ' + model.requester ]);
+        if (model.dosageInstructions) {
+            model.dosageInstructions.forEach(function(dosageInstruction) {
+                card.rows.push([ dosageInstruction ]);
+            });
+        }
+        if (model.reasons) {
+            model.reasons.forEach(function(reason) {
+                card.rows.push([ 'Reason: ' + reason ]);
+            });
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
+    }
+
+    function renderFlags(flags) {
+        if (!flags || flags.length === 0) return '';
+        return flags.map(function(flag) {
+            return '<div class="flag" style="background-color: ' + flag.backgroundColor + '; color: ' + flag.textColor + '; border: 1px solid black;">' + flag.label + '</div>';
+        }).join(' ');
     }
 
     $(document).ready(function() {

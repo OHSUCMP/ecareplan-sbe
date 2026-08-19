@@ -21,38 +21,6 @@
     <div id="modelsContainer">
         Loading...
     </div>
-
-    <div class="cardContainer">
-        {{#immunizationModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{#description}}{{description}}{{/description}}{{^description}}No text{{/description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td colspan="2">Administered on: {{#effectiveDate}}{{effectiveDate}}{{/effectiveDate}}{{^effectiveDate}}Unknown{{/effectiveDate}}</td>
-                    </tr>
-                    {{#location}}
-                        <tr>
-                            <td colspan="2">Location: {{location}}</td>
-                        </tr>
-                    {{/location}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Notes: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/immunizationModels}}
-    </div>
 </div>
 
 <script type="text/javascript">
@@ -61,11 +29,20 @@
     }
 
     function buildCardData(model) {
-        return {
-            title: model.description,
-            rows: [],
-            history: null
-        };
+        let card = {};
+        card.title = model.description ?? '(No Description)';
+        card.rows = [];
+        card.rows.push([ 'Administered on: ' + (model.effectiveDate ?? '(Unknown)') ]);
+        if (model.location) {
+            card.rows.push([ 'Location: ' + model.location ]);
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
     }
 
     $(document).ready(function() {

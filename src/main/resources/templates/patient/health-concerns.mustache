@@ -17,57 +17,13 @@
 
     <div id="progressContainer" class="hidden"></div>
 
-    <h1>Current Health Issues</h1>
+    <h1>Health Concerns</h1>
     <p>
         <input type="button" value="Add a Health Concern" onclick="window.location.href='/patient/conditions/add'" />
     </p>
 
     <div id="modelsContainer">
         Loading...
-    </div>
-
-    <div class="cardContainer">
-        {{#conditionModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{name}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {{#asserter}}
-                        <tr>
-                            <td colspan="2">Asserted by: {{asserter}}</td>
-                        </tr>
-                    {{/asserter}}
-                    {{#recorder}}
-                        <tr>
-                            <td colspan="2">Recorded by: {{recorder}}</td>
-                        </tr>
-                    {{/recorder}}
-                    {{#recordedDate}}
-                        <tr>
-                            <td colspan="2">Recorded on: {{recordedDate}}</td>
-                        </tr>
-                    {{/recordedDate}}
-                    {{#onsetDate}}
-                        <tr>
-                            <td colspan="2">When it started: {{onsetDate}}</td>
-                        </tr>
-                    {{/onsetDate}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Note: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/conditionModels}}
     </div>
 </div>
 
@@ -77,11 +33,28 @@
     }
 
     function buildCardData(model) {
-        return {
-            title: model.name,
-            rows: [],
-            history: null
-        };
+        let card = {};
+        card.title = model.name;
+        card.rows = [];
+        if (model.asserter) {
+            card.rows.push([ 'Asserted by: ' + model.asserter ]);
+        }
+        if (model.recorder) {
+            card.rows.push([ 'Recorded by: ' + model.recorder ]);
+        }
+        if (model.recordedDate) {
+            card.rows.push([ 'Recorded on: ' + model.recordedDate ]);
+        }
+        if (model.onsetDate) {
+            card.rows.push([ 'When it started: ' + model.onsetDate ]);
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
     }
 
     $(document).ready(function() {

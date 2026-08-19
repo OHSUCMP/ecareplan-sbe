@@ -21,45 +21,6 @@
     <div id="modelsContainer">
         Loading...
     </div>
-
-    <div class="cardContainer">
-        {{#serviceRequestModels}}
-            <div class="card">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="2">{{description}}</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {{#requester}}
-                        <tr>
-                            <td colspan="2">Requested by: {{requester}}</td>
-                        </tr>
-                    {{/requester}}
-                    {{#authoredOn}}
-                        <tr>
-                            <td colspan="2">Ordered on: {{authoredOn}}</td>
-                        </tr>
-                    {{/authoredOn}}
-                    {{#reasons}}
-                        <tr>
-                            <td colspan="2">Reason: {{.}}</td>
-                        </tr>
-                    {{/reasons}}
-                    {{#notes}}
-                        <tr>
-                            <td colspan="2">Note: {{.}}</td>
-                        </tr>
-                    {{/notes}}
-                    <tr>
-                        <td colspan="2">Source: {{sourceEndpointName}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        {{/serviceRequestModels}}
-    </div>
 </div>
 
 <script type="text/javascript">
@@ -68,11 +29,27 @@
     }
 
     function buildCardData(model) {
-        return {
-            title: model.description,
-            rows: [],
-            history: null
-        };
+        let card = {};
+        card.title = model.description ?? '(No Description)';
+        card.rows = [];
+        if (model.requester) {
+            card.rows.push([ 'Requested by: ' + model.requester ]);
+        }
+        if (model.authoredOn) {
+            card.rows.push([ 'Ordered on: ' + model.authoredOn ]);
+        }
+        if (model.reasons) {
+            model.reasons.forEach(function(reason) {
+                card.rows.push([ 'Reason: ' + reason ]);
+            });
+        }
+        if (model.notes) {
+            model.notes.forEach(function(note) {
+                card.rows.push([ 'Note: ' + note ]);
+            });
+        }
+        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        return card;
     }
 
     $(document).ready(function() {

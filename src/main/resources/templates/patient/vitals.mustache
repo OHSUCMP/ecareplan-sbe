@@ -37,12 +37,12 @@
         if (model.mostRecentData.performers) {
             model.mostRecentData.performers.forEach(function(performer) {
                 card.rows.push([ performer ]);
-            })
+            });
         }
         if (model.mostRecentData.notes) {
             model.mostRecentData.notes.forEach(function(note) {
                 card.rows.push([ 'Note: ' + note ]);
-            })
+            });
         }
         card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
 
