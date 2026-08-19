@@ -5,3 +5,16 @@ div.progress {
 display.progress > div {
     display: block;
 }
+
+.card-selector-scroll {
+    overflow-y: auto;
+    padding-bottom: 1rem;
+}
+
+.card-selector {
+    text-align: left;
+}
+
+.card-selector-fields > div {
+    min-width: 0;
+}

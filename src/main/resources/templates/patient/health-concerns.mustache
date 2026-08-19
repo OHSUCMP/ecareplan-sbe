@@ -28,6 +28,16 @@
         return "/patient/health-concerns";
     }
 
+    function buildCardSelectorData(model) {
+        let selectorData = [];
+        selectorData.push(model.name);
+        if (model.recordedDate) {
+            selectorData.push('(Recorded on ' + model.recordedDate + ')');
+        }
+        selectorData.push('(Source: ' + model.sourceEndpointName + ')');
+        return selectorData;
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.name;
