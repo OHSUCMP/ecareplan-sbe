@@ -1,8 +1,25 @@
+function getCardSelectorSortValue(value) {
+    return $('<div>').html(value ?? '').text().trim().toLowerCase();
+}
+
 function renderCardSelectors(id, cardSelector, card, selected) {
+    let sortAttributes = '';
+
+    if (Array.isArray(cardSelector)) {
+        cardSelector.forEach(function(selectorItem, index) {
+            let valueForSort = selectorItem.valueForCompare !== undefined && selectorItem.valueForCompare !== null ?
+                selectorItem.valueForCompare :
+                selectorItem.value;
+
+            sortAttributes += ' data-sort-value-' + index + '="' + escapeHtml(getCardSelectorSortValue(valueForSort)) + '"';
+        });
+    }
+
     let html = '<button type="button" class="list-group-item list-group-item-action card-selector' +
         (selected ? ' active' : '') + '"' +
         ' id="' + id + '-selector" data-card-target="' + id + '-panel"' +
-        ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '">';
+        ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '"' +
+        sortAttributes + '>';
 
     if (Array.isArray(cardSelector)) {
         html += '<div class="row g-4 row-cols-sm-' + cardSelector.length + ' g-4 card-selector-fields">';
@@ -17,6 +34,29 @@ function renderCardSelectors(id, cardSelector, card, selected) {
     }
 
     html += '</button>';
+    return html;
+}
+
+function renderCardSelectorHeaders(selector) {
+    if (!Array.isArray(selector) || selector.length === 0) {
+        return '';
+    }
+
+    let html = '<div class="list-group-item card-selector-header">' +
+        '<div class="row g-4 row-cols-sm-' + selector.length + ' g-4 card-selector-fields">';
+
+    selector.forEach(function(selectorItem, index) {
+        html += '<div class="col-sm-' + selectorItem.bootstrapWidth + ' card-selector-field">' +
+            '<button type="button" class="card-selector-sort-button" data-sort-index="' + index + '" aria-sort="none">' +
+            '<span>' + escapeHtml(selectorItem.label ?? '') + '</span>' +
+            '<span class="card-selector-sort-indicator" aria-hidden="true"></span>' +
+            '</button>' +
+            '</div>';
+    });
+
+    html += '</div>' +
+        '</div>';
+
     return html;
 }
 
@@ -36,9 +76,12 @@ function renderCardSelectorLayout(items) {
 
     return '<div class="row g-4 card-selector-layout">' +
         '<div class="col-6 d-none d-md-block">' +
+        '<div class="card-selector-list-container">' +
+        renderCardSelectorHeaders(items[0]?.selector) +
         '<div class="card-selector-scroll">' +
-        '<div class="list-group" role="tablist" aria-label="Available records">' +
+        '<div class="list-group card-selector-items" role="tablist" aria-label="Available records">' +
         selectors.join('\n') +
+        '</div>' +
         '</div>' +
         '</div>' +
         '</div>' +
@@ -58,7 +101,7 @@ function resizeCardSelectorList() {
 function renderCard(id, card) {
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
-        '<div class="card h-100 shadow-sm">' +
+        '<div class="card h-100">' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">' +
         '<h3 class="card-title mb-0">' + card.title +
 
@@ -387,6 +430,39 @@ function renderModels(models) {
         renderCharts();
     }
 }
+
+$(document).on('click', '#modelsContainer .card-selector-sort-button', function() {
+    let button = $(this);
+    let sortIndex = button.attr('data-sort-index');
+    let layout = button.closest('.card-selector-layout');
+    let list = layout.find('.card-selector-items');
+    let currentDirection = button.attr('data-sort-direction');
+    let nextDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+
+    layout.find('.card-selector-sort-button')
+        .removeAttr('data-sort-direction')
+        .attr('aria-sort', 'none')
+        .find('.card-selector-sort-indicator')
+        .text('');
+
+    button.attr('data-sort-direction', nextDirection)
+        .attr('aria-sort', nextDirection === 'asc' ? 'ascending' : 'descending')
+        .find('.card-selector-sort-indicator')
+        .text(nextDirection === 'asc' ? ' ▲' : ' ▼');
+
+    let sortedSelectors = list.children('.card-selector').get().sort(function(a, b) {
+        let aValue = $(a).attr('data-sort-value-' + sortIndex) ?? '';
+        let bValue = $(b).attr('data-sort-value-' + sortIndex) ?? '';
+        let comparison = aValue.localeCompare(bValue, undefined, {
+            numeric: true,
+            sensitivity: 'base'
+        });
+
+        return nextDirection === 'asc' ? comparison : -comparison;
+    });
+
+    list.append(sortedSelectors);
+});
 
 $(document).on('click', '#modelsContainer .card-selector', function() {
     let selector = $(this);
