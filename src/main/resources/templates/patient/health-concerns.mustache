@@ -29,13 +29,19 @@
     }
 
     function buildCardSelectorData(model) {
-        let selectorData = [];
-        selectorData.push(model.name);
-        if (model.recordedDate) {
-            selectorData.push('(Recorded on ' + model.recordedDate + ')');
-        }
-        selectorData.push('(Source: ' + model.sourceEndpointName + ')');
-        return selectorData;
+        return [{
+            label: 'Name',
+            value: model.name,
+            bootstrapWidth: 4
+        }, {
+            label: 'Recorded Date',
+            value: model.recordedDate,
+            bootstrapWidth: 4
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 4
+        }];
     }
 
     function buildCardData(model) {

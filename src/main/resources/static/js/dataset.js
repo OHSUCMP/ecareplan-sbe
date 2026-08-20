@@ -5,9 +5,11 @@ function renderCardSelectors(id, cardSelector, card, selected) {
         ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '">';
 
     if (Array.isArray(cardSelector)) {
-        html += '<div class="card-selector-fields d-flex flex-column flex-md-row gap-2 w-100">';
-        cardSelector.forEach(function(value, index) {
-            html += '<div class="' + (index === 0 ? 'fw-semibold ' : '') + 'flex-grow-1">' + (value ?? '') + '</div>';
+        html += '<div class="row g-4 row-cols-sm-' + cardSelector.length + ' g-4 card-selector-fields">';
+        cardSelector.forEach(function(selectorItem) {
+            html += '<div class="col-sm-' + selectorItem.bootstrapWidth + ' card-selector-field">' +
+                (selectorItem.value ?? '') +
+                '</div>';
         });
         html += '</div>';
     } else {
@@ -33,14 +35,14 @@ function renderCardSelectorLayout(items) {
     });
 
     return '<div class="row g-4 card-selector-layout">' +
-        '<div class="col-6 col-lg-6">' +
+        '<div class="col-6">' +
         '<div class="card-selector-scroll">' +
         '<div class="list-group" role="tablist" aria-label="Available records">' +
         selectors.join('\n') +
         '</div>' +
         '</div>' +
         '</div>' +
-        '<div class="col-6 col-lg-6">' +
+        '<div class="col-6">' +
         cards.join('\n') +
         '</div>' +
         '</div>';
@@ -49,12 +51,12 @@ function renderCardSelectorLayout(items) {
 function resizeCardSelectorList() {
     $('.card-selector-scroll').each(function() {
         let top = this.getBoundingClientRect().top;
-        this.style.height = Math.max(0, window.innerHeight - top - 50) + 'px';
+        this.style.height = Math.max(0, window.innerHeight - top - 75) + 'px';
     });
 }
 
 function renderCard(id, card) {
-    return '<div class="row row-cols-1 row-cols-md-1 g-4">' +
+    return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
         '<div class="card h-100 shadow-sm">' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">' +
@@ -84,7 +86,7 @@ function renderCardRows(baseId, rows) {
     rows.forEach(function (row, rowIndex) {
         if (!row || row.length === 0) return;
 
-        html += '<div class="col-12" id="' + baseId + '-row-' + rowIndex + '">';
+        html += '<div class="col-sm-12" id="' + baseId + '-row-' + rowIndex + '">';
         html += '<div class="row g-2">';
 
         row.forEach(function(cell, cellIndex) {

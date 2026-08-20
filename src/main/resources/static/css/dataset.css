@@ -18,3 +18,7 @@ display.progress > div {
 .card-selector-fields > div {
     min-width: 0;
 }
+
+.card-selector-field {
+    overflow-wrap: anywhere;
+}
