@@ -35,14 +35,14 @@ function renderCardSelectorLayout(items) {
     });
 
     return '<div class="row g-4 card-selector-layout">' +
-        '<div class="col-6">' +
+        '<div class="col-6 d-none d-md-block">' +
         '<div class="card-selector-scroll">' +
         '<div class="list-group" role="tablist" aria-label="Available records">' +
         selectors.join('\n') +
         '</div>' +
         '</div>' +
         '</div>' +
-        '<div class="col-6">' +
+        '<div class="col-12 col-md-6 card-selector-card-list">' +
         cards.join('\n') +
         '</div>' +
         '</div>';

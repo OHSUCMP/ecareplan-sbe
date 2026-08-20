@@ -22,3 +22,17 @@ display.progress > div {
 .card-selector-field {
     overflow-wrap: anywhere;
 }
+
+@media (max-width: 768px) {
+    .card-selector-layout .card-panel.d-none {
+        display: block !important;
+    }
+
+    .card-selector-card-list .card-panel {
+        margin-bottom: 1.5rem;
+    }
+
+    .card-selector-card-list .card-panel:last-child {
+        margin-bottom: 0;
+    }
+}
