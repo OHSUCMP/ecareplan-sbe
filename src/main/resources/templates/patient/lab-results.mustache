@@ -86,7 +86,7 @@
         card.title = model.mostRecentData.description;
 
         card.rows = [];
-        card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', model.mostRecentData.effectiveDate ?? '(No Date)' ]);
+        card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' ]);
         if (model.mostRecentData.referenceRange) {
             card.rows.push([ model.mostRecentData.referenceRange ]);
         }
@@ -102,7 +102,7 @@
             card.history.headers = [ 'Result', 'Effective Date' ];
             card.history.rows = [];
             model.historicalData.forEach(function(data) {
-                card.history.rows.push([ data.resultText ?? '(No Result)', data.effectiveDate ?? '(No Date)' ]);
+                card.history.rows.push([ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ]);
             });
         }
 

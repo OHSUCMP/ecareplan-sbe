@@ -46,7 +46,7 @@
             card.history.headers = [ 'Authored Date', 'Score', 'Interpretation', 'Source' ];
             card.history.rows = [];
             model.responseSummaryList.forEach(function(data) {
-                card.history.rows.push([ data.authored, data.score, data.interpretation, data.sourceEndpointName ]);
+                card.history.rows.push([ formatDate(data.authored), data.score, data.interpretation, data.sourceEndpointName ]);
             });
         }
 

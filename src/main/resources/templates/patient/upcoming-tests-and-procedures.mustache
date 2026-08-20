@@ -48,7 +48,7 @@
             card.rows.push([ 'Requested by: ' + model.requester ]);
         }
         if (model.authoredOn) {
-            card.rows.push([ 'Ordered on: ' + model.authoredOn ]);
+            card.rows.push([ 'Ordered on: ' + formatDate(model.authoredOn) ]);
         }
         if (model.reasons) {
             model.reasons.forEach(function(reason) {

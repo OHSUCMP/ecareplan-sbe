@@ -35,7 +35,7 @@
             bootstrapWidth: 4
         }, {
             label: 'Start Date',
-            value: model.startDate,
+            value: formatDate(model.startDate),
             bootstrapWidth: 4
         }, {
             label: 'Source',
@@ -49,7 +49,7 @@
         card.title = model.description ?? '(No Description)';
         card.rows = [];
         if (model.expressedBy || model.startDate) {
-            card.rows.push([ (model.expressedBy ? 'Expressed by: ' + model.expressedBy : ''), (model.startDate ? 'Start: ' + model.startDate : '') ]);
+            card.rows.push([ (model.expressedBy ? 'Expressed by: ' + model.expressedBy : ''), (model.startDate ? 'Start: ' + formatDate(model.startDate) : '') ]);
         }
         if (model.consolidatedStatus) {
             card.rows.push([ 'Status: ' + model.consolidatedStatus ]);

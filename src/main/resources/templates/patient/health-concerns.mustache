@@ -35,7 +35,7 @@
             bootstrapWidth: 4
         }, {
             label: 'Recorded Date',
-            value: model.recordedDate,
+            value: formatDate(model.recordedDate),
             bootstrapWidth: 4
         }, {
             label: 'Source',
@@ -55,10 +55,10 @@
             card.rows.push([ 'Recorded by: ' + model.recorder ]);
         }
         if (model.recordedDate) {
-            card.rows.push([ 'Recorded on: ' + model.recordedDate ]);
+            card.rows.push([ 'Recorded on: ' + formatDate(model.recordedDate) ]);
         }
         if (model.onsetDate) {
-            card.rows.push([ 'When it started: ' + model.onsetDate ]);
+            card.rows.push([ 'When it started: ' + formatDate(model.onsetDate) ]);
         }
         if (model.notes) {
             model.notes.forEach(function(note) {
