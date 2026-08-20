@@ -42,11 +42,15 @@
         return [{
             label: 'Name',
             value: model.conceptName,
-            bootstrapWidth: 6
+            bootstrapWidth: 4
+        }, {
+            label: 'Flag',
+            value: (model.flags && model.flags.length > 0 ? renderFlags(model.flags) : ''),
+            bootstrapWidth: 4
         }, {
             label: 'Source',
             value: model.sourceEndpointName,
-            bootstrapWidth: 6
+            bootstrapWidth: 4
         }];
     }
 
