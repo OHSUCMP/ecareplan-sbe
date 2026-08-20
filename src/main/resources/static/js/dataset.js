@@ -186,7 +186,9 @@ function refreshProgress() {
     getCurrentProgress(function(progressData) {
         if (progressData) {
             let el = $('#progressContainer');
-            $(el).html(renderProgressData(progressData));
+            let progressDetailsExpanded = $('#progressDetails').hasClass('show');
+
+            $(el).html(renderProgressData(progressData, progressDetailsExpanded));
             $(el).removeClass('hidden');
 
             if (isAnyProgressRunning(progressData)) {
@@ -226,25 +228,107 @@ function clearProgress() {
     $(el).addClass('hidden');
 }
 
-function renderProgressData(progressData) {
-    // console.log("ProgressData: " + JSON.stringify(progressData));
-    let html = '';
+function getProgressItemPercentComplete(item) {
+    if (!item) return 0;
+
+    if (item.status === 'COMPLETED') {
+        return 100;
+    } else if (item.status === 'WAITING_TO_START') {
+        return 0;
+    } else if (item.status === 'RUNNING' && item.percentComplete !== undefined && item.percentComplete !== null) {
+        return Math.max(0, Math.min(100, Number(item.percentComplete)));
+    }
+
+    return 0;
+}
+
+function getProgressSummaryPercentComplete(progressData) {
+    if (!Array.isArray(progressData) || progressData.length === 0) {
+        return 0;
+    }
+
+    let totalPercentComplete = 0;
+    progressData.forEach(function(item) {
+        totalPercentComplete += getProgressItemPercentComplete(item);
+    });
+
+    return Math.round(totalPercentComplete / progressData.length);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function renderProgressBar(percentComplete, label, extraCssClass) {
+    let safePercentComplete = Math.max(0, Math.min(100, Number(percentComplete) || 0));
+
+    return '<div class="progress progress-display ' + (extraCssClass ?? '') + '">' +
+        '<div class="progress-bar" role="progressbar" style="width: ' + safePercentComplete + '%;"' +
+        ' aria-valuenow="' + safePercentComplete + '" aria-valuemin="0" aria-valuemax="100"></div>' +
+        '<div class="progress-label">' + escapeHtml(label) + '</div>' +
+        '</div>';
+}
+
+function renderProgressData(progressData, detailsExpanded = false) {
+    if (!Array.isArray(progressData) || progressData.length === 0) {
+        return '';
+    }
+
+    let summaryPercentComplete = getProgressSummaryPercentComplete(progressData);
+    let collapseClass = detailsExpanded ? ' show' : '';
+    let buttonCollapsedClass = detailsExpanded ? '' : ' collapsed';
+    let ariaExpanded = detailsExpanded ? 'true' : 'false';
+
+    let html = '<div class="accordion progress-summary-accordion" id="progressAccordion">' +
+        '<div class="accordion-item progress-summary-item">' +
+        '<h2 class="accordion-header" id="progressSummaryHeading">' +
+        '<button class="accordion-button progress-summary-button' + buttonCollapsedClass + '" type="button"' +
+        ' data-bs-toggle="collapse" data-bs-target="#progressDetails"' +
+        ' aria-expanded="' + ariaExpanded + '" aria-controls="progressDetails">' +
+        renderProgressBar(summaryPercentComplete, 'Overall Progress: ' + summaryPercentComplete + '% Complete', 'progress-summary-bar') +
+        '</button>' +
+        '</h2>' +
+        '<div id="progressDetails" class="accordion-collapse collapse' + collapseClass + '"' +
+        ' aria-labelledby="progressSummaryHeading" data-bs-parent="#progressAccordion">' +
+        '<div class="accordion-body progress-details">';
+
     $.each(progressData, function(i, item) {
-        html += '<div class="progress">';
-        html += '<div>' + item.label + ': ' + item.message;
-        if (item.percentComplete !== null) {
-            html += ' (' + item.percentComplete + '%)';
+        let itemPercentComplete = getProgressItemPercentComplete(item);
+        let itemLabel = (item.label ?? 'Progress Item') + ': ' + itemPercentComplete + '% Complete';
+
+        if (item.message) {
+            itemLabel += ' - ' + item.message;
         }
-        html += '</div>';
+
+        html += '<div class="progress-detail-item">' +
+            renderProgressBar(itemPercentComplete, itemLabel, 'progress-detail-bar');
+
         if (item.errors && item.errors.length > 0) {
-            html += '<br/>Errors:<ul>';
+            html += '<div class="progress-errors">' +
+                '<div class="progress-errors-label">Errors:</div>' +
+                '<ul class="mb-0">';
+
             $.each(item.errors, function(j, error) {
-                html += '<li>' + error + '</li>';
+                html += '<li>' + escapeHtml(error) + '</li>';
             });
-            html += '</ul>';
+
+            html += '</ul>' +
+                '</div>';
         }
+
         html += '</div>';
     });
+
+    html += '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+
     return html;
 }
 

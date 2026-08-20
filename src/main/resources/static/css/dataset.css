@@ -6,6 +6,94 @@ display.progress > div {
     display: block;
 }
 
+#progressContainer {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    margin-bottom: 1rem;
+}
+
+.progress-summary-accordion {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+}
+
+.progress-summary-item {
+    border: 0;
+}
+
+.progress-summary-button {
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.progress-summary-button:not(.collapsed) {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.progress-summary-button::after {
+    position: absolute;
+    right: 1rem;
+    z-index: 2;
+    filter: brightness(0) invert(1);
+}
+
+.progress-display {
+    position: relative;
+    width: 100%;
+    height: 2.25rem;
+    background-color: #e9ecef;
+    border-radius: 0;
+}
+
+.progress-display .progress-bar {
+    height: 100%;
+}
+
+.progress-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3rem 0 1rem;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+    pointer-events: none;
+}
+
+.progress-details {
+    background-color: #f8f9fa;
+}
+
+.progress-detail-item {
+    margin-bottom: 1rem;
+}
+
+.progress-detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.progress-detail-bar {
+    height: 1.75rem;
+    border-radius: 0.375rem;
+}
+
+.progress-errors {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border-left: 0.25rem solid #dc3545;
+    background-color: #ffffff;
+}
+
+.progress-errors-label {
+    font-weight: 600;
+    color: #dc3545;
+}
+
 .card-selector-scroll {
     overflow-y: auto;
     padding-bottom: 1rem;
