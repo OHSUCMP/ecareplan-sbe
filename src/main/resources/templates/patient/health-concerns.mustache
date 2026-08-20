@@ -28,6 +28,22 @@
         return "/patient/health-concerns";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Name',
+            value: model.name,
+            bootstrapWidth: 4
+        }, {
+            label: 'Recorded Date',
+            value: formatDate(model.recordedDate),
+            bootstrapWidth: 4
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 4
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.name;
@@ -39,10 +55,10 @@
             card.rows.push([ 'Recorded by: ' + model.recorder ]);
         }
         if (model.recordedDate) {
-            card.rows.push([ 'Recorded on: ' + model.recordedDate ]);
+            card.rows.push([ 'Recorded on: ' + formatDate(model.recordedDate) ]);
         }
         if (model.onsetDate) {
-            card.rows.push([ 'When it started: ' + model.onsetDate ]);
+            card.rows.push([ 'When it started: ' + formatDate(model.onsetDate) ]);
         }
         if (model.notes) {
             model.notes.forEach(function(note) {

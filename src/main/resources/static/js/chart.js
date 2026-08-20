@@ -1,6 +1,6 @@
 // Chart sizing is centralized here so the dimensions can be changed without
 // having to update each chart or its template.
-const LINE_CHART_MIN_WIDTH = 500;
+const LINE_CHART_MIN_WIDTH = 100;
 const LINE_CHART_MAX_WIDTH = 800;
 const LINE_CHART_ASPECT_RATIO = 2;
 

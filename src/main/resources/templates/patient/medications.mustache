@@ -38,6 +38,22 @@
         return "/patient/medications";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Name',
+            value: model.conceptName,
+            bootstrapWidth: 4
+        }, {
+            label: 'Flag',
+            value: (model.flags && model.flags.length > 0 ? renderFlags(model.flags) : ''),
+            bootstrapWidth: 4
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 4
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.conceptName;
@@ -49,7 +65,7 @@
             card.rows.push([ (model.category ? 'Category: ' + model.category : ''), (model.status ? 'Status: ' + model.status : '') ]);
         }
         if (model.authoredOn || model.requester) {
-            card.rows.push([ (model.authoredOn ? 'Ordered On: ' + model.authoredOn : ''), (model.requester ? 'By: ' + model.requester : '') ]);
+            card.rows.push([ (model.authoredOn ? 'Ordered On: ' + formatDate(model.authoredOn) : ''), (model.requester ? 'By: ' + model.requester : '') ]);
         }
         if (model.dosageInstructions) {
             model.dosageInstructions.forEach(function(dosageInstruction) {

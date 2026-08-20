@@ -1,5 +1,62 @@
+function renderCardSelectors(id, cardSelector, card, selected) {
+    let html = '<button type="button" class="list-group-item list-group-item-action card-selector' +
+        (selected ? ' active' : '') + '"' +
+        ' id="' + id + '-selector" data-card-target="' + id + '-panel"' +
+        ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '">';
+
+    if (Array.isArray(cardSelector)) {
+        html += '<div class="row g-4 row-cols-sm-' + cardSelector.length + ' g-4 card-selector-fields">';
+        cardSelector.forEach(function(selectorItem) {
+            html += '<div class="col-sm-' + selectorItem.bootstrapWidth + ' card-selector-field">' +
+                (selectorItem.value ?? '') +
+                '</div>';
+        });
+        html += '</div>';
+    } else {
+        html += cardSelector ?? '';
+    }
+
+    html += '</button>';
+    return html;
+}
+
+function renderCardSelectorLayout(items) {
+    let selectors = [];
+    let cards = [];
+
+    items.forEach(function(item, index) {
+        let id = 'card_' + (index + 1);
+        selectors.push(renderCardSelectors(id, item.selector, item.card, index === 0));
+        cards.push('<div class="card-panel' + (index === 0 ? '' : ' d-none') + '"' +
+            ' id="' + id + '-panel" role="tabpanel" aria-labelledby="' + id + '-selector"' +
+            (index === 0 ? '' : ' aria-hidden="true"') + '>' +
+            renderCard(id, item.card) +
+            '</div>');
+    });
+
+    return '<div class="row g-4 card-selector-layout">' +
+        '<div class="col-6 d-none d-md-block">' +
+        '<div class="card-selector-scroll">' +
+        '<div class="list-group" role="tablist" aria-label="Available records">' +
+        selectors.join('\n') +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="col-12 col-md-6 card-selector-card-list">' +
+        cards.join('\n') +
+        '</div>' +
+        '</div>';
+}
+
+function resizeCardSelectorList() {
+    $('.card-selector-scroll').each(function() {
+        let top = this.getBoundingClientRect().top;
+        this.style.height = Math.max(0, window.innerHeight - top - 75) + 'px';
+    });
+}
+
 function renderCard(id, card) {
-    return '<div class="row row-cols-1 row-cols-md-2 g-4">' +
+    return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
         '<div class="card h-100 shadow-sm">' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">' +
@@ -29,7 +86,7 @@ function renderCardRows(baseId, rows) {
     rows.forEach(function (row, rowIndex) {
         if (!row || row.length === 0) return;
 
-        html += '<div class="col-12" id="' + baseId + '-row-' + rowIndex + '">';
+        html += '<div class="col-sm-12" id="' + baseId + '-row-' + rowIndex + '">';
         html += '<div class="row g-2">';
 
         row.forEach(function(cell, cellIndex) {
@@ -218,19 +275,47 @@ function getUpdatedModels(_callback) {
 
 function renderModels(models) {
     if (models && models.length > 0) {
-        let cards = [];
-        let id = 1;
-        models.forEach(function(model) {
-            cards.push(renderCard('card_' + id, buildCardData(model)));
-            id ++;
-        });
-        $('#modelsContainer').html(cards.join('\n'));
+        if (typeof buildCardSelectorData === 'function') {
+            let items = [];
+            models.forEach(function(model) {
+                items.push({
+                    selector: buildCardSelectorData(model),
+                    card: buildCardData(model)
+                });
+            });
+
+            $('#modelsContainer').html(renderCardSelectorLayout(items));
+            resizeCardSelectorList();
+
+        } else {
+            let cards = [];
+            let i = 1;
+            models.forEach(function(model) {
+                cards.push(renderCard('card_' + i, buildCardData(model)));
+                i ++;
+            });
+
+            $('#modelsContainer').html(cards.join('\n'));
+        }
     }
 
     if (typeof renderCharts === 'function') {
         renderCharts();
     }
 }
+
+$(document).on('click', '#modelsContainer .card-selector', function() {
+    let selector = $(this);
+    let targetId = selector.attr('data-card-target');
+    let container = $('#modelsContainer');
+
+    container.find('.card-selector').removeClass('active').attr('aria-selected', 'false');
+    selector.addClass('active').attr('aria-selected', 'true');
+    container.find('.card-panel').addClass('d-none').attr('aria-hidden', 'true');
+    container.find('#' + targetId).removeClass('d-none').removeAttr('aria-hidden');
+});
+
+$(window).on('resize', resizeCardSelectorList);
 
 $(document).ready(function() {
     if (!exists('#sessionEstablished')) {

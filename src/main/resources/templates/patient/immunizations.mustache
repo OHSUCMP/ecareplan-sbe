@@ -28,11 +28,27 @@
         return "/patient/immunizations";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Description',
+            value: model.description,
+            bootstrapWidth: 4
+        }, {
+            label: 'Effective Date',
+            value: formatDate(model.effectiveDate),
+            bootstrapWidth: 4
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 4
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';
         card.rows = [];
-        card.rows.push([ 'Administered on: ' + (model.effectiveDate ?? '(Unknown)') ]);
+        card.rows.push([ 'Administered on: ' + (formatDate(model.effectiveDate) ?? '(Unknown)') ]);
         if (model.location) {
             card.rows.push([ 'Location: ' + model.location ]);
         }
