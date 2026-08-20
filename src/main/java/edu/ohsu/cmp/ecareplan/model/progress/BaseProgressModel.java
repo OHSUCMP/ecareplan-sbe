@@ -1,5 +1,7 @@
 package edu.ohsu.cmp.ecareplan.model.progress;
 
+import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
+
 import java.util.Date;
 
 public abstract class BaseProgressModel implements IProgress {
@@ -7,7 +9,11 @@ public abstract class BaseProgressModel implements IProgress {
 
     @Override
     public Integer getPercentComplete() {
-        if (getCurrent() == null || getTotal() == null) return null;
+        if (getCurrent() == null || getTotal() == null) {
+            return getStatus() == ProgressStatus.COMPLETED ?
+                    100 :
+                    0;
+        }
 
         if (getTotal() == 0) {
             return 100;
