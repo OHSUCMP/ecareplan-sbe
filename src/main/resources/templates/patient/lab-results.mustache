@@ -69,6 +69,18 @@
         return "/patient/lab-results";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Description',
+            value: model.mostRecentData.description,
+            bootstrapWidth: 6
+        }, {
+            label: 'Source',
+            value: model.mostRecentData.sourceEndpointName,
+            bootstrapWidth: 6
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.mostRecentData.description;

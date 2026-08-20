@@ -28,6 +28,18 @@
         return "/patient/upcoming-tests-and-procedures";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Description',
+            value: model.description ?? '(No Description)',
+            bootstrapWidth: 6
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 6
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';

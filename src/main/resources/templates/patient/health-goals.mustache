@@ -28,6 +28,22 @@
         return "/patient/health-goals";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Description',
+            value: model.description,
+            bootstrapWidth: 4
+        }, {
+            label: 'Start Date',
+            value: model.startDate,
+            bootstrapWidth: 4
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 4
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';

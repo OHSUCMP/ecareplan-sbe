@@ -28,6 +28,14 @@
         return "/patient/assessments";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Name',
+            value: model.label,
+            bootstrapWidth: 12
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.label;

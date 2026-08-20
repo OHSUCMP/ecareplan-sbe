@@ -38,6 +38,18 @@
         return "/patient/medications";
     }
 
+    function buildCardSelectorData(model) {
+        return [{
+            label: 'Name',
+            value: model.conceptName,
+            bootstrapWidth: 6
+        }, {
+            label: 'Source',
+            value: model.sourceEndpointName,
+            bootstrapWidth: 6
+        }];
+    }
+
     function buildCardData(model) {
         let card = {};
         card.title = model.conceptName;
