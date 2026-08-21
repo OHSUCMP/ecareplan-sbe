@@ -31,9 +31,9 @@
         Loading...
     </div>
 
-    <h2>Add a Health Record Account</h2>
+    <h2>Manage Connected Health Records</h2>
     <p>
-        <a href="/patient/endpoint/select">Login to additional healthcare provider accounts</a>
+        <a href="/patient/health-records">Click here to connect additional health records to your account</a>
     </p>
 
     <h2>Disclaimer</h2>
@@ -64,7 +64,7 @@
             if (models && models.length > 0) {
                 let html = '<ol>';
                 models.forEach(function(model) {
-                    html += '<li>' + model.name + ' (age: ' + model.age + ', gender: ' + model.gender + ')</li>';
+                    html += '<li><strong>' + model.name + '</strong> (age: ' + model.age + ', gender: ' + model.gender + ') (Source: ' + model.sourceEndpointName + ')</li>';
                 });
                 html += '</ol>';
                 $('#modelsContainer').html(html);

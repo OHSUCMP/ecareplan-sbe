@@ -23,7 +23,7 @@ function doWait(waiting) {
 function reportLaunch(endpointId, _callback) {
     $.ajax({
         method: "POST",
-        url: "/patient/endpoint/report-launch",
+        url: "/patient/health-records/report-launch",
         data: {
             endpointId: endpointId
         }

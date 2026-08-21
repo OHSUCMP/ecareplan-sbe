@@ -69,6 +69,11 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         logger.info("Shutting down SDS service operations for session {}", sessionId);
         if (sessionIdProgressMap.containsKey(sessionId)) {
             for (ShareProgressModel pm : sessionIdProgressMap.get(sessionId).values()) {
+                if (pm.getFuture() == null) {
+                    logger.warn("No future found for endpoint={} dataSet={} for session {}", pm.getEndpoint().getIss(), pm.getDataSet(), sessionId);
+                    logger.warn("Skipping cancellation (is that odd though?  why is the future null?)");
+                    continue;
+                }
                 if ( ! pm.getFuture().isDone() && ! pm.getFuture().isCancelled() ) {
                     logger.info("Cancelling future for endpoint={} dataSet={} for session {}", pm.getEndpoint().getIss(), pm.getDataSet(), sessionId);
                     pm.getFuture().cancel(true);
@@ -248,6 +253,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         };
 
         Future<Void> future = executorService.submit(callable);
+        logger.info("Submitted callable for endpoint={} dataSet={} for session {}", endpoint.getIss(), dataSet, sessionId);
         progress.setFuture(future);
         return future;
     }
