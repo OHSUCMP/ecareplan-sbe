@@ -22,21 +22,21 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/patient/endpoint")
-public class EndpointController extends BasePatientController {
+@RequestMapping("/patient/health-records")
+public class HealthRecordsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private EndpointService endpointService;
 
-    @GetMapping("select")
+    @GetMapping(value = {"", "/"})
     public String view(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         if (sessionService.exists(sessionId)) {
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "fhir-client-v2.6.3.min.js", "select-endpoint.js" });
-            model.addAttribute("pageStyles", new String[] { "select-endpoint.css" });
+            model.addAttribute("pageScripts", new String[] { "fhir-client-v2.6.3.min.js", "health-records.js" });
+            model.addAttribute("pageStyles", new String[] { "health-records.css" });
 
             UserWorkspace workspace = userWorkspaceService.get(sessionId);
 
@@ -56,9 +56,9 @@ public class EndpointController extends BasePatientController {
             }
             model.addAttribute("thirdPartyEndpointModels", notYetConnectedThirdPartyEndpoints);
 
-            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/endpoint/select");
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/health-records");
 
-            return "patient/select-endpoint";
+            return "patient/health-records";
 
         } else {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);

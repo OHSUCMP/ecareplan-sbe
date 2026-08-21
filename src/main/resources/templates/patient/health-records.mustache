@@ -14,9 +14,9 @@
         </div>
     {{/systemStatusMessage}}
 
-    <h1>Currently Active Connected Endpoints</h1>
+    <h1>Health Records</h1>
     <p>
-        You are currently connected to the following endpoints:
+        You are currently connected to the following health record providers:
     </p>
     <ol>
         {{#activeEndpointModels}}
@@ -24,14 +24,14 @@
         {{/activeEndpointModels}}
     </ol>
 
-    <h1>Connect to a New Endpoint</h1>
+    <h1>Connect to a New Health Record Provider</h1>
     <p>
-        Select an endpoint and click the Login button below to authenticate and integrate your health data from
-        that institution.
+        Select a health record provider and click the Login button below to authenticate and integrate your
+        health data from that institution.
     </p>
 
     <select id="endpointSelect" class="form-control">
-        <option value="" selected disabled hidden>---Select an Endpoint---</option>
+        <option value="" selected disabled hidden>---Select a Health Record Provider---</option>
         {{#thirdPartyEndpointModels}}
             <option value="{{id}}" data-client-id="{{clientId}}" data-scope="{{scope}}" data-redirect-uri="{{redirectUri}}" data-iss="{{iss}}">
                 {{name}}
