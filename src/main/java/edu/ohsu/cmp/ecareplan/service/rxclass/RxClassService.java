@@ -42,6 +42,12 @@ public class RxClassService {
     }
 
     public void refresh(String rxClass) {
+        logger.info("refreshing definitions for RxClass {}", rxClass);
+        int created = 0;
+        int updated = 0;
+        int deleted = 0;
+        long start = System.currentTimeMillis();
+
         Map<String, RxClassMember> map = new LinkedHashMap<>();
         for (RxClassMember member : repository.findByRxClass(rxClass)) {
             map.put(member.getRxCui(), member);
@@ -84,8 +90,9 @@ public class RxClassService {
                                             current.setName(name);
                                             current.setTty(tty);
                                             current.setUpdated(new Date());
-                                            logger.info("Updating RxClassMember with rxcui {} for rxClass {} -  name: {}, tty: {}", rxcui, rxClass, name, tty);
+                                            logger.debug("Updating RxClassMember with rxcui {} for rxClass {} -  name: {}, tty: {}", rxcui, rxClass, name, tty);
                                             repository.save(current);
+                                            updated ++;
 
                                         } else {
                                             logger.debug("RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {} already up to date", rxcui, rxClass, name, tty);
@@ -95,8 +102,9 @@ public class RxClassService {
                                         RxClassMember rxClassMember = new RxClassMember(rxClass, rxcui, name, tty);
                                         rxClassMember.setCreated(new Date());
                                         rxClassMember.setUpdated(new Date());
-                                        logger.info("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", rxcui, rxClass, name, tty);
+                                        logger.debug("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", rxcui, rxClass, name, tty);
                                         repository.save(rxClassMember);
+                                        created ++;
                                     }
 
                                     alreadyProcessed.add(rxcui);
@@ -116,9 +124,12 @@ public class RxClassService {
 
         if ( ! map.isEmpty() ) {
             List<String> toDelete = map.values().stream().map(RxClassMember::getRxCui).toList();
-            logger.info("Deleting {} RxClassMembers for rxClass {} with rxcui in: [{}]", toDelete.size(), rxClass, StringUtils.join(toDelete, ","));
+            deleted = toDelete.size();
+            logger.debug("Deleting {} RxClassMembers for rxClass {} with rxcui in: [{}]", toDelete.size(), rxClass, StringUtils.join(toDelete, ","));
             repository.deleteAll(map.values());
         }
+
+        logger.info("done refreshing definitions for RxClass {} - created: {}, updated: {}, deleted: {} - took {} ms", rxClass, created, updated, deleted, System.currentTimeMillis() - start);
     }
 
     private List<String> getClassMemberRxCUIList(String rxClass) throws IOException {
