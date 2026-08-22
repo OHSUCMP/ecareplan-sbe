@@ -84,7 +84,7 @@ public class RxClassService {
                                             current.setName(name);
                                             current.setTty(tty);
                                             current.setUpdated(new Date());
-                                            logger.debug("Updating RxClassMember with rxcui {} for rxClass {} -  name: {}, tty: {}", rxcui, rxClass, name, tty);
+                                            logger.info("Updating RxClassMember with rxcui {} for rxClass {} -  name: {}, tty: {}", rxcui, rxClass, name, tty);
                                             repository.save(current);
 
                                         } else {
@@ -95,7 +95,7 @@ public class RxClassService {
                                         RxClassMember rxClassMember = new RxClassMember(rxClass, rxcui, name, tty);
                                         rxClassMember.setCreated(new Date());
                                         rxClassMember.setUpdated(new Date());
-                                        logger.debug("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", rxcui, rxClass, name, tty);
+                                        logger.info("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", rxcui, rxClass, name, tty);
                                         repository.save(rxClassMember);
                                     }
 
@@ -116,7 +116,7 @@ public class RxClassService {
 
         if ( ! map.isEmpty() ) {
             List<String> toDelete = map.values().stream().map(RxClassMember::getRxCui).toList();
-            logger.debug("Deleting {} RxClassMembers for RxClass {} : [{}]", toDelete.size(), rxClass, StringUtils.join(toDelete, ","));
+            logger.info("Deleting {} RxClassMembers for rxClass {} with rxcui in: [{}]", toDelete.size(), rxClass, StringUtils.join(toDelete, ","));
             repository.deleteAll(map.values());
         }
     }
