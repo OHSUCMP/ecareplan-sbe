@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.listener;
 
+import edu.ohsu.cmp.ecareplan.service.MedicationFlagService;
 import edu.ohsu.cmp.ecareplan.service.ResourceCategorizationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -13,8 +14,12 @@ public class ApplicationStartupListener implements ApplicationListener<Applicati
     @Autowired
     private ResourceCategorizationService resourceCategorizationService;
 
+    @Autowired
+    private MedicationFlagService medicationFlagService;
+
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         resourceCategorizationService.refreshValueSets();
+        medicationFlagService.refreshRxClassMembers();
     }
 }

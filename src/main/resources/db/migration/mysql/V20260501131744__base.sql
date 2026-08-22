@@ -372,47 +372,29 @@ insert into resource_categorization_coding (dataSetName, codeSystemUrl, code, co
 
 create table medication_flag (
     id int not null auto_increment primary key,
+    rxClass varchar(10) not null,
     label varchar(30) not null,
     backgroundColor char(7) not null,
-    textColor char(7) not null
+    textColor char(7) not null,
+    lastRefreshed datetime
 );
 
-insert into medication_flag (id, label, backgroundColor, textColor) values
-    (1, 'Neuroleptics', '#FFCC00', '#000000'),
-    (2, 'Antidepressants', '#3399FF', '#FFFFFF'),
-    (3, 'Anxiolytics', '#33CC33', '#000000'),
-    (4, 'Recovery Support', '#990000', '#FFFFFF'),
-    (5, 'Opioids', '#FF3333', '#000000');
+insert into medication_flag (id, rxClass, label, backgroundColor, textColor) values
+    (1, 'N05A', 'Neuroleptics', '#FFCC00', '#000000'),
+    (2, 'N06A', 'Antidepressants', '#3399FF', '#FFFFFF'),
+    (3, 'N05B', 'Anxiolytics', '#33CC33', '#000000'),
+    (4, 'N07B', 'Recovery Support', '#990000', '#FFFFFF'),
+    (5, 'N02A', 'Opioids', '#FF3333', '#000000');
 
-create table medication_flag_rxclass (
+create table rx_class_member (
     id int not null auto_increment primary key,
-    medicationFlagId int not null,
-    rxClass varchar(10) unique not null,
-    constraint mfr_fk1 foreign key (medicationFlagId) references medication_flag (id)
-        on delete cascade
+    rxClass varchar(10) not null,
+    rxCui varchar(10) not null,
+    name varchar(1000) not null,
+    tty varchar(10) not null,
+    created datetime not null default current_timestamp,
+    updated datetime not null default current_timestamp on update current_timestamp,
+    constraint rcm_c1 unique (rxClass, rxCui)
 );
 
-insert into medication_flag_rxclass (medicationFlagId, rxClass) values
-    (1, 'N05A'), (1, 'N05AA'), (1, 'N05AB'),
-    (1, 'N05AC'), (1, 'N05AD'), (1, 'N05AE'),
-    (1, 'N05AF'), (1, 'N05AG'), (1, 'N05AH'),
-    (1, 'N05AL'), (1, 'N05AN'), (1, 'N05AX');
-
-insert into medication_flag_rxclass (medicationFlagId, rxClass) values
-    (2, 'N06A'), (2, 'N06AA'), (2, 'N06AB'),
-    (2, 'N06AF'), (2, 'N06AG'), (2, 'N06AX');
-
-insert into medication_flag_rxclass (medicationFlagId, rxClass) values
-    (3, 'N05B'), (3, 'N05BA'), (3, 'N05BB'),
-    (3, 'N05BC'), (3, 'N05BD'), (3, 'N05BE'),
-    (3, 'N05BX');
-
-insert into medication_flag_rxclass (medicationFlagId, rxClass) values
-    (4, 'N07B'), (4, 'N07BA'), (4, 'N07BB'),
-    (4, 'N07BC');
-
-insert into medication_flag_rxclass (medicationFlagId, rxClass) values
-    (5, 'N02A'), (5, 'N02AA'), (5, 'N02AB'),
-    (5, 'N02AC'), (5, 'N02AD'), (5, 'N02AE'),
-    (5, 'N02AF'), (5, 'N02AG'), (5, 'N02AJ'),
-    (5, 'N02AX');
+create index idxRxClass on rx_class_member(rxClass);
