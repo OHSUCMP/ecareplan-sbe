@@ -56,11 +56,11 @@ public class RxClassService {
         Set<String> alreadyProcessed = new HashSet<>();
 
         try {
-            for (String classMemberRxCUI : getClassMemberRxCUIList(rxClass)) {
+            for (String classIngredientRxCUI : getClassIngredientRxCUIList(rxClass)) {
                 try {
                     JsonNode root;
 
-                    HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxcui/" + classMemberRxCUI + "/allrelated.json");
+                    HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxcui/" + classIngredientRxCUI + "/allrelated.json");
                     if (response.getResponseCode() >= 200 && response.getResponseCode() <= 300) {
                         logger.debug("got {} response for {} : {}", response.getResponseCode(), rxClass, response.getResponseBody());
                         root = new ObjectMapper().readTree(response.getResponseBody());
@@ -114,7 +114,7 @@ public class RxClassService {
                     }
 
                 } catch (Exception e) {
-                    logger.error("error getting all related for {}", classMemberRxCUI, e);
+                    logger.error("error getting all related for {}", classIngredientRxCUI, e);
                 }
             }
 
@@ -132,10 +132,10 @@ public class RxClassService {
         logger.info("done refreshing definitions for RxClass {} - created: {}, updated: {}, deleted: {} - took {} ms", rxClass, created, updated, deleted, System.currentTimeMillis() - start);
     }
 
-    private List<String> getClassMemberRxCUIList(String rxClass) throws IOException {
+    private List<String> getClassIngredientRxCUIList(String rxClass) throws IOException {
         JsonNode root;
 
-        HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxclass/classMembers.json?classId=" + rxClass + "&relaSource=ATC&trans=0");
+        HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxclass/classMembers.json?classId=" + rxClass + "&relaSource=ATC&ttys=IN");
         if (response.getResponseCode() >= 200 && response.getResponseCode() <= 300) {
             logger.debug("got {} response for {} : {}", response.getResponseCode(), rxClass, response.getResponseBody());
             root = new ObjectMapper().readTree(response.getResponseBody());
