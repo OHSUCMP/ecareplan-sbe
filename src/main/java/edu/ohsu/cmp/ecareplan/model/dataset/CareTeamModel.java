@@ -8,6 +8,7 @@ import java.util.List;
 
 public class CareTeamModel extends BaseDataSetModel<CareTeam> {
     private String name;
+    private String category;
     private String period;
     private List<ParticipantInfo> participants;
 
@@ -18,6 +19,10 @@ public class CareTeamModel extends BaseDataSetModel<CareTeam> {
             name = careTeam.getName();
         }
 
+        if (careTeam.hasCategory()) {
+            category = getConceptNameFromCodeableConcept(careTeam.getCategoryFirstRep());
+        }
+
         if (careTeam.hasPeriod()) {
             period = formatPeriod(careTeam.getPeriod());
         }
@@ -26,14 +31,12 @@ public class CareTeamModel extends BaseDataSetModel<CareTeam> {
             for (CareTeam.CareTeamParticipantComponent participant : careTeam.getParticipant()) {
                 if (participant.hasMember() && participant.getMember().hasDisplay()) {
                     String name = participant.getMember().getDisplay();;
-                    String role = null;
-                    if (participant.hasRole()) {
-                        role = getConceptNameFromCodeableConcept(participant.getRoleFirstRep());
-                    }
-                    String period = null;
-                    if (participant.hasPeriod()) {
-                        period = formatPeriod(participant.getPeriod());
-                    }
+                    String role = participant.hasRole() ?
+                            getConceptNameFromCodeableConcept(participant.getRoleFirstRep()) :
+                            null;
+                    String period = participant.hasPeriod() ?
+                            formatPeriod(participant.getPeriod()) :
+                            null;
                     if (participants == null) participants = new ArrayList<>();
                     participants.add(new ParticipantInfo(name, role, period));
                 }
@@ -50,10 +53,18 @@ public class CareTeamModel extends BaseDataSetModel<CareTeam> {
         return name;
     }
 
+    public String getCategory() {
+        return category;
+    }
+
     public String getDescription() {
-        return StringUtils.isNotBlank(name) ?
-                name :
-                "(No description)";
+        if (StringUtils.isNotBlank(name)) {
+            return name;
+        } else if (StringUtils.isNotBlank(category)) {
+            return category;
+        } else {
+            return "(No description)";
+        }
     }
 
     public String getPeriod() {
@@ -64,10 +75,10 @@ public class CareTeamModel extends BaseDataSetModel<CareTeam> {
         return participants;
     }
 
-    private static final class ParticipantInfo {
-        private String name;
-        private String role;
-        private String period;
+    public static final class ParticipantInfo {
+        private final String name;
+        private final String role;
+        private final String period;
 
         public ParticipantInfo(String name, String role, String period) {
             this.name = name;
