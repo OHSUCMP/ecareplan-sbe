@@ -43,169 +43,167 @@ public class RxClassService {
 
     public void refresh(String rxClass) {
         logger.info("refreshing definitions for RxClass {}", rxClass);
-        int created = 0;
-        int updated = 0;
-        int deleted = 0;
         long start = System.currentTimeMillis();
 
-        Map<String, RxClassMember> map = new LinkedHashMap<>();
-        for (RxClassMember member : repository.findByRxClass(rxClass)) {
-            map.put(member.getRxCui(), member);
+        RefreshHelper helper = new RefreshHelper(repository, rxClass);
+        helper.execute();
+
+        logger.info("done refreshing definitions for RxClass {} - created: {}, updated: {}, deleted: {} - took {} ms",
+                rxClass, helper.getCreated(), helper.getUpdated(), helper.getDeleted(),
+                System.currentTimeMillis() - start);
+    }
+
+
+    private static final class RefreshHelper {
+        private final RxClassMemberRepository repository;
+        private final String rxClass;
+
+        private Map<String, RxClassMember> map;
+        private Set<String> alreadyProcessed;
+        private int created = 0;
+        private int updated = 0;
+        private int deleted = 0;
+
+        public RefreshHelper(RxClassMemberRepository repository, String rxClass) {
+            this.repository = repository;
+            this.rxClass = rxClass;
         }
 
-        Set<String> alreadyProcessed = new HashSet<>();
+        public void execute() {
+            map = new LinkedHashMap<>();
+            for (RxClassMember member : repository.findByRxClass(rxClass)) {
+                map.put(member.getRxCui(), member);
+            }
+            alreadyProcessed = new HashSet<>();
+            created = 0;
+            updated = 0;
+            deleted = 0;
 
-        try {
-            for (Concept classMember : getClassMemberList(rxClass)) {
-                // first, process ALL concepts that are directly returned as members of the specified class
-                if (alreadyProcessed.contains(classMember.getRxcui())) {
-                    logger.debug("Already processed RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {} - skipping -", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
+            try {
+                for (Concept classMember : getClassMemberList("ATCPROD")) {
+                    processConcept(classMember);
+                }
 
-                } else {
-                    try {
-                        if (map.containsKey(classMember.getRxcui())) {
-                            RxClassMember current = map.remove(classMember.getRxcui());
-                            if ( ! current.getName().equals(classMember.getName()) || ! current.getTty().equals(classMember.getTty()) ) {
-                                current.setName(classMember.getName());
-                                current.setTty(classMember.getTty());
-                                current.setUpdated(new Date());
-                                logger.debug("Updating RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {}", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
-                                repository.save(current);
-                                updated ++;
+                for (Concept classMember : getClassMemberList("ATC")) {
+                    processConcept(classMember);
 
-                            } else {
-                                logger.debug("RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {} already up to date", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
-                            }
+                    Set<String> validTermTypes = Set.of("SCD", "SBD", "GPCK", "BPCK");
+                    for (Concept relatedMember : getAllRelatedList(classMember.getRxcui())) {
+                        if (validTermTypes.contains(relatedMember.getTty())) {
+                            processConcept(relatedMember);
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                logger.error("error refreshing rxclass members for {}", rxClass, e);
+            }
+
+            if ( ! map.isEmpty() ) {
+                List<String> toDelete = map.values().stream().map(RxClassMember::getRxCui).toList();
+                deleted = toDelete.size();
+                logger.debug("Deleting {} RxClassMembers for rxClass {} with rxcui in: [{}]", toDelete.size(), rxClass, StringUtils.join(toDelete, ","));
+                repository.deleteAll(map.values());
+            }
+        }
+
+        public int getCreated() {
+            return created;
+        }
+
+        public int getUpdated() {
+            return updated;
+        }
+
+        public int getDeleted() {
+            return deleted;
+        }
+
+        private void processConcept(Concept classMember) {
+            if (alreadyProcessed.contains(classMember.getRxcui())) {
+                logger.debug("Already processed RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {} - skipping -", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
+
+            } else {
+                try {
+                    if (map.containsKey(classMember.getRxcui())) {
+                        RxClassMember current = map.remove(classMember.getRxcui());
+                        if ( ! current.getName().equals(classMember.getName()) || ! current.getTty().equals(classMember.getTty()) ) {
+                            current.setName(classMember.getName());
+                            current.setTty(classMember.getTty());
+                            current.setUpdated(new Date());
+                            logger.debug("Updating RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {}", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
+                            repository.save(current);
+                            updated ++;
 
                         } else {
-                            RxClassMember rxClassMember = new RxClassMember(rxClass, classMember.getRxcui(), classMember.getName(), classMember.getTty());
-                            rxClassMember.setCreated(new Date());
-                            rxClassMember.setUpdated(new Date());
-                            logger.debug("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
-                            repository.save(rxClassMember);
-                            created ++;
+                            logger.debug("RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {} already up to date", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
                         }
-
-                    } catch (Exception e) {
-                        logger.error("Error processing RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty(), e);
-
-                    } finally {
-                        alreadyProcessed.add(classMember.getRxcui());
-                    }
-                }
-
-                if (classMember.getTty().equals("MIN")) {
-                    // if the class member is defined by multiple ingredients, we do not want to get all related concepts
-                    continue;
-                }
-
-                for (Concept relatedMember : getAllRelatedList(classMember.getRxcui())) {
-                    if (alreadyProcessed.contains(relatedMember.getRxcui())) {
-                        logger.debug("Already processed RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {} - skipping -", relatedMember.getRxcui(), rxClass, relatedMember.getName(), relatedMember.getTty());
 
                     } else {
-                        try {
-                            if (map.containsKey(relatedMember.getRxcui())) {
-                                RxClassMember current = map.remove(relatedMember.getRxcui());
-                                if ( ! current.getName().equals(relatedMember.getName()) || ! current.getTty().equals(relatedMember.getTty()) ) {
-                                    current.setName(relatedMember.getName());
-                                    current.setTty(relatedMember.getTty());
-                                    current.setUpdated(new Date());
-                                    logger.debug("Updating RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {}", relatedMember.getRxcui(), rxClass, relatedMember.getName(), relatedMember.getTty());
-                                    repository.save(current);
-                                    updated ++;
+                        RxClassMember rxClassMember = new RxClassMember(rxClass, classMember.getRxcui(), classMember.getName(), classMember.getTty());
+                        rxClassMember.setCreated(new Date());
+                        rxClassMember.setUpdated(new Date());
+                        logger.debug("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty());
+                        repository.save(rxClassMember);
+                        created ++;
+                    }
 
-                                } else {
-                                    logger.debug("RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {} already up to date", relatedMember.getRxcui(), rxClass, relatedMember.getName(), relatedMember.getTty());
-                                }
+                } catch (Exception e) {
+                    logger.error("Error processing RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", classMember.getRxcui(), rxClass, classMember.getName(), classMember.getTty(), e);
 
-                            } else {
-                                RxClassMember rxClassMember = new RxClassMember(rxClass, relatedMember.getRxcui(), relatedMember.getName(), relatedMember.getTty());
-                                rxClassMember.setCreated(new Date());
-                                rxClassMember.setUpdated(new Date());
-                                logger.debug("Creating RxClassMember with rxcui {} for rxClass: {} - name: {}, tty: {}", relatedMember.getRxcui(), rxClass, relatedMember.getName(), relatedMember.getTty());
-                                repository.save(rxClassMember);
-                                created ++;
-                            }
+                } finally {
+                    alreadyProcessed.add(classMember.getRxcui());
+                }
+            }
+        }
 
-                        } catch (Exception e) {
-                            logger.error("Error processing related concept for RxClassMember with rxcui {} for rxClass {} - name: {}, tty: {}", relatedMember.getRxcui(), rxClass, relatedMember.getName(), relatedMember.getTty(), e);
+        private List<Concept> getClassMemberList(String relaSource) throws IOException {
+            JsonNode root = getJsonRootNode("https://rxnav.nlm.nih.gov/REST/rxclass/classMembers.json?classId=" + rxClass + "&relaSource=" + relaSource);
+            List<Concept> list = new ArrayList<>();
+            JsonNode drugMemberGroup = root.path("drugMemberGroup");
+            JsonNode drugMember = drugMemberGroup.path("drugMember");
+            if (drugMember.isArray()) {
+                for (JsonNode member : drugMember) {
+                    JsonNode minConcept = member.path("minConcept");
+                    String rxcui = minConcept.path("rxcui").asText();
+                    String name = minConcept.path("name").asText();
+                    String tty = minConcept.path("tty").asText();
+                    list.add(new Concept(rxcui, name, tty));
+                }
+            }
+            return list;
+        }
 
-                        } finally {
-                            alreadyProcessed.add(relatedMember.getRxcui());
+        private List<Concept> getAllRelatedList(String rxCui) throws IOException {
+            JsonNode root = getJsonRootNode("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxCui + "/allrelated.json");
+            List<Concept> list = new ArrayList<>();
+            JsonNode allRelatedGroup = root.path("allRelatedGroup");
+            JsonNode conceptGroupList = allRelatedGroup.path("conceptGroup");
+            if (conceptGroupList.isArray()) {
+                for (JsonNode conceptGroup : conceptGroupList) {
+                    JsonNode conceptProperties = conceptGroup.path("conceptProperties");
+                    if (conceptProperties.isArray()) {
+                        for (JsonNode member : conceptProperties) {
+                            String rxcui = member.path("rxcui").asText();
+                            String name = member.path("name").asText();
+                            String tty = member.path("tty").asText();
+                            list.add(new Concept(rxcui, name, tty));
                         }
                     }
                 }
             }
-
-        } catch (Exception e) {
-            logger.error("error refreshing rxclass members for {}", rxClass, e);
+            return list;
         }
 
-        if ( ! map.isEmpty() ) {
-            List<String> toDelete = map.values().stream().map(RxClassMember::getRxCui).toList();
-            deleted = toDelete.size();
-            logger.debug("Deleting {} RxClassMembers for rxClass {} with rxcui in: [{}]", toDelete.size(), rxClass, StringUtils.join(toDelete, ","));
-            repository.deleteAll(map.values());
-        }
-
-        logger.info("done refreshing definitions for RxClass {} - created: {}, updated: {}, deleted: {} - took {} ms", rxClass, created, updated, deleted, System.currentTimeMillis() - start);
-    }
-
-    private List<Concept> getClassMemberList(String rxClass) throws IOException {
-        JsonNode root;
-
-        HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxclass/classMembers.json?classId=" + rxClass + "&relaSource=ATC");
-        if (response.getResponseCode() >= 200 && response.getResponseCode() <= 300) {
-            logger.debug("got {} response for {} : {}", response.getResponseCode(), rxClass, response.getResponseBody());
-            root = new ObjectMapper().readTree(response.getResponseBody());
-        } else {
-            throw new MyHttpException(response.getResponseCode(), response.getResponseBody());
-        }
-
-        List<Concept> list = new ArrayList<>();
-        JsonNode drugMemberGroup = root.path("drugMemberGroup");
-        JsonNode drugMember = drugMemberGroup.path("drugMember");
-        if (drugMember.isArray()) {
-            for (JsonNode member : drugMember) {
-                JsonNode minConcept = member.path("minConcept");
-                String rxcui = minConcept.path("rxcui").asText();
-                String name = minConcept.path("name").asText();
-                String tty = minConcept.path("tty").asText();
-                list.add(new Concept(rxcui, name, tty));
+        private JsonNode getJsonRootNode(String url) throws IOException {
+            HttpResponse response = new HttpRequest().get(url);
+            if (response.getResponseCode() >= 200 && response.getResponseCode() <= 300) {
+                logger.debug("got {} response for {} : {}", response.getResponseCode(), url, response.getResponseBody());
+                return new ObjectMapper().readTree(response.getResponseBody());
+            } else {
+                throw new MyHttpException(response.getResponseCode(), response.getResponseBody());
             }
         }
-        return list;
-    }
-
-    private List<Concept> getAllRelatedList(String rxCui) throws IOException {
-        JsonNode root;
-
-        HttpResponse response = new HttpRequest().get("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxCui + "/allrelated.json");
-        if (response.getResponseCode() >= 200 && response.getResponseCode() <= 300) {
-            logger.debug("got {} response for {} : {}", response.getResponseCode(), rxCui, response.getResponseBody());
-            root = new ObjectMapper().readTree(response.getResponseBody());
-        } else {
-            throw new MyHttpException(response.getResponseCode(), response.getResponseBody());
-        }
-
-        List<Concept> list = new ArrayList<>();
-        JsonNode allRelatedGroup = root.path("allRelatedGroup");
-        JsonNode conceptGroupList = allRelatedGroup.path("conceptGroup");
-        if (conceptGroupList.isArray()) {
-            for (JsonNode conceptGroup : conceptGroupList) {
-                JsonNode conceptProperties = conceptGroup.path("conceptProperties");
-                if (conceptProperties.isArray()) {
-                    for (JsonNode member : conceptProperties) {
-                        String rxcui = member.path("rxcui").asText();
-                        String name = member.path("name").asText();
-                        String tty = member.path("tty").asText();
-                        list.add(new Concept(rxcui, name, tty));
-                    }
-                }
-            }
-        }
-        return list;
     }
 
     private static final class Concept {
