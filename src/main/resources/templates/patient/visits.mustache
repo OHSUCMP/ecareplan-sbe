@@ -47,6 +47,11 @@
         if (model.serviceType || model.period) {
             card.rows.push([ (model.serviceType ? 'Type: ' + model.serviceType : ''), (model.period ? 'Date (range): ' + model.period : '')]);
         }
+        if (model.participants) {
+            model.participants.forEach(function(participant) {
+                card.rows.push([ 'Participant: ' + participant ]);
+            });
+        }
         if (model.reasons) {
             model.reasons.forEach(function(reason) {
                 card.rows.push([ 'Reason: ' + reason ]);
