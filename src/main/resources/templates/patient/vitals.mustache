@@ -48,7 +48,7 @@
         card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' ]);
         if (model.mostRecentData.performers) {
             model.mostRecentData.performers.forEach(function(performer) {
-                card.rows.push([ performer ]);
+                card.rows.push([ 'Performed by: ' + performer ]);
             });
         }
         if (model.mostRecentData.notes) {
