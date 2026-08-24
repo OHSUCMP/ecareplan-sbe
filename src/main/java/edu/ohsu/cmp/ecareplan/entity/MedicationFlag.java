@@ -2,7 +2,7 @@ package edu.ohsu.cmp.ecareplan.entity;
 
 import jakarta.persistence.*;
 
-import java.util.List;
+import java.util.Date;
 
 @Entity
 @Table(name = "medication_flag")
@@ -11,12 +11,11 @@ public class MedicationFlag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String rxClass;
     private String label;
     private String backgroundColor;
     private String textColor;
-
-    @OneToMany(mappedBy = "medicationFlagId", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private List<MedicationFlagRxClass> rxClassList;
+    private Date lastRefreshed;
 
     public Long getId() {
         return id;
@@ -24,6 +23,14 @@ public class MedicationFlag {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getRxClass() {
+        return rxClass;
+    }
+
+    public void setRxClass(String rxClass) {
+        this.rxClass = rxClass;
     }
 
     public String getLabel() {
@@ -50,11 +57,11 @@ public class MedicationFlag {
         this.textColor = textColor;
     }
 
-    public List<MedicationFlagRxClass> getRxClassList() {
-        return rxClassList;
+    public Date getLastRefreshed() {
+        return lastRefreshed;
     }
 
-    public void setRxClassList(List<MedicationFlagRxClass> rxClassList) {
-        this.rxClassList = rxClassList;
+    public void setLastRefreshed(Date lastRefreshed) {
+        this.lastRefreshed = lastRefreshed;
     }
 }

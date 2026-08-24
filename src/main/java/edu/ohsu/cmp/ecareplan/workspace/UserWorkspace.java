@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.crypto.SecretKey;
@@ -221,7 +222,7 @@ public class UserWorkspace {
             }
         }
 
-        SseEmitter newEmitter = new SseEmitter(600000L);
+        SseEmitter newEmitter = new SseEmitter(3600000L); // 1 hour
         newEmitter.onCompletion(() -> clearEmitter(newEmitter));
         newEmitter.onTimeout(() -> clearEmitter(newEmitter));
         newEmitter.onError((ex) -> clearEmitter(newEmitter));
@@ -245,8 +246,15 @@ public class UserWorkspace {
         if (currentEmitter != null) {
             try {
                 currentEmitter.send(SseEmitter.event().name(eventName).data(payload, MediaType.APPLICATION_JSON));
+
+            } catch (AsyncRequestNotUsableException e) {
+                logger.error("Emitter not usable for sending {} notification - {} (enable debug logging for stack trace)", eventName, e.getMessage());
+                if (logger.isDebugEnabled()) logger.debug(e.getMessage(), e);
+                clearEmitter(currentEmitter);
+
             } catch (IOException e) {
-                logger.error("Error sending {} notification", eventName, e);
+                logger.error("Error sending {} notification - {} (enable debug logging for stack trace)", eventName, e.getMessage());
+                if (logger.isDebugEnabled()) logger.debug(e.getMessage(), e);
                 clearEmitter(currentEmitter);
             }
         }
