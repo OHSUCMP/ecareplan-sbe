@@ -221,7 +221,7 @@ public class UserWorkspace {
             }
         }
 
-        SseEmitter newEmitter = new SseEmitter(600000L);
+        SseEmitter newEmitter = new SseEmitter(3600000L); // 1 hour
         newEmitter.onCompletion(() -> clearEmitter(newEmitter));
         newEmitter.onTimeout(() -> clearEmitter(newEmitter));
         newEmitter.onError((ex) -> clearEmitter(newEmitter));
