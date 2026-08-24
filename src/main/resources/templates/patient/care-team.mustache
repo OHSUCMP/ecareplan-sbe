@@ -44,6 +44,12 @@
         let card = {};
         card.title = model.description;
         card.rows = [];
+        if (model.name) {
+            card.rows.push(['Name: ' + model.name]);
+        }
+        if (model.category) {
+            card.rows.push(['Category: ' + model.category]);
+        }
         if (model.period) {
             card.rows.push(['Time Period: ' + model.period]);
         }
