@@ -63,7 +63,9 @@
             card.history.headers = [ 'Result', 'Effective Date' ];
             card.history.rows = [];
             model.historicalData.forEach(function(data) {
-                card.history.rows.push([ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ]);
+                if (data.resultText) {
+                    card.history.rows.push([ data.resultText, formatDate(data.effectiveDate) ?? '(No Date)' ]);
+                }
             });
         }
 

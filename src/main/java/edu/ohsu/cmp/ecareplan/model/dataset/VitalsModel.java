@@ -1,10 +1,11 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
+import edu.ohsu.cmp.ecareplan.model.view.IVitalsModel;
 import org.hl7.fhir.r4.model.Observation;
 
 import java.util.Date;
 
-public class VitalsModel extends ObservationModel implements Consolidatable<Date> {
+public class VitalsModel extends ObservationModel implements IVitalsModel {
     private final String commonName;
 
     public VitalsModel(Observation observation, String commonName) {
