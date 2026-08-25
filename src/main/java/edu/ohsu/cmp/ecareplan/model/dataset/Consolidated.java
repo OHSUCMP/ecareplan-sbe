@@ -2,7 +2,7 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import java.util.List;
 
-public class Consolidated<T extends Consolidatable> {
+public class Consolidated<T extends Consolidatable<?>> {
     private final T mostRecentData;
     private final List<T> historicalData;
 
