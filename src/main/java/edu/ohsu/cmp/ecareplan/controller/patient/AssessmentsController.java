@@ -4,7 +4,7 @@ import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.model.view.AssessmentModel;
-import edu.ohsu.cmp.ecareplan.service.AssessmentService;
+import edu.ohsu.cmp.ecareplan.service.view.AssessmentsService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ public class AssessmentsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    private AssessmentService assessmentService;
+    private AssessmentsService assessmentsService;
 
     @GetMapping(value = {"", "/"})
     public String view(HttpSession session, Model model) throws Exception {
@@ -68,7 +68,7 @@ public class AssessmentsController extends BasePatientController {
     @PostMapping("models")
     public ResponseEntity<List<AssessmentModel>> getModels(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(assessmentService.getAssessmentModels(session.getId())) :
+                ResponseEntity.ok(assessmentsService.getAssessmentModels(session.getId())) :
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 

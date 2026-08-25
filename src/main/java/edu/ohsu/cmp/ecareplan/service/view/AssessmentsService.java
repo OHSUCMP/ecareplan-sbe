@@ -1,4 +1,4 @@
-package edu.ohsu.cmp.ecareplan.service;
+package edu.ohsu.cmp.ecareplan.service.view;
 
 import edu.ohsu.cmp.ecareplan.entity.Assessment;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
@@ -6,6 +6,7 @@ import edu.ohsu.cmp.ecareplan.model.dataset.QuestionnaireResponseModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.SurveyObservationModel;
 import edu.ohsu.cmp.ecareplan.model.view.AssessmentModel;
 import edu.ohsu.cmp.ecareplan.repository.AssessmentRepository;
+import edu.ohsu.cmp.ecareplan.service.BaseService;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import edu.ohsu.cmp.ecareplan.util.NumberUtil;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
-public class AssessmentService extends BaseService {
+public class AssessmentsService extends BaseService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
