@@ -9,6 +9,8 @@ import java.util.*;
 public class CompositeBloodPressureModel implements IVitalsModel {
     private static final String COMMON_NAME = "Blood Pressure";
 
+    private static final String BP_UNIT = "mmHg";
+
     private final VitalsModel systolicModel;
     private final VitalsModel diastolicModel;
 
@@ -51,7 +53,7 @@ public class CompositeBloodPressureModel implements IVitalsModel {
 
     @Override
     public String getResultText() {
-        return systolicModel.getResultValue().toString() + "/" + diastolicModel.getResultValue().toString() + systolicModel.getResultUnits();
+        return systolicModel.getResultValue().toString() + "/" + diastolicModel.getResultValue().toString() + " " + BP_UNIT;
     }
 
     @Override
@@ -61,7 +63,7 @@ public class CompositeBloodPressureModel implements IVitalsModel {
 
     @Override
     public String getResultUnits() {
-        return systolicModel.getResultUnits();
+        return BP_UNIT;
     }
 
     @Override
