@@ -360,7 +360,7 @@ create unique index idxDataSetSystemCode on resource_categorization_coding(dataS
 
 insert into resource_categorization_coding (dataSetName, codeSystemUrl, code, commonName) values
     ('LAB_RESULTS', 'http://loinc.org', '3024-7', 'Free T4'),
-    ('LAB_RESULTS', 'http://loinc.org', '533349-7', 'Free T4'),
+    ('LAB_RESULTS', 'http://loinc.org', '53349-7', 'Free T4'),
     ('VITALS', 'http://loinc.org', '85354-9', 'Blood Pressure'),
     ('VITALS', 'http://loinc.org', '8302-2', 'Height'),
     ('VITALS', 'http://loinc.org', '29463-7', 'Weight'),
