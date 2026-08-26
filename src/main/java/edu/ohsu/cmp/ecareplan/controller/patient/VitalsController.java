@@ -3,11 +3,13 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.Consolidated;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
-import edu.ohsu.cmp.ecareplan.model.dataset.VitalsModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
+import edu.ohsu.cmp.ecareplan.model.view.IVitalsModel;
+import edu.ohsu.cmp.ecareplan.service.view.VitalsService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,9 @@ import java.util.List;
 @RequestMapping("/patient/vitals")
 public class VitalsController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    @Autowired
+    private VitalsService vitalsService;
 
     @GetMapping(value = {"", "/"})
     public String view(HttpSession session, Model model) throws Exception {
@@ -58,9 +63,9 @@ public class VitalsController extends BasePatientController {
     }
 
     @PostMapping("models")
-    public ResponseEntity<List<Consolidated<VitalsModel>>> getModels(HttpSession session) {
+    public ResponseEntity<List<Consolidated<IVitalsModel>>> getModels(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(consolidate(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.VITALS))) :
+                ResponseEntity.ok(consolidate(vitalsService.getVitalsModels(session.getId()))) :
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 

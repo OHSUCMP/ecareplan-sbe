@@ -2,6 +2,7 @@ package edu.ohsu.cmp.ecareplan.service;
 
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -215,6 +216,10 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                             outcome.getResponseStatusCode(), attempt, maxAttempts);
                                 }
 
+                            } catch (FhirClientConnectionException fcce) {
+                                // Connection refused
+                                throw fcce;
+
                             } catch (Exception e) {
                                 logger.error("caught {} sharing {}/{} from {} for session={} - {}", e.getClass().getSimpleName(),
                                         resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId, e.getMessage());
@@ -230,6 +235,10 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                         logger.error("caught {} sharing {}/{} from {} for session={} - {}", e.getClass().getSimpleName(),
                                 item.getSourceResource().getClass().getSimpleName(), item.getId(), endpoint.getName(), sessionId, e.getMessage());
                         logger.debug(e.getMessage(), e);
+
+                        progress.addError("caught " + e.getClass().getSimpleName() +
+                                " sharing " + item.getSourceResource().getClass().getSimpleName() + "/" + item.getId() +
+                                " from " + endpoint.getName());
 
                     } finally {
                         if (progress.getCurrent() < progress.getTotal()) {

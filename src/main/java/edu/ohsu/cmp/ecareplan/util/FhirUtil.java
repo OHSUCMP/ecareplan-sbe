@@ -581,6 +581,18 @@ public class FhirUtil {
         throw new ConfigurationException("Coding has no system or code specified");
     }
 
+    public static boolean hasCoding(List<CodeableConcept> ccList, List<Coding> specificationCodings) {
+        if (ccList == null || specificationCodings == null) return false;
+
+        for (CodeableConcept cc : ccList) {
+            if (hasCoding(cc, specificationCodings)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * identifies whether a CodeableConcept's list of Codings matches a specification, or not.
      * @param cc a CodeableConcept object that contains one or more Codings
@@ -593,6 +605,18 @@ public class FhirUtil {
 
         for (Coding spec : specificationCodings) {
             if (hasCoding(cc, spec)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean hasCoding(List<CodeableConcept> ccList, Coding specificationCoding) {
+        if (ccList == null || specificationCoding == null) return false;
+
+        for (CodeableConcept cc : ccList) {
+            if (hasCoding(cc, specificationCoding)) {
                 return true;
             }
         }
