@@ -292,7 +292,6 @@ insert into resource_categorization_valueset (dataSetName, valuesetName, valuese
     ('LAB_RESULTS', 'Estimated Glomerular Filtration Rate NKF', '2.16.840.1.113883.3.6929.3.1000', 'eGFR'),
     ('LAB_RESULTS', 'Fasting Blood Glucose', '2.16.840.1.113762.1.4.1222.808', 'Fasting Blood Glucose'),
     ('LAB_RESULTS', 'Ferritin', '2.16.840.1.113762.1.4.1222.140', 'Ferritin'),
-    ('LAB_RESULTS', 'Free T4 (Thyroxine) Test', '2.16.840.1.113883.3.7643.2.1019', 'Free T4 (Thyroxine)'),
     ('LAB_RESULTS', 'Gamma Glutamyl Transpeptidase (Ggt) in blood, serum or plasma', '2.16.840.1.113762.1.4.1222.806', 'Gamma Glutamyl Transpeptidase (Ggt)'),
     ('LAB_RESULTS', 'Gastric Tissue Biopsy Report', '2.16.840.1.113762.1.4.1222.869', 'Gastric Tissue Biopsy Report'),
     ('LAB_RESULTS', 'Glucose Tolerance Test Results', '2.16.840.1.113762.1.4.1032.94', 'Glucose Tolerance'),
