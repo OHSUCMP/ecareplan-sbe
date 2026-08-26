@@ -47,10 +47,8 @@ public class VitalsService extends BaseService {
                 }
 
                 if (individualSystolic) {
-                    logger.debug("found systolic reading for BP reading on {} from {}", effectiveDateStr, iss);
                     map.get(iss).get(effectiveDateStr).setSystolic(vm);
                 } else {
-                    logger.debug("found diastolic reading for BP reading on {} from {}", effectiveDateStr, iss);
                     map.get(iss).get(effectiveDateStr).setDiastolic(vm);
                 }
 
@@ -62,7 +60,9 @@ public class VitalsService extends BaseService {
         for (Map<String, BloodPressureComponents> m : map.values()) {   // iterate over sources
             for (BloodPressureComponents bpc : m.values()) {            // iterate over generated pairs
                 if (bpc.getSystolic() != null && bpc.getDiastolic() != null) {
-                    logger.debug("Found matching systolic and diastolic components for composite BP reading (systolic resource ID: {}, diastolic resource ID: {})",
+                    logger.debug("Found matching systolic and diastolic components for composite BP reading {}/{} at {} (systolic resource ID: {}, diastolic resource ID: {})",
+                            bpc.getSystolic().getResultValue(), bpc.getDiastolic().getResultValue(),
+                            bpc.getSystolic().getEffectiveDate(),
                             bpc.getSystolic().getId(), bpc.getDiastolic().getId());
                     list.add(new CompositeBloodPressureModel(bpc.getSystolic(), bpc.getDiastolic()));
 
