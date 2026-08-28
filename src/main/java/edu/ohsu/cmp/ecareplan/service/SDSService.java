@@ -194,8 +194,8 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                         boolean success = false;
                         while ( ! success && attempt++ < maxAttempts ) {
                             if (attempt > 1) {
-                                logger.info("Re-attempting share of {}/{} from {} for session {} ({}/{})",
-                                        resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId, attempt, maxAttempts);
+                                logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
+                                        id, endpoint.getName(), sessionId, attempt, maxAttempts);
                             }
 
                             try {
@@ -207,13 +207,12 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 
                                 success = outcome.getResponseStatusCode() >= 200 && outcome.getResponseStatusCode() < 300;
                                 if (success) {
-                                    logger.info("Successfully shared {}/{} from {} for session={}",
-                                            resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId);
+                                    logger.info("Successfully shared {} from {} for session={}",
+                                            id, endpoint.getName(), sessionId);
 
                                 } else {
-                                    logger.debug("Failed sharing {}/{} from {} with status code {} ({}/{})",
-                                            resource.getClass().getSimpleName(), id, endpoint.getName(),
-                                            outcome.getResponseStatusCode(), attempt, maxAttempts);
+                                    logger.debug("Failed sharing {} from {} with status code {} ({}/{})",
+                                            id, endpoint.getName(), outcome.getResponseStatusCode(), attempt, maxAttempts);
                                 }
 
                             } catch (FhirClientConnectionException fcce) {
@@ -221,14 +220,14 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                 throw fcce;
 
                             } catch (Exception e) {
-                                logger.error("caught {} sharing {}/{} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                        resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId, e.getMessage());
+                                logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
+                                        id, endpoint.getName(), sessionId, e.getMessage());
                                 logger.debug(e.getMessage(), e);
                             }
                         }
 
                         if ( ! success ) {
-                            progress.addError("Failed to share " + resource.getClass().getSimpleName() + "/" + id);
+                            progress.addError("Failed to share " + id);
                         }
 
                     } catch (Exception e) {
