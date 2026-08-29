@@ -6,6 +6,7 @@ import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
+import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
@@ -227,6 +228,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                         }
 
                         if ( ! success ) {
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, "share to SDS", "failed to share " + id + " from " + endpoint.getName());
                             progress.addError("Failed to share " + id);
                         }
 
@@ -235,9 +237,17 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                 item.getSourceResource().getClass().getSimpleName(), item.getId(), endpoint.getName(), sessionId, e.getMessage());
                         logger.debug(e.getMessage(), e);
 
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "share to SDS",
+                                "caught " + e.getClass().getSimpleName() + " sharing " + item.getSourceResource().getClass().getSimpleName() +
+                                "/" + item.getId() + " from " + endpoint.getName());
+
                         progress.addError("caught " + e.getClass().getSimpleName() +
                                 " sharing " + item.getSourceResource().getClass().getSimpleName() + "/" + item.getId() +
                                 " from " + endpoint.getName());
+
+                        if (e instanceof FhirClientConnectionException fcce) {
+                            throw fcce;
+                        }
 
                     } finally {
                         if (progress.getCurrent() < progress.getTotal()) {

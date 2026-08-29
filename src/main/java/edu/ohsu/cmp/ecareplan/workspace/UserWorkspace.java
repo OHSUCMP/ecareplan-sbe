@@ -360,9 +360,9 @@ public class UserWorkspace {
 
                         } catch (Exception e) {
                             logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, "endpoint population",
+                                    "caught " + e.getClass().getSimpleName() + "populating " + dataSet.getName() + " from " + endpoint.getName() + " - " + e.getMessage());
                             addProgressError(endpoint, dataSet, e.getMessage());
-
-                            // todo : depending on the type of error, perhaps retry?
 
                         } finally {
                             updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
@@ -667,31 +667,31 @@ public class UserWorkspace {
 
             } catch (Exception e) {
                 if (e instanceof ForbiddenOperationException) {
-
-                    // todo : report this to the UI
-
-                    logger.warn("attempt to retrieve {} from {} was forbidden - {}",
+                    logger.error("attempt to retrieve {} from {} was forbidden - {}",
                             dataSet.getName(), endpoint.getName(), e.getMessage());
-                    auditService.doAudit(sessionId, AuditSeverity.WARN, "cache population", "retrieving " + dataSet.getName() +
-                            " from " + endpoint.getName() + " was forbidden");
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (ForbiddenOperationException) e;
+
+                    } else {
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
+                                " from " + endpoint.getName() + " was forbidden");
+                        addProgressError(endpoint, dataSet, e.getMessage());
                     }
 
                 } else if (e instanceof InvalidRequestException) {
-
-                    // todo : report this error to the UI
-
                     logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - {}",
                             dataSet.getName(), endpoint.getName(), e.getMessage());
-                    auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
-                            dataSet.getName() + " from " + endpoint.getName());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (InvalidRequestException) e;
+
+                    } else {
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
+                                dataSet.getName() + " from " + endpoint.getName());
+                        addProgressError(endpoint, dataSet, e.getMessage());
                     }
 
                 } else if (e instanceof AuthenticationException ae) {
