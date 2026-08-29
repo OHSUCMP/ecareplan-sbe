@@ -6,6 +6,7 @@ import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
+import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
@@ -194,8 +195,8 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                         boolean success = false;
                         while ( ! success && attempt++ < maxAttempts ) {
                             if (attempt > 1) {
-                                logger.info("Re-attempting share of {}/{} from {} for session {} ({}/{})",
-                                        resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId, attempt, maxAttempts);
+                                logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
+                                        id, endpoint.getName(), sessionId, attempt, maxAttempts);
                             }
 
                             try {
@@ -207,13 +208,12 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 
                                 success = outcome.getResponseStatusCode() >= 200 && outcome.getResponseStatusCode() < 300;
                                 if (success) {
-                                    logger.info("Successfully shared {}/{} from {} for session={}",
-                                            resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId);
+                                    logger.info("Successfully shared {} from {} for session={}",
+                                            id, endpoint.getName(), sessionId);
 
                                 } else {
-                                    logger.debug("Failed sharing {}/{} from {} with status code {} ({}/{})",
-                                            resource.getClass().getSimpleName(), id, endpoint.getName(),
-                                            outcome.getResponseStatusCode(), attempt, maxAttempts);
+                                    logger.debug("Failed sharing {} from {} with status code {} ({}/{})",
+                                            id, endpoint.getName(), outcome.getResponseStatusCode(), attempt, maxAttempts);
                                 }
 
                             } catch (FhirClientConnectionException fcce) {
@@ -221,14 +221,15 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                 throw fcce;
 
                             } catch (Exception e) {
-                                logger.error("caught {} sharing {}/{} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                        resource.getClass().getSimpleName(), id, endpoint.getName(), sessionId, e.getMessage());
+                                logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
+                                        id, endpoint.getName(), sessionId, e.getMessage());
                                 logger.debug(e.getMessage(), e);
                             }
                         }
 
                         if ( ! success ) {
-                            progress.addError("Failed to share " + resource.getClass().getSimpleName() + "/" + id);
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, "share to SDS", "failed to share " + id + " from " + endpoint.getName());
+                            progress.addError("Failed to share " + id);
                         }
 
                     } catch (Exception e) {
@@ -236,9 +237,17 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                 item.getSourceResource().getClass().getSimpleName(), item.getId(), endpoint.getName(), sessionId, e.getMessage());
                         logger.debug(e.getMessage(), e);
 
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "share to SDS",
+                                "caught " + e.getClass().getSimpleName() + " sharing " + item.getSourceResource().getClass().getSimpleName() +
+                                "/" + item.getId() + " from " + endpoint.getName());
+
                         progress.addError("caught " + e.getClass().getSimpleName() +
                                 " sharing " + item.getSourceResource().getClass().getSimpleName() + "/" + item.getId() +
                                 " from " + endpoint.getName());
+
+                        if (e instanceof FhirClientConnectionException fcce) {
+                            throw fcce;
+                        }
 
                     } finally {
                         if (progress.getCurrent() < progress.getTotal()) {

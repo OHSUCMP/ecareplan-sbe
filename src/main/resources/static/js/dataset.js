@@ -238,6 +238,7 @@ function refreshProgress() {
                 setTimeout(refreshProgress, 5000);
 
             } else if (isAllProgressComplete(progressData)) {
+                logCompletedProgressErrors(progressData);
                 setTimeout(clearProgress, 30000);
             }
         }
@@ -263,6 +264,35 @@ function isAllProgressComplete(progressData) {
     return Array.isArray(progressData)
         && progressData.length > 0
         && progressData.every(item => item.status === 'COMPLETED');
+}
+
+function logCompletedProgressErrors(progressData) {
+    if (!Array.isArray(progressData) || progressData.length === 0) {
+        return;
+    }
+
+    let progressWithErrors = progressData.filter(item => item.errors && item.errors.length > 0);
+    if (progressWithErrors.length === 0) {
+        return;
+    }
+
+    console.group('Progress completed with errors');
+
+    progressWithErrors.forEach(function(item) {
+        console.group(item.label ?? 'Progress Item');
+
+        if (item.message) {
+            console.log(item.message);
+        }
+
+        item.errors.forEach(function(error) {
+            console.error(error);
+        });
+
+        console.groupEnd();
+    });
+
+    console.groupEnd();
 }
 
 function clearProgress() {
@@ -323,6 +353,9 @@ function renderProgressData(progressData, detailsExpanded = false) {
     }
 
     let summaryPercentComplete = getProgressSummaryPercentComplete(progressData);
+    let hasErrors = progressData.some(item => item.errors && item.errors.length > 0);
+    let summaryLabel = 'Overall Progress: ' + summaryPercentComplete + '% Complete' +
+        (hasErrors ? ' - Some items have errors' : '');
     let collapseClass = detailsExpanded ? ' show' : '';
     let buttonCollapsedClass = detailsExpanded ? '' : ' collapsed';
     let ariaExpanded = detailsExpanded ? 'true' : 'false';
@@ -333,7 +366,7 @@ function renderProgressData(progressData, detailsExpanded = false) {
         '<button class="accordion-button progress-summary-button' + buttonCollapsedClass + '" type="button"' +
         ' data-bs-toggle="collapse" data-bs-target="#progressDetails"' +
         ' aria-expanded="' + ariaExpanded + '" aria-controls="progressDetails">' +
-        renderProgressBar(summaryPercentComplete, 'Overall Progress: ' + summaryPercentComplete + '% Complete', 'progress-summary-bar') +
+        renderProgressBar(summaryPercentComplete, summaryLabel, 'progress-summary-bar') +
         '</button>' +
         '</h2>' +
         '<div id="progressDetails" class="accordion-collapse collapse' + collapseClass + '"' +
