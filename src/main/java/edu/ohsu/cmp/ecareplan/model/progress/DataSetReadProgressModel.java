@@ -26,7 +26,7 @@ public class DataSetReadProgressModel extends BaseProgressModel implements IProg
 
     @Override
     public String getLabel() {
-        return dataSet.getName();
+        return dataSet.getDisplay();
     }
 
     @Override
