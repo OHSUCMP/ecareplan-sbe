@@ -72,29 +72,30 @@ public class PatientHomeController extends BasePatientController {
 
         if (userWorkspaceService.exists(session.getId())) {
             UserWorkspace workspace = userWorkspaceService.get(session.getId());
-            Long endpointId = workspace.getCurrentlyLaunchingEndpointId();
-            if (endpointId != null) {
-                UserEndpoint userEndpoint = workspace.getOrCreateUserEndpoint(endpointId, patientId);
-                Endpoint endpoint = userEndpoint.getEndpoint();
-                if (endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
-                    FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
-                    workspace.configureUserEndpointCredentials(userEndpoint, credentials);
-                    workspace.populateEndpoint(userEndpoint.getEndpoint());
-                    auditService.doAudit(session.getId(), AuditSeverity.INFO, "endpoint connected", "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
-                    return ResponseEntity.ok("handshake completed");
-                }
+            Endpoint endpoint = workspace.getCurrentlyLaunchingEndpoint();
+            if (endpoint != null && endpoint.getClientId().equals(clientId) && endpoint.getIss().equals(serverUrl)) {
+                UserEndpoint userEndpoint = workspace.getOrCreateUserEndpoint(endpoint, patientId);
+                FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
+                workspace.configureUserEndpointCredentials(userEndpoint, credentials);
+                workspace.populateEndpoint(userEndpoint.getEndpoint());
+
+                auditService.doAudit(session.getId(), AuditSeverity.INFO, "third-party endpoint connected",
+                        "endpoint=" + endpoint.getName() + " (" + endpoint.getIss() + ")");
+
+                return ResponseEntity.ok("handshake completed");
             }
         }
 
         Endpoint patientEndpoint = endpointService.getPatientLaunchEndpoint();
         if ( ! patientEndpoint.getClientId().equals(clientId) || ! patientEndpoint.getIss().equals(serverUrl) ) {
             logger.error("clientId or serverUrl do not match expected values for PATIENT context (clientId={}, serverUrl={})", clientId, serverUrl);
+
             auditService.doAudit(session.getId(), AuditSeverity.WARN, "invalid launch", "received invalid clientId or serverUrl for PATIENT context");
+
             return ResponseEntity.badRequest().body("invalid clientId or serverUrl");
         }
 
         FHIRCredentials credentials = new FHIRCredentials(clientId, serverUrl, bearerToken, patientId, userId);
-
         sessionService.prepareSession(session.getId(), credentials, Audience.PATIENT);
 
         return ResponseEntity.ok("patient session established");

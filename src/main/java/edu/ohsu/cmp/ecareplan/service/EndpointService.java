@@ -75,6 +75,10 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return endpointRepository.findByName(careTeamEndpointName);
     }
 
+    public Endpoint getEndpoint(Long endpointId) {
+        return endpointRepository.findById(endpointId).orElseThrow();
+    }
+
     public List<EndpointModel> getAllThirdPartyEndpoints() {
         List<EndpointModel> list = new ArrayList<>();
         for (Endpoint endpoint : endpointRepository.findAll(Sort.by("name").ascending())) {
@@ -91,14 +95,14 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return userEndpointRepository.findByUserId(userId);
     }
 
-    public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
-        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElseThrow();
+    public UserEndpoint getUserEndpoint(Long userId, Endpoint endpoint) {
+        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpoint.getId()).orElseThrow();
     }
 
-    public UserEndpoint createUserEndpoint(Long userId, Long endpointId, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
+    public UserEndpoint createUserEndpoint(Long userId, Endpoint endpoint, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         UserEndpoint ue = new UserEndpoint();
         ue.setUserId(userId);
-        ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
+        ue.setEndpoint(endpoint);
         ue.setEncryptedPatientId(CryptoUtil.encrypt(fhirPatientId, secretKey));
         if (refreshToken != null) ue.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
         ue.setCreated(new Date());

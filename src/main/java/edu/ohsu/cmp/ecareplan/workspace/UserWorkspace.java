@@ -67,7 +67,7 @@ public class UserWorkspace {
 
     private SecretKey secretKey;
 
-    private Long currentlyLaunchingEndpointId = null;
+    private Endpoint currentlyLaunchingEndpoint = null;
 
     private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
 
@@ -110,7 +110,7 @@ public class UserWorkspace {
         endpointPatientIdMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
-        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
+        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint, launchCredentials.getPatientId());
         configureUserEndpointCredentials(launchUserEndpoint, launchCredentials);
 
         endpointReadProgressMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -127,7 +127,7 @@ public class UserWorkspace {
     public String getPatientIdForEndpoint(Endpoint endpoint) {
         if ( ! endpointPatientIdMap.containsKey(endpoint.getId()) ) {
             try {
-                UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint);
                 endpointPatientIdMap.put(endpoint.getId(), CryptoUtil.decrypt(userEndpoint.getEncryptedPatientId(), secretKey));
             } catch (Exception e) {
                 if (e instanceof RuntimeException re) {
@@ -140,14 +140,14 @@ public class UserWorkspace {
         return endpointPatientIdMap.get(endpoint.getId());
     }
 
-    public UserEndpoint getOrCreateUserEndpoint(Long endpointId, String patientId) {
+    public UserEndpoint getOrCreateUserEndpoint(Endpoint endpoint, String fhirPatientId) {
         UserEndpoint userEndpoint;
         try {
-            userEndpoint = endpointService.getUserEndpoint(userId, endpointId);
+            userEndpoint = endpointService.getUserEndpoint(userId, endpoint);
         } catch (NoSuchElementException e) {
             logger.warn("caught {} getting launch user endpoint for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
             try {
-                userEndpoint = endpointService.createUserEndpoint(userId, endpointId, patientId, null, secretKey);
+                userEndpoint = endpointService.createUserEndpoint(userId, endpoint, fhirPatientId, null, secretKey);
             } catch (Exception e1) {
                 logger.error("caught {} creating launch user endpoint for session {} - {}", e1.getClass().getSimpleName(), sessionId, e1.getMessage());
                 if (e1 instanceof RuntimeException re) {
@@ -324,7 +324,7 @@ public class UserWorkspace {
         //        if a valid one isn't present, prior to populating data sets
 
         // preliminary sanity check
-        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint.getId());
+        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint);
         UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
         if (uec == null && ue.getLastSyncCompleted() == null) {
             logger.debug("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS", endpoint.getName());
@@ -377,7 +377,7 @@ public class UserWorkspace {
                                 future.get(); // waits until this task completes
                             }
                             logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
-                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint);
                             endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
 
                         } catch (InterruptedException e) {
@@ -515,12 +515,12 @@ public class UserWorkspace {
         return new GenericResourceTransformer(rcs);
     }
 
-    public void setCurrentlyLaunchingEndpointId(Long endpointId) {
-        currentlyLaunchingEndpointId = endpointId;
+    public void setCurrentlyLaunchingEndpoint(Endpoint endpoint) {
+        currentlyLaunchingEndpoint = endpoint;
     }
 
-    public Long getCurrentlyLaunchingEndpointId() {
-        return currentlyLaunchingEndpointId;
+    public Endpoint getCurrentlyLaunchingEndpoint() {
+        return currentlyLaunchingEndpoint;
     }
 
     public List<EndpointModel> getAllActiveEndpointModels() {
