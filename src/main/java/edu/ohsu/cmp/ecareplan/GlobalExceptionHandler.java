@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -23,8 +24,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Object handleException(HttpSession session, HttpServletRequest request, HttpServletResponse response, Exception e) {
-        if (e instanceof SessionMissingException) {
-            logger.error("trapped " + e.getClass().getName() + " at " + request.getRequestURI() +
+        if (e instanceof SessionMissingException || e instanceof AsyncRequestNotUsableException) {
+            logger.debug("trapped " + e.getClass().getName() + " at " + request.getRequestURI() +
                     " for session " + session.getId());
 
         } else {
