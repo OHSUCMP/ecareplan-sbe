@@ -53,7 +53,7 @@ public class UserWorkspace {
     private final Audience audience;
     private final Integer socketTimeout;
     private final FHIRCredentials launchCredentials;
-    private final Long userId;
+    private final User user;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
     private final Map<Long, String> endpointPatientIdMap;
@@ -86,11 +86,9 @@ public class UserWorkspace {
         auditService = ctx.getBean(AuditService.class);
 
         UserService userService = ctx.getBean(UserService.class);
-        User user = userService.getUser(
+        user = userService.getUser(
                 launchCredentials.getPatientId()
         );
-
-        userId = user.getId();
 
         // generate a secret key that can be used to encrypt and decrypt sensitive database assets
         // presently, the user's FHIR Patient ID is used as the password that undergirds this key, which admittedly
@@ -127,7 +125,7 @@ public class UserWorkspace {
     public String getPatientIdForEndpoint(Endpoint endpoint) {
         if ( ! endpointPatientIdMap.containsKey(endpoint.getId()) ) {
             try {
-                UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint);
+                UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
                 endpointPatientIdMap.put(endpoint.getId(), CryptoUtil.decrypt(userEndpoint.getEncryptedPatientId(), secretKey));
             } catch (Exception e) {
                 if (e instanceof RuntimeException re) {
@@ -143,11 +141,11 @@ public class UserWorkspace {
     public UserEndpoint getOrCreateUserEndpoint(Endpoint endpoint, String fhirPatientId) {
         UserEndpoint userEndpoint;
         try {
-            userEndpoint = endpointService.getUserEndpoint(userId, endpoint);
+            userEndpoint = endpointService.getUserEndpoint(user, endpoint);
         } catch (NoSuchElementException e) {
             logger.warn("caught {} getting launch user endpoint for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
             try {
-                userEndpoint = endpointService.createUserEndpoint(userId, endpoint, fhirPatientId, null, secretKey);
+                userEndpoint = endpointService.createUserEndpoint(user, endpoint, fhirPatientId, null, secretKey);
             } catch (Exception e1) {
                 logger.error("caught {} creating launch user endpoint for session {} - {}", e1.getClass().getSimpleName(), sessionId, e1.getMessage());
                 if (e1 instanceof RuntimeException re) {
@@ -313,12 +311,12 @@ public class UserWorkspace {
     }
 
     public Long getUserId() {
-        return userId;
+        return user.getId();
     }
 
     public void populate() {
         resetAllProgress();
-        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             populateEndpoint(ue.getEndpoint());
         }
     }
@@ -329,7 +327,7 @@ public class UserWorkspace {
         //        if a valid one isn't present, prior to populating data sets
 
         // preliminary sanity check
-        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint);
+        UserEndpoint ue = endpointService.getUserEndpoint(user, endpoint);
         UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
         if (uec == null && ue.getLastSyncCompleted() == null) {
             logger.debug("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS", endpoint.getName());
@@ -384,7 +382,7 @@ public class UserWorkspace {
                                 future.get(); // waits until this task completes
                             }
                             logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
-                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint);
+                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
                             endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
 
                         } catch (InterruptedException e) {
@@ -585,7 +583,7 @@ public class UserWorkspace {
 
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
-        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             Endpoint endpoint = null;
             if (ue.getLastSyncCompleted() != null) {
                 endpoint = ue.getEndpoint();
@@ -629,7 +627,7 @@ public class UserWorkspace {
     public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint, IDataSetBuilder dataSetBuilder) {
         return (List<T>) cache.get(buildDataSetEndpointKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
-            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,
+            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, user.getId(),
                     endpoint.getName());
 
             List<? extends BaseDataSetModel<?>> list = null;
@@ -715,7 +713,7 @@ public class UserWorkspace {
             }
 
             logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
-                    userId, endpoint.getName(), (System.currentTimeMillis() - start));
+                    user.getId(), endpoint.getName(), (System.currentTimeMillis() - start));
 
             return list != null ?
                     list :

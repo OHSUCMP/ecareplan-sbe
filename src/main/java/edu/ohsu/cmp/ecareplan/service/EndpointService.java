@@ -2,6 +2,7 @@ package edu.ohsu.cmp.ecareplan.service;
 
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
+import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -91,17 +92,17 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return list;
     }
 
-    public List<UserEndpoint> getAllUserEndpoints(Long userId) {
-        return userEndpointRepository.findByUserId(userId);
+    public List<UserEndpoint> getAllUserEndpoints(User user) {
+        return userEndpointRepository.findByUserId(user.getId());
     }
 
-    public UserEndpoint getUserEndpoint(Long userId, Endpoint endpoint) {
-        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpoint.getId()).orElseThrow();
+    public UserEndpoint getUserEndpoint(User user, Endpoint endpoint) {
+        return userEndpointRepository.findByUserIdAndEndpointId(user.getId(), endpoint.getId()).orElseThrow();
     }
 
-    public UserEndpoint createUserEndpoint(Long userId, Endpoint endpoint, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
+    public UserEndpoint createUserEndpoint(User user, Endpoint endpoint, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         UserEndpoint ue = new UserEndpoint();
-        ue.setUserId(userId);
+        ue.setUserId(user.getId());
         ue.setEndpoint(endpoint);
         ue.setEncryptedPatientId(CryptoUtil.encrypt(fhirPatientId, secretKey));
         if (refreshToken != null) ue.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
