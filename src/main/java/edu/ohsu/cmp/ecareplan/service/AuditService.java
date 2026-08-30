@@ -1,6 +1,6 @@
 package edu.ohsu.cmp.ecareplan.service;
 
-import edu.ohsu.cmp.ecareplan.entity.Audit;
+import edu.ohsu.cmp.ecareplan.entity.AuditData;
 import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.repository.AuditRepository;
@@ -23,7 +23,7 @@ public class AuditService {
     public void doAudit(String sessionId, AuditSeverity severity, String action) {
         if (userWorkspaceService.exists(sessionId)) {
             Long userId = userWorkspaceService.get(sessionId).getUserId();
-            doAudit(new Audit(userId, severity, action));
+            doAudit(new AuditData(userId, severity, action));
 
         } else {
             logger.warn("attempted to generate audit for nonexistent session " + sessionId + ": severity=" + severity +
@@ -33,8 +33,8 @@ public class AuditService {
 
     public void doAudit(String sessionId, AuditSeverity severity, String action, String details) {
         if (userWorkspaceService.exists(sessionId)) {
-            Long patId = userWorkspaceService.get(sessionId).getUserId();
-            doAudit(new Audit(patId, severity, action, details));
+            Long userId = userWorkspaceService.get(sessionId).getUserId();
+            doAudit(new AuditData(userId, severity, action, details));
 
         } else {
             logger.warn("attempted to generate audit for nonexistent session " + sessionId + ": severity=" + severity +
@@ -47,22 +47,22 @@ public class AuditService {
     }
 
     public void doAudit(User user, AuditSeverity severity, String action, String details) {
-        doAudit(new Audit(user.getId(), severity, action, details));
+        doAudit(new AuditData(user.getId(), severity, action, details));
     }
 
 
-    private void doAudit(Audit audit) {
+    private void doAudit(AuditData auditData) {
         try {
             if (logger.isDebugEnabled()) {
-                Audit generatedAudit = repository.save(audit);
-                logger.debug("generated " + generatedAudit);
+                AuditData generatedAuditData = repository.save(auditData);
+                logger.debug("generated " + generatedAuditData);
 
             } else {
-                repository.save(audit);
+                repository.save(auditData);
             }
 
         } catch (Exception e) {
-            logger.error("caught " + e.getClass().getName() + " attempting to create " + audit + " - " + e.getMessage(), e);
+            logger.error("caught " + e.getClass().getName() + " attempting to create " + auditData + " - " + e.getMessage(), e);
         }
     }
 }
