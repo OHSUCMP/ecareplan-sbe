@@ -10,7 +10,7 @@ import org.springframework.ui.Model;
 import java.util.*;
 
 public class BasePatientController extends BaseController {
-    private static final String APPLICATION_NAME = "MyCarePlanner (SBE)";
+    private static final String APPLICATION_NAME = "MyCarePlanner";
 
     @Autowired
     protected SessionService sessionService;
