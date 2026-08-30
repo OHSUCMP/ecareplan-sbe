@@ -3,23 +3,23 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 import java.util.*;
 
 public final class DataSet<T extends BaseDataSetModel<?>> {
-    public static final DataSet<PatientModel> PATIENT = new DataSet<>("PATIENT", PatientModel.class, 1);
-    public static final DataSet<CarePlanModel> CARE_PLANS = new DataSet<>("CARE_PLANS", CarePlanModel.class, 3);
-    public static final DataSet<CareTeamModel> CARE_TEAMS = new DataSet<>("CARE_TEAMS", CareTeamModel.class, 2);
-    public static final DataSet<ClinicalNoteModel> CLINICAL_NOTES = new DataSet<>("CLINICAL_NOTES", ClinicalNoteModel.class, 4);
-    public static final DataSet<ConditionModel> CONDITIONS = new DataSet<>("CONDITIONS", ConditionModel.class, 2);
-    public static final DataSet<DiagnosticReportModel> DIAGNOSTIC_REPORTS = new DataSet<>("DIAGNOSTIC_REPORTS", DiagnosticReportModel.class, 3);
-    public static final DataSet<EncounterModel> ENCOUNTERS = new DataSet<>("ENCOUNTERS", EncounterModel.class, 2);
-    public static final DataSet<GoalModel> GOALS = new DataSet<>("GOALS", GoalModel.class, 2);
-    public static final DataSet<ImmunizationModel> IMMUNIZATIONS = new DataSet<>("IMMUNIZATIONS", ImmunizationModel.class, 2);
-    public static final DataSet<LabResultModel> LAB_RESULTS = new DataSet<>("LAB_RESULTS", LabResultModel.class, 2);
-    public static final DataSet<MedicationModel> MEDICATIONS = new DataSet<>("MEDICATIONS", MedicationModel.class, 2);
-    public static final DataSet<ProcedureModel> PROCEDURES = new DataSet<>("PROCEDURES", ProcedureModel.class, 3);
-    public static final DataSet<QuestionnaireResponseModel> QUESTIONNAIRE_RESPONSES = new DataSet<>("QUESTIONNAIRE_RESPONSES", QuestionnaireResponseModel.class, 2);
-    public static final DataSet<ServiceRequestModel> SERVICE_REQUESTS = new DataSet<>("SERVICE_REQUESTS", ServiceRequestModel.class, 2);
-    public static final DataSet<SocialHistoryModel> SOCIAL_HISTORIES = new DataSet<>("SOCIAL_HISTORIES", SocialHistoryModel.class, 3);
-    public static final DataSet<SurveyObservationModel> SURVEY_OBSERVATIONS = new DataSet<>("SURVEY_OBSERVATIONS", SurveyObservationModel.class, 3);
-    public static final DataSet<VitalsModel> VITALS = new DataSet<>("VITALS", VitalsModel.class, 2);
+    public static final DataSet<PatientModel> PATIENT = new DataSet<>("PATIENT", "Patient", PatientModel.class, 1);
+    public static final DataSet<CarePlanModel> CARE_PLANS = new DataSet<>("CARE_PLANS", "Care Plans", CarePlanModel.class, 3);
+    public static final DataSet<CareTeamModel> CARE_TEAMS = new DataSet<>("CARE_TEAMS", "Care Teams", CareTeamModel.class, 2);
+    public static final DataSet<ClinicalNoteModel> CLINICAL_NOTES = new DataSet<>("CLINICAL_NOTES", "Clinical Notes", ClinicalNoteModel.class, 4);
+    public static final DataSet<ConditionModel> CONDITIONS = new DataSet<>("CONDITIONS", "Conditions", ConditionModel.class, 2);
+    public static final DataSet<DiagnosticReportModel> DIAGNOSTIC_REPORTS = new DataSet<>("DIAGNOSTIC_REPORTS", "Diagnostic Reports", DiagnosticReportModel.class, 3);
+    public static final DataSet<EncounterModel> ENCOUNTERS = new DataSet<>("ENCOUNTERS", "Encounters", EncounterModel.class, 2);
+    public static final DataSet<GoalModel> GOALS = new DataSet<>("GOALS", "Goals", GoalModel.class, 2);
+    public static final DataSet<ImmunizationModel> IMMUNIZATIONS = new DataSet<>("IMMUNIZATIONS", "Immunizations", ImmunizationModel.class, 2);
+    public static final DataSet<LabResultModel> LAB_RESULTS = new DataSet<>("LAB_RESULTS", "Lab Results", LabResultModel.class, 2);
+    public static final DataSet<MedicationModel> MEDICATIONS = new DataSet<>("MEDICATIONS", "Medications", MedicationModel.class, 2);
+    public static final DataSet<ProcedureModel> PROCEDURES = new DataSet<>("PROCEDURES", "Procedures", ProcedureModel.class, 3);
+    public static final DataSet<QuestionnaireResponseModel> QUESTIONNAIRE_RESPONSES = new DataSet<>("QUESTIONNAIRE_RESPONSES", "Questionnaire Responses", QuestionnaireResponseModel.class, 2);
+    public static final DataSet<ServiceRequestModel> SERVICE_REQUESTS = new DataSet<>("SERVICE_REQUESTS", "Service Requests", ServiceRequestModel.class, 2);
+    public static final DataSet<SocialHistoryModel> SOCIAL_HISTORIES = new DataSet<>("SOCIAL_HISTORIES", "Social Histories", SocialHistoryModel.class, 3);
+    public static final DataSet<SurveyObservationModel> SURVEY_OBSERVATIONS = new DataSet<>("SURVEY_OBSERVATIONS", "Survey Observations", SurveyObservationModel.class, 3);
+    public static final DataSet<VitalsModel> VITALS = new DataSet<>("VITALS", "Vitals", VitalsModel.class, 2);
 
     public static final Map<String, DataSet<?>> DATASET_MAP = new LinkedHashMap<>();
     static {
@@ -59,11 +59,13 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
     }
 
     private final String name;
+    private final String display;
     private final Class<T> modelClass;
     private final int priority;
 
-    private DataSet(String name, Class<T> modelClass, int priority) {
+    private DataSet(String name, String display, Class<T> modelClass, int priority) {
         this.name = name;
+        this.display = display;
         this.modelClass = modelClass;
         this.priority = priority;
     }
@@ -75,6 +77,10 @@ public final class DataSet<T extends BaseDataSetModel<?>> {
 
     public String getName() {
         return name;
+    }
+
+    public String getDisplay() {
+        return display;
     }
 
     public Class<T> getModelClass() {

@@ -60,7 +60,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
             DataSet<?> dataSet = dataSetStatusMap.entrySet().stream()
                     .filter(e -> e.getValue() == ProgressStatus.RUNNING)
                     .findFirst().get().getKey();
-            return "Reading dataset: " + dataSet.getName();
+            return "Reading dataset: " + dataSet.getDisplay();
 
         } else {
             return "Waiting to start";

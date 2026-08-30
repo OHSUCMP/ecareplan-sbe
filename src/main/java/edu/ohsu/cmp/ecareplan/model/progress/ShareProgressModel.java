@@ -50,14 +50,14 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
     public String getMessage() {
         if (status == ProgressStatus.COMPLETED) {
             return errors.isEmpty() ?
-                    "Share of " + dataSet.getName() + " from " + endpoint.getName() + " has completed successfully." :
-                    "Share of " + dataSet.getName() + " from " + endpoint.getName() + " has completed with errors.  See error list for details.";
+                    "Share of " + dataSet.getDisplay() + " from " + endpoint.getName() + " has completed successfully." :
+                    "Share of " + dataSet.getDisplay() + " from " + endpoint.getName() + " has completed with errors.  See error list for details.";
 
         } else if (status == ProgressStatus.RUNNING) {
-            return "Share of " + dataSet.getName() + " from " + endpoint.getName() + " is running.";
+            return "Share of " + dataSet.getDisplay() + " from " + endpoint.getName() + " is running.";
 
         } else {
-            return "Share of " + dataSet.getName() + " from " + endpoint.getName() + " is waiting to start.";
+            return "Share of " + dataSet.getDisplay() + " from " + endpoint.getName() + " is waiting to start.";
         }
     }
 
