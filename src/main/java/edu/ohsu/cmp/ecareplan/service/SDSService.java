@@ -130,6 +130,12 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         }
     }
 
+    public void clearCompletedProgressForAllExcept(String sessionId, Endpoint endpoint) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED));
+        }
+    }
+
     public void resetAllProgress(String sessionId) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
             sessionIdProgressMap.get(sessionId).clear();

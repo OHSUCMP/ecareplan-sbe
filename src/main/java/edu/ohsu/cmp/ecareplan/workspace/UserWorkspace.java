@@ -213,6 +213,11 @@ public class UserWorkspace {
         sdsService.resetEndpointProgress(sessionId, endpoint);
     }
 
+    private synchronized void clearCompletedProgressForAllExcept(Endpoint endpoint) {
+        endpointReadProgressMap.values().removeIf(pm -> ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED));
+        sdsService.clearCompletedProgressForAllExcept(sessionId, endpoint);
+    }
+
     public synchronized SseEmitter createNewEmitter() {
         if (this.emitter != null) {
             try {
@@ -333,6 +338,8 @@ public class UserWorkspace {
         boolean loadFromEndpoint = uec != null;
 
         resetEndpointProgress(endpoint);
+        clearCompletedProgressForAllExcept(endpoint);
+
         endpointReadProgressMap.put(endpoint.getId(), new EndpointReadProgressModel(endpoint));
 
         Runnable runnable = new Runnable() {
