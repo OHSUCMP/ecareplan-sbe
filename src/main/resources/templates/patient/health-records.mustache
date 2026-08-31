@@ -2,48 +2,173 @@
 
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
 
-<div class="container">
+<div class="container health-records-page">
     {{#systemStatusMessage}}
-        <div class="row align-items-center alert alert-teal" role="alert">
-            <div class="col-md-auto text-center">
-                <img src="/images/info-icon.png" alt="System Status" height="50px" />
+        <div class="alert health-records-status-alert d-flex align-items-start gap-3" role="alert">
+            <div class="pt-1" aria-hidden="true">
+                <span class="fa-solid fa-circle-info"></span>
             </div>
-            <div class="col">
-                {{systemStatusMessage}}
+            <div>
+                <strong>System Status</strong>
+                <div>{{systemStatusMessage}}</div>
             </div>
         </div>
     {{/systemStatusMessage}}
 
-    <h1>Health Records</h1>
-    <p>
-        You are currently connected to the following health record providers:
-    </p>
-    <ol>
-        {{#activeEndpointModels}}
-            <li>{{name}}</li>
-        {{/activeEndpointModels}}
-    </ol>
+    <section class="health-records-hero" aria-labelledby="health-records-title">
+        <div class="health-records-hero-content">
+            <div class="health-records-eyebrow">
+                <span class="fa-solid fa-notes-medical" aria-hidden="true"></span>
+                Health Record Connections
+            </div>
+            <h1 id="health-records-title" class="health-records-title">Manage Connected Health Records</h1>
+            <p class="health-records-intro">
+                Connect MyCarePlanner to your health record providers so your care information can be brought together
+                in one place. Adding more sources may help give you and your care team a more complete view of your care.
+            </p>
+        </div>
+    </section>
 
-    <h1>Connect to a New Health Record Provider</h1>
-    <p>
-        Select a health record provider and click the Login button below to authenticate and integrate your
-        health data from that institution.
-    </p>
+    <div class="row g-4 health-records-section">
+        <div class="col-lg-6">
+            <section class="card health-records-section-card h-100" aria-labelledby="connected-records-title">
+                <div class="card-body p-4">
+                    <div class="health-records-section-header">
+                        <div>
+                            <h2 id="connected-records-title" class="health-records-section-title">Currently Connected</h2>
+                            <p class="health-records-section-description">
+                                These providers are currently connected to your MyCarePlanner session.
+                            </p>
+                        </div>
+                        <div class="health-records-section-icon" aria-hidden="true">
+                            <span class="fa-solid fa-link"></span>
+                        </div>
+                    </div>
 
-    <select id="endpointSelect" class="form-control">
-        <option value="" selected disabled hidden>---Select a Health Record Provider---</option>
-        {{#thirdPartyEndpointModels}}
-            <option value="{{id}}" data-client-id="{{clientId}}" data-scope="{{scope}}" data-redirect-uri="{{redirectUri}}" data-iss="{{iss}}">
-                {{name}}
-            </option>
-        {{/thirdPartyEndpointModels}}
-    </select>
+                    <div class="health-records-provider-list">
+                        {{#activeEndpointModels}}
+                            <article class="health-records-provider-card">
+                                <div class="health-records-provider-icon" aria-hidden="true">
+                                    <span class="fa-solid fa-hospital"></span>
+                                </div>
+                                <div>
+                                    <h3 class="health-records-provider-name">{{name}}</h3>
+                                    <p class="health-records-provider-detail">Connected health record provider</p>
+                                </div>
+                            </article>
+                        {{/activeEndpointModels}}
+                        {{^activeEndpointModels}}
+                            <div class="health-records-empty-state">
+                                <span class="fa-solid fa-circle-info color-primary" aria-hidden="true"></span>
+                                <span>No health record providers are currently connected.</span>
+                            </div>
+                        {{/activeEndpointModels}}
+                    </div>
+                </div>
+            </section>
+        </div>
 
-    <input type="button" id="loginButton" class="btn btn-primary" value="Login" disabled />
+        <div class="col-lg-6">
+            <section class="card health-records-connect-card h-100" aria-labelledby="connect-records-title">
+                <div class="card-body p-4">
+                    <div class="health-records-section-header">
+                        <div>
+                            <h2 id="connect-records-title" class="health-records-section-title">Connect a New Provider</h2>
+                            <p class="health-records-section-description">
+                                Select a provider below, then sign in securely to authorize access to your health records.
+                            </p>
+                        </div>
+                        <div class="health-records-section-icon" aria-hidden="true">
+                            <span class="fa-solid fa-plus"></span>
+                        </div>
+                    </div>
 
-    <div id="messageContainer" class="hidden">
-        <p id="errorMessage"></p>
+                    <label for="endpointSelect" class="form-label health-records-form-label">
+                        Health record provider
+                    </label>
+                    <select id="endpointSelect" class="form-select health-records-select">
+                        <option value="" selected disabled hidden>Choose a health record provider</option>
+                        {{#thirdPartyEndpointModels}}
+                            <option value="{{id}}" data-client-id="{{clientId}}" data-scope="{{scope}}" data-redirect-uri="{{redirectUri}}" data-iss="{{iss}}">
+                                {{name}}
+                            </option>
+                        {{/thirdPartyEndpointModels}}
+                    </select>
+
+                    {{^thirdPartyEndpointModels}}
+                        <div class="health-records-empty-state mt-3">
+                            <span class="fa-solid fa-circle-check color-primary" aria-hidden="true"></span>
+                            <span>There are no additional health record providers available to connect at this time.</span>
+                        </div>
+                    {{/thirdPartyEndpointModels}}
+
+                    <button type="button" id="loginButton" class="btn button-primary health-records-login-button" disabled>
+                        <span class="fa-solid fa-right-to-bracket me-2" aria-hidden="true"></span>
+                        Continue to Secure Login
+                    </button>
+
+                    <div class="health-records-security-note">
+                        <span class="fa-solid fa-shield-halved" aria-hidden="true"></span>
+                        <span>
+                            You will be redirected to the selected provider to sign in securely. MyCarePlanner does not ask for or store your provider password.
+                        </span>
+                    </div>
+
+                    <div id="messageContainer" class="hidden">
+                        <div id="errorMessage" class="alert alert-danger mt-3 mb-0" role="alert"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
+
+    <section class="health-records-section" aria-labelledby="what-happens-title">
+        <div class="card health-records-section-card">
+            <div class="card-body p-4">
+                <div class="health-records-section-header">
+                    <div>
+                        <h2 id="what-happens-title" class="health-records-section-title">What Happens Next?</h2>
+                        <p class="health-records-section-description">
+                            After you connect a provider, MyCarePlanner will begin retrieving available care information from that source.
+                        </p>
+                    </div>
+                    <div class="health-records-section-icon" aria-hidden="true">
+                        <span class="fa-solid fa-arrows-rotate"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="health-records-step">
+                            <div class="health-records-step-number">1</div>
+                            <h3 class="health-records-step-title">Choose Provider</h3>
+                            <p class="health-records-step-text">
+                                Select the organization that manages the health records you want to connect.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="health-records-step">
+                            <div class="health-records-step-number">2</div>
+                            <h3 class="health-records-step-title">Sign In Securely</h3>
+                            <p class="health-records-step-text">
+                                Use that provider’s secure sign-in process to authorize access.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="health-records-step">
+                            <div class="health-records-step-number">3</div>
+                            <h3 class="health-records-step-title">Review Your Care</h3>
+                            <p class="health-records-step-text">
+                                Return to MyCarePlanner to review information from your connected records.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 
 <script type="text/javascript">

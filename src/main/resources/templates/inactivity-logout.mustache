@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Logged out due to inactivity</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{>fragments/css}}
+
+    <link rel="stylesheet" href="{{req.contextPath}}/css/auxiliary.css" />
+
     <script type="text/javascript" src="{{req.contextPath}}/webjars/jquery/jquery.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
@@ -9,7 +16,30 @@
         });
     </script>
 </head>
-<body style="font-size:1.5em;">
-    You have been logged out due to inactivity.  Please close this browser window to ensure all local data is removed and session state cleared.
+<body class="aux-page">
+<main class="aux-page-shell">
+    <section class="card aux-page-card" aria-labelledby="page-title">
+        <header class="aux-page-header">
+            <h1 id="page-title" class="aux-page-title">Session Ended</h1>
+            <p class="aux-page-subtitle">You were logged out due to inactivity.</p>
+        </header>
+
+        <div class="aux-page-body">
+            <div class="aux-page-icon" aria-hidden="true">
+                <span class="fa-solid fa-clock"></span>
+            </div>
+            <p class="aux-page-message">
+                Your session was closed to help protect your information.
+            </p>
+            <p class="aux-page-detail">
+                Please close this browser window to ensure all local data is removed and session state is fully cleared.
+            </p>
+        </div>
+
+        <footer class="aux-page-footer">
+            To continue, return to the system that launched MyCarePlanner and start a new session.
+        </footer>
+    </section>
+</main>
 </body>
 </html>

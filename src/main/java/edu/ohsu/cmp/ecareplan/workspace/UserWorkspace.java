@@ -33,11 +33,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
-import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.crypto.SecretKey;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
@@ -252,14 +250,8 @@ public class UserWorkspace {
             try {
                 currentEmitter.send(SseEmitter.event().name(eventName).data(payload, MediaType.APPLICATION_JSON));
 
-            } catch (AsyncRequestNotUsableException e) {
-                logger.error("Emitter not usable for sending {} notification - {} (enable debug logging for stack trace)", eventName, e.getMessage());
-                if (logger.isDebugEnabled()) logger.debug(e.getMessage(), e);
-                clearEmitter(currentEmitter);
-
-            } catch (IOException e) {
-                logger.error("Error sending {} notification - {} (enable debug logging for stack trace)", eventName, e.getMessage());
-                if (logger.isDebugEnabled()) logger.debug(e.getMessage(), e);
+            } catch (Exception e) {
+                logger.debug("caught {} attempting to send {} - {}", e.getClass().getSimpleName(), eventName, e.getMessage(), e);
                 clearEmitter(currentEmitter);
             }
         }

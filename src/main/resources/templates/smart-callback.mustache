@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>{{applicationName}} - Completing Handshake</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{>fragments/css}}
+
+    <link rel="stylesheet" href="{{req.contextPath}}/css/auxiliary.css" />
+
     <script type="text/javascript" src="{{req.contextPath}}/webjars/jquery/jquery.min.js"></script>
 
     <!-- SMART on FHIR client library - see: https://docs.smarthealthit.org/client-js/#installation -->
@@ -10,6 +16,13 @@
 
     <script type="text/javascript">
         const REDIRECT_URI = "{{redirectUri}}";
+
+        function setResponse(message, isError) {
+            $('.response')
+                    .toggleClass('alert-danger', isError === true)
+                    .toggleClass('alert-info', isError !== true)
+                    .html(message);
+        }
 
         function completeHandshake(client) {
             let data = {
@@ -28,14 +41,14 @@
                 data: data
             }).done(function() {
                 // alert("useful debug checkpoint");
-                $('.response').html("Handshake completed, redirecting ...<br/>If you are not redirected, please <a href='" + REDIRECT_URI + "'>click here</a>.")
+                setResponse("Handshake completed. Redirecting to MyCarePlanner...", false);
                 window.location.replace(REDIRECT_URI);
             }).fail(function (jqXHR) {
                 try {
                     let response = JSON.parse(jqXHR.responseText);
-                    $('.response').html("Error " + jqXHR.status + ": " + (response.message ? response.message : "An error occurred. Try again later or contact study staff."));
+                    setResponse("Error " + jqXHR.status + ": " + (response.message ? response.message : "An error occurred. Try again later or contact study staff."), true);
                 } catch (e) {
-                    $('.response').html("Error " + jqXHR.status + ": An error occurred. Try again later or contact study staff.");
+                    setResponse("Error " + jqXHR.status + ": An error occurred. Try again later or contact study staff.", true);
                 }
             });
         }
@@ -49,20 +62,45 @@
 
         $(document).ready(function () {
             FHIR.oauth2.ready()
-                .then(function(client) {
+                    .then(function(client) {
 //                    alert("useful development breakpoint");
-                    if ( ! {{cacheCredentials}} ) {
-                        sessionStorage.clear(); // flush credentials stored here by SMART on FHIR
-                    }
-                    completeHandshake(client);
-                })
-                .catch(console.error);
+                        if ( ! {{cacheCredentials}} ) {
+                            sessionStorage.clear(); // flush credentials stored here by SMART on FHIR
+                        }
+                        completeHandshake(client);
+                    })
+                    .catch(function(error) {
+                        console.error(error);
+                        setResponse("Unable to complete authorization. Please try again later or contact study staff.", true);
+                    });
         });
     </script>
 </head>
-<body>
-<div class="response" style="font-size:1.5em;">
-Completing handshake...
-</div>
+<body class="aux-page">
+<main class="aux-page-shell">
+    <section class="card aux-page-card" aria-labelledby="page-title">
+        <header class="aux-page-header">
+            <h1 id="page-title" class="aux-page-title">{{applicationName}}</h1>
+            <p class="aux-page-subtitle">Completing secure authorization.</p>
+        </header>
+
+        <div class="aux-page-body text-center">
+            <div class="spinner-border aux-page-spinner" role="status" aria-label="Loading"></div>
+            <p class="aux-page-message">
+                Finalizing your connection...
+            </p>
+            <div class="response alert alert-info mt-4 mb-0" role="status">
+                Completing handshake...
+            </div>
+            <p class="aux-page-detail mt-3">
+                You will be redirected automatically when authorization is complete.
+            </p>
+        </div>
+
+        <footer class="aux-page-footer">
+            Establishing your secure MyCarePlanner session.
+        </footer>
+    </section>
+</main>
 </body>
 </html>

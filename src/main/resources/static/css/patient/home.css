@@ -1,0 +1,221 @@
+/* Patient home page */
+
+.home-page {
+    padding-bottom: 2rem;
+}
+
+.home-hero {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    padding: 2.25rem;
+    border-radius: 1rem;
+    background:
+            radial-gradient(circle at top right, rgba(179, 255, 240, 0.38), transparent 24rem),
+            linear-gradient(135deg, #004466 0%, #2e6e9e 100%);
+    color: #ffffff;
+    box-shadow: 0 0.75rem 1.75rem rgba(0, 68, 102, 0.18);
+}
+
+.home-hero::after {
+    content: "";
+    position: absolute;
+    right: -4rem;
+    bottom: -4rem;
+    width: 13rem;
+    height: 13rem;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.home-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 820px;
+}
+
+.home-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.14);
+    color: #b3fff0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.home-title {
+    margin-bottom: 0.85rem;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.home-intro {
+    max-width: 760px;
+    margin-bottom: 1.25rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 1.1rem;
+    line-height: 1.65;
+}
+
+.home-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.home-hero .btn-light {
+    color: #004466;
+    font-weight: 700;
+}
+
+.home-hero .btn-outline-light {
+    font-weight: 700;
+}
+
+.home-section {
+    margin-bottom: 1.5rem;
+}
+
+.home-section-card {
+    height: 100%;
+    border: 0;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 68, 102, 0.10);
+}
+
+.home-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.home-section-title {
+    margin-bottom: 0.25rem;
+    color: #004466;
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.home-section-description {
+    margin-bottom: 0;
+    color: #5d6975;
+    line-height: 1.55;
+}
+
+.home-section-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background-color: rgba(46, 110, 158, 0.12);
+    color: #004466;
+    font-size: 1.2rem;
+}
+
+.home-status-alert {
+    margin-bottom: 1.5rem;
+    border: 0;
+    border-left: 0.35rem solid #2e6e9e;
+    border-radius: 0.75rem;
+    background-color: #eef7fa;
+    color: #244653;
+    box-shadow: 0 0.35rem 1rem rgba(0, 68, 102, 0.08);
+}
+
+.home-status-alert .fa-solid {
+    color: #2e6e9e;
+    font-size: 1.4rem;
+}
+
+.home-patient-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.home-patient-card {
+    height: 100%;
+    padding: 1rem;
+    border: 1px solid #e3edf1;
+    border-radius: 0.85rem;
+    background-color: #ffffff;
+}
+
+.home-patient-card-name {
+    margin-bottom: 0.35rem;
+    color: #004466;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.home-patient-card-meta {
+    margin-bottom: 0.25rem;
+    color: #4b5863;
+}
+
+.home-patient-card-source {
+    margin-bottom: 0;
+    color: #6b7785;
+    font-size: 0.92rem;
+}
+
+.home-loading-state {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px dashed #bfd3dc;
+    border-radius: 0.85rem;
+    background-color: #f8fbfc;
+    color: #5d6975;
+}
+
+.home-cta-card {
+    border: 0;
+    border-radius: 1rem;
+    background:
+            linear-gradient(135deg, rgba(179, 255, 240, 0.38) 0%, rgba(238, 247, 250, 0.95) 100%);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 68, 102, 0.08);
+}
+
+.home-disclaimer {
+    padding: 1.25rem;
+    border-left: 0.35rem solid #7698a1;
+    border-radius: 0.75rem;
+    background-color: #f8fbfc;
+    color: #4b5863;
+    font-size: 0.94rem;
+    line-height: 1.65;
+}
+
+.home-disclaimer p:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .home-hero {
+        padding: 1.5rem;
+    }
+
+    .home-section-header {
+        flex-direction: column-reverse;
+    }
+
+    .home-hero-actions .btn {
+        width: 100%;
+    }
+}

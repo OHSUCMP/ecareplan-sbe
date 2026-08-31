@@ -35,29 +35,47 @@ public class SessionController extends BaseController {
 
     @GetMapping("logout")
     public String logout(HttpSession session) {
-        auditService.doAudit(session.getId(), AuditSeverity.INFO, "logged out"); // must occur before expire action
-        sessionService.forceExpiration(session.getId());
+        if (userWorkspaceService.exists(session.getId())) {
+            auditService.doAudit(session.getId(), AuditSeverity.INFO, "logged out"); // must occur before expire action
+            sessionService.forceExpiration(session.getId());
+        }
+
+        // what if someone goes to this page manually, or by the browser back button, and lands here with no session?
+        // should we redirect them somewhere?
+
         return "logout";
     }
 
     @GetMapping("inactivity-logout")
     public String inactivityLogout(HttpSession session) {
-        auditService.doAudit(session.getId(), AuditSeverity.INFO, "logged out due to inactivity"); // must occur before expire action
-        sessionService.forceExpiration(session.getId());
+        if (userWorkspaceService.exists(session.getId())) {
+            auditService.doAudit(session.getId(), AuditSeverity.INFO, "logged out due to inactivity"); // must occur before expire action
+            sessionService.forceExpiration(session.getId());
+        }
+
+        // what if someone goes to this page manually, or by the browser back button, and lands here with no session?
+        // should we redirect them somewhere?
+
         return "inactivity-logout";
     }
 
     @PostMapping("clear-session")
     public ResponseEntity<?> clearSession(HttpSession session) {
-        sessionService.forceExpiration(session.getId());
-        return ResponseEntity.ok("session cleared");
+        if (userWorkspaceService.exists(session.getId())) {
+            sessionService.forceExpiration(session.getId());
+            return ResponseEntity.ok("session cleared");
+        }
+        return ResponseEntity.ok("no session");
     }
 
     @PostMapping("refresh")
     public ResponseEntity<?> refresh(HttpSession session) {
-        logger.info("refreshing data for session=" + session.getId());
-        UserWorkspace workspace = userWorkspaceService.get(session.getId());
-        workspace.populate();
-        return ResponseEntity.ok("refreshing");
+        if (userWorkspaceService.exists(session.getId())) {
+            logger.info("refreshing data for session=" + session.getId());
+            UserWorkspace workspace = userWorkspaceService.get(session.getId());
+            workspace.populate();
+            return ResponseEntity.ok("refreshing");
+        }
+        return ResponseEntity.ok("no session");
     }
 }

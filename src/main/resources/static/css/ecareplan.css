@@ -1,6 +1,6 @@
 main.container {
-	/* pad top to account for the navbar */
-	padding: 80px 10px 0;
+    /* pad top to account for the navbar */
+    padding: 88px 10px 0;
 }
 
 img.logo {
@@ -13,6 +13,199 @@ img.logo {
 
 .bgd-primary {
     background-color: #004466;
+}
+
+/* Global application header */
+.app-navbar {
+    min-height: 72px;
+    border-bottom: 1px solid rgba(179, 255, 240, 0.22);
+    background:
+            radial-gradient(circle at top left, rgba(179, 255, 240, 0.18), transparent 22rem),
+            linear-gradient(135deg, #003852 0%, #004466 48%, #2e6e9e 100%);
+    box-shadow: 0 0.45rem 1.25rem rgba(0, 40, 60, 0.18);
+}
+
+.app-navbar-container {
+    gap: 1rem;
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+}
+
+.app-navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    margin-right: 1.5rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.app-navbar-brand:hover,
+.app-navbar-brand:focus {
+    color: #ffffff;
+}
+
+.app-navbar-logo {
+    width: auto;
+    height: 44px;
+    padding: 0.25rem;
+    border-radius: 0.65rem;
+    background-color: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.16);
+}
+
+.app-navbar-title {
+    overflow: hidden;
+    max-width: 18rem;
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-navbar-collapse {
+    align-items: center;
+}
+
+.app-navbar-nav,
+.app-navbar-actions {
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.app-nav-link.nav-link {
+    position: relative;
+    margin: 0 0.1rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.86);
+    font-weight: 650;
+    line-height: 1.2;
+    transition:
+            background-color 0.16s ease,
+            color 0.16s ease,
+            box-shadow 0.16s ease;
+}
+
+.app-nav-link.nav-link:hover,
+.app-nav-link.nav-link:focus {
+    background-color: rgba(255, 255, 255, 0.13);
+    color: #ffffff;
+}
+
+.app-nav-link.nav-link:focus-visible,
+.app-dropdown-item:focus-visible,
+.app-navbar-brand:focus-visible,
+.app-navbar-toggler:focus-visible {
+    outline: 2px solid rgba(179, 255, 240, 0.95);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.app-nav-link.dropdown-toggle::after {
+    margin-left: 0.45rem;
+    vertical-align: 0.12em;
+}
+
+.app-dropdown-menu {
+    margin-top: 0.75rem;
+    padding: 0.45rem;
+    border: 1px solid #dbe8ee;
+    border-radius: 0.85rem;
+    box-shadow: 0 0.85rem 1.75rem rgba(0, 40, 60, 0.18);
+}
+
+.app-dropdown-item {
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.55rem;
+    color: #244653;
+    font-weight: 600;
+}
+
+.app-dropdown-item:hover,
+.app-dropdown-item:focus {
+    background-color: #eef7fa;
+    color: #004466;
+}
+
+.app-navbar-actions {
+    padding-left: 0.75rem;
+}
+
+.app-nav-action.nav-link {
+    display: inline-flex;
+    align-items: center;
+}
+
+.app-nav-logout.nav-link {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.app-nav-logout.nav-link:hover,
+.app-nav-logout.nav-link:focus {
+    color: #ffffff;
+    background-color: rgba(220, 53, 69, 0.9);
+}
+
+.app-navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.35);
+    border-radius: 0.65rem;
+}
+
+@media (max-width: 767.98px) {
+    main.container {
+        padding-top: 84px;
+    }
+
+    .app-navbar-container {
+        padding-right: 0.85rem;
+        padding-left: 0.85rem;
+    }
+
+    .app-navbar-logo {
+        height: 38px;
+    }
+
+    .app-navbar-title {
+        max-width: 13rem;
+        font-size: 1rem;
+    }
+
+    .app-navbar-collapse {
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 0.85rem;
+        background-color: rgba(0, 40, 60, 0.22);
+    }
+
+    .app-navbar-nav,
+    .app-navbar-actions {
+        align-items: stretch;
+        gap: 0.25rem;
+    }
+
+    .app-navbar-actions {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        padding-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .app-nav-link.nav-link {
+        border-radius: 0.65rem;
+    }
+
+    .app-dropdown-menu {
+        margin-top: 0.25rem;
+        box-shadow: none;
+    }
 }
 
 .color-secondary {
