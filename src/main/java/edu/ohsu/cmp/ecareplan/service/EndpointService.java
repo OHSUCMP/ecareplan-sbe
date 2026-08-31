@@ -116,6 +116,11 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return userEndpointRepository.save(ue);
     }
 
+    public UserEndpoint clearUserEndpointLastSyncCompleted(UserEndpoint ue) {
+        ue.setLastSyncCompleted(null);
+        return userEndpointRepository.save(ue);
+    }
+
     public UserEndpoint updateUserEndpointRefreshToken(UserEndpoint userEndpoint, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         userEndpoint.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
         return userEndpointRepository.save(userEndpoint);
