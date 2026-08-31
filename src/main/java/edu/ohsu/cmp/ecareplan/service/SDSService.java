@@ -133,7 +133,9 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 
     public void clearCompletedProgressForAllExcept(String sessionId, Endpoint endpoint) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED));
+            sessionIdProgressMap.get(sessionId).values().removeIf(pm ->
+                    ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED)
+            );
         }
     }
 
@@ -233,7 +235,8 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                 } else {
                                     logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code + " sharing " + id + " from " + endpoint.getName());
+                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
+                                            " sharing " + id + " from " + endpoint.getName());
 
                                     success = (code > 201 && code < 300);
                                 }

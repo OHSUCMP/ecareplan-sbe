@@ -212,7 +212,9 @@ public class UserWorkspace {
     }
 
     private synchronized void clearCompletedProgressForAllExcept(Endpoint endpoint) {
-        endpointReadProgressMap.values().removeIf(pm -> ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED));
+        endpointReadProgressMap.values().removeIf(pm ->
+                ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED)
+        );
         sdsService.clearCompletedProgressForAllExcept(sessionId, endpoint);
     }
 
@@ -371,7 +373,8 @@ public class UserWorkspace {
                             logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
                                     endpointNameForLogging, sessionId, e.getMessage(), e);
                             auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
-                                    "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " + endpointNameForLogging + " - " + e.getMessage());
+                                    "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " +
+                                    endpointNameForLogging + " - " + e.getMessage());
                             addProgressError(endpoint, dataSet, e.getMessage());
 
                             if (e instanceof ForbiddenOperationException && ! loadFromEndpoint) {
@@ -379,6 +382,8 @@ public class UserWorkspace {
                                 // maybe the SDS was reset?
                                 // in any case, it probably makes sense to just clear their lastSyncCompleted timestamp and abort this attempt
                                 endpointService.clearUserEndpointLastSyncCompleted(ue);
+                                auditService.doAudit(user, AuditSeverity.WARN, "endpoint population",
+                                        "cleared SDS lastSyncCompleted timestamp and aborting population for " + endpoint.getName());
                                 break;
                             }
 
@@ -684,8 +689,8 @@ public class UserWorkspace {
                 }
 
                 if (dataSetBuilder instanceof EndpointService) {
-                    auditService.doAudit(user, AuditSeverity.INFO, "cache population", "got " + list.size() + " " + dataSet.getName() +
-                            " resources from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
+                    auditService.doAudit(user, AuditSeverity.INFO, "cache population", "got " + list.size() + " resource(s) for dataSet=" + dataSet.getName() +
+                            " from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
                 }
 
             } catch (Exception e) {
@@ -693,27 +698,27 @@ public class UserWorkspace {
                         "SDS for " + endpoint.getName() :
                         endpoint.getName();
 
-                if (e instanceof ForbiddenOperationException) {
+                if (e instanceof ForbiddenOperationException foe) {
                     logger.error("attempt to retrieve {} from {} was forbidden - {}",
-                            dataSet.getName(), endpointNameForLogging, e.getMessage());
+                            dataSet.getName(), endpointNameForLogging, foe.getMessage());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
-                        throw (ForbiddenOperationException) e;
+                        throw foe;
 
                     } else {
                         auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
                                 " from " + endpointNameForLogging + " was forbidden");
-                        addProgressError(endpoint, dataSet, e.getMessage());
+                        addProgressError(endpoint, dataSet, foe.getMessage());
                     }
 
-                } else if (e instanceof InvalidRequestException) {
+                } else if (e instanceof InvalidRequestException ire) {
                     logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - {}",
-                            dataSet.getName(), endpointNameForLogging, e.getMessage());
+                            dataSet.getName(), endpointNameForLogging, ire.getMessage());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
-                        throw (InvalidRequestException) e;
+                        throw ire;
 
                     } else {
                         auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
@@ -724,10 +729,10 @@ public class UserWorkspace {
                 } else if (e instanceof AuthenticationException ae) {
                     // access token expired
                     // handle gracefully if possible, otherwise abort
-                    throw (RuntimeException) e;
+                    throw ae;
 
-                } else if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
+                } else if (e instanceof RuntimeException re) {
+                    throw re;
 
                 } else {
                     throw new RuntimeException(e);
