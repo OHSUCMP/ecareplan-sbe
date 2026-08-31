@@ -2,6 +2,7 @@ package edu.ohsu.cmp.ecareplan.service;
 
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
+import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -75,6 +76,10 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return endpointRepository.findByName(careTeamEndpointName);
     }
 
+    public Endpoint getEndpoint(Long endpointId) {
+        return endpointRepository.findById(endpointId).orElseThrow();
+    }
+
     public List<EndpointModel> getAllThirdPartyEndpoints() {
         List<EndpointModel> list = new ArrayList<>();
         for (Endpoint endpoint : endpointRepository.findAll(Sort.by("name").ascending())) {
@@ -87,18 +92,18 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         return list;
     }
 
-    public List<UserEndpoint> getAllUserEndpoints(Long userId) {
-        return userEndpointRepository.findByUserId(userId);
+    public List<UserEndpoint> getAllUserEndpoints(User user) {
+        return userEndpointRepository.findByUserId(user.getId());
     }
 
-    public UserEndpoint getUserEndpoint(Long userId, Long endpointId) {
-        return userEndpointRepository.findByUserIdAndEndpointId(userId, endpointId).orElseThrow();
+    public UserEndpoint getUserEndpoint(User user, Endpoint endpoint) {
+        return userEndpointRepository.findByUserIdAndEndpointId(user.getId(), endpoint.getId()).orElseThrow();
     }
 
-    public UserEndpoint createUserEndpoint(Long userId, Long endpointId, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
+    public UserEndpoint createUserEndpoint(User user, Endpoint endpoint, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         UserEndpoint ue = new UserEndpoint();
-        ue.setUserId(userId);
-        ue.setEndpoint(endpointRepository.findById(endpointId).orElseThrow());
+        ue.setUserId(user.getId());
+        ue.setEndpoint(endpoint);
         ue.setEncryptedPatientId(CryptoUtil.encrypt(fhirPatientId, secretKey));
         if (refreshToken != null) ue.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
         ue.setCreated(new Date());
@@ -108,6 +113,11 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
 
     public UserEndpoint updateUserEndpointLastSyncCompleted(UserEndpoint ue) {
         ue.setLastSyncCompleted(new Date());
+        return userEndpointRepository.save(ue);
+    }
+
+    public UserEndpoint clearUserEndpointLastSyncCompleted(UserEndpoint ue) {
+        ue.setLastSyncCompleted(null);
         return userEndpointRepository.save(ue);
     }
 

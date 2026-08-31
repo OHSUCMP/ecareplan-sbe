@@ -7,7 +7,7 @@ import java.util.Date;
 
 @Entity
 @Table(name = "audit_data")
-public class Audit {
+public class AuditData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,14 +23,14 @@ public class Audit {
 
     private Date created;
 
-    protected Audit() {
+    protected AuditData() {
     }
 
-    public Audit(Long userId, AuditSeverity severity, String event) {
+    public AuditData(Long userId, AuditSeverity severity, String event) {
         this(userId, severity, event, null);
     }
 
-    public Audit(Long userId, AuditSeverity severity, String event, String details) {
+    public AuditData(Long userId, AuditSeverity severity, String event, String details) {
         this.userId = userId;
         this.severity = severity;
         this.event = event;

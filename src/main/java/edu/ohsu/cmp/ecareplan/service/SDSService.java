@@ -38,6 +38,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 
     private static final String PARTITION_HEADER = "X-Partition-Name";
     private static final int POOL_SIZE = 5;
+    private static final String AUDIT_ACTION_SHARE = "share to SDS";
 
     @Value("${socket.timeout:300000}")
     private Integer socketTimeout;
@@ -130,6 +131,14 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         }
     }
 
+    public void clearCompletedProgressForAllExcept(String sessionId, Endpoint endpoint) {
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            sessionIdProgressMap.get(sessionId).values().removeIf(pm ->
+                    ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED)
+            );
+        }
+    }
+
     public void resetAllProgress(String sessionId) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
             sessionIdProgressMap.get(sessionId).clear();
@@ -189,7 +198,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                 for (BaseDataSetModel<?> item : list) {
                     try {
                         final IDomainResource resource = item.toResourceForSDSExport();
-                        String id = FhirUtil.toRelativeReference(resource.getId());
+                        final String id = FhirUtil.toRelativeReference(resource.getId());
 
                         int attempt = 0;
                         boolean success = false;
@@ -206,14 +215,30 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                         .withAdditionalHeader(PARTITION_HEADER, endpoint.getIss())
                                         .execute();
 
-                                success = outcome.getResponseStatusCode() >= 200 && outcome.getResponseStatusCode() < 300;
-                                if (success) {
-                                    logger.info("Successfully shared {} from {} for session={}",
-                                            id, endpoint.getName(), sessionId);
+                                int code = outcome.getResponseStatusCode();
+                                if (code == 200) {
+                                    logger.debug("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+                                    success = true;
 
-                                } else {
+                                } else if (code == 201) {
+                                    logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+
+                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_ACTION_SHARE, "created " + id + " from " + endpoint.getName());
+
+                                    success = true;
+
+                                } else if (code >= 400) {
+                                    // initial failures at this point we only want to appear in debug logs
                                     logger.debug("Failed sharing {} from {} with status code {} ({}/{})",
                                             id, endpoint.getName(), outcome.getResponseStatusCode(), attempt, maxAttempts);
+
+                                } else {
+                                    logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
+
+                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
+                                            " sharing " + id + " from " + endpoint.getName());
+
+                                    success = (code > 201 && code < 300);
                                 }
 
                             } catch (FhirClientConnectionException fcce) {
@@ -228,22 +253,21 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                         }
 
                         if ( ! success ) {
-                            auditService.doAudit(sessionId, AuditSeverity.ERROR, "share to SDS", "failed to share " + id + " from " + endpoint.getName());
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
                             progress.addError("Failed to share " + id);
                         }
 
                     } catch (Exception e) {
-                        logger.error("caught {} sharing {}/{} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                item.getSourceResource().getClass().getSimpleName(), item.getId(), endpoint.getName(), sessionId, e.getMessage());
+                        final String id = FhirUtil.toRelativeReference(item.getId());
+
+                        logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
+                                id, endpoint.getName(), sessionId, e.getMessage());
                         logger.debug(e.getMessage(), e);
 
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "share to SDS",
-                                "caught " + e.getClass().getSimpleName() + " sharing " + item.getSourceResource().getClass().getSimpleName() +
-                                "/" + item.getId() + " from " + endpoint.getName());
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE,
+                                "caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
 
-                        progress.addError("caught " + e.getClass().getSimpleName() +
-                                " sharing " + item.getSourceResource().getClass().getSimpleName() + "/" + item.getId() +
-                                " from " + endpoint.getName());
+                        progress.addError("caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
 
                         if (e instanceof FhirClientConnectionException fcce) {
                             throw fcce;

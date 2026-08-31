@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
+import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.EndpointModel;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
@@ -75,12 +76,20 @@ public class HealthRecordsController extends BasePatientController {
 
             try {
                 UserWorkspace workspace = userWorkspaceService.get(session.getId());
-                workspace.setCurrentlyLaunchingEndpointId(endpointId);
-                auditService.doAudit(session.getId(), AuditSeverity.INFO, "launch third-party endpoint", "endpointId=" + endpointId);
+                Endpoint endpoint = endpointService.getEndpoint(endpointId);
+                workspace.setCurrentlyLaunchingEndpoint(endpoint);
+
+                auditService.doAudit(session.getId(), AuditSeverity.INFO, "launch third-party endpoint",
+                        "id=" + endpointId + ", name=" + endpoint.getName() + ", iss=" + endpoint.getIss());
+
                 return ResponseEntity.ok("ok");
 
             } catch (Exception e) {
                 logger.error("caught {} attempting to report launch for endpointId={}", e.getClass().getSimpleName(), endpointId, e);
+
+                auditService.doAudit(session.getId(), AuditSeverity.ERROR, "launch third-party endpoint",
+                        "endpointId=" + endpointId + ", error=" + e.getClass().getSimpleName() + ": " + e.getMessage());
+
                 return ResponseEntity.badRequest().body("error - see server logs for details");
             }
 

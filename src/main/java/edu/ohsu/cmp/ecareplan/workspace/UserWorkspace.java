@@ -53,7 +53,7 @@ public class UserWorkspace {
     private final Audience audience;
     private final Integer socketTimeout;
     private final FHIRCredentials launchCredentials;
-    private final Long userId;
+    private final User user;
 
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
     private final Map<Long, String> endpointPatientIdMap;
@@ -67,7 +67,7 @@ public class UserWorkspace {
 
     private SecretKey secretKey;
 
-    private Long currentlyLaunchingEndpointId = null;
+    private Endpoint currentlyLaunchingEndpoint = null;
 
     private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
 
@@ -86,11 +86,9 @@ public class UserWorkspace {
         auditService = ctx.getBean(AuditService.class);
 
         UserService userService = ctx.getBean(UserService.class);
-        User user = userService.getUser(
+        user = userService.getUser(
                 launchCredentials.getPatientId()
         );
-
-        userId = user.getId();
 
         // generate a secret key that can be used to encrypt and decrypt sensitive database assets
         // presently, the user's FHIR Patient ID is used as the password that undergirds this key, which admittedly
@@ -110,7 +108,7 @@ public class UserWorkspace {
         endpointPatientIdMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
-        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint.getId(), launchCredentials.getPatientId());
+        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint, launchCredentials.getPatientId());
         configureUserEndpointCredentials(launchUserEndpoint, launchCredentials);
 
         endpointReadProgressMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -127,7 +125,7 @@ public class UserWorkspace {
     public String getPatientIdForEndpoint(Endpoint endpoint) {
         if ( ! endpointPatientIdMap.containsKey(endpoint.getId()) ) {
             try {
-                UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
                 endpointPatientIdMap.put(endpoint.getId(), CryptoUtil.decrypt(userEndpoint.getEncryptedPatientId(), secretKey));
             } catch (Exception e) {
                 if (e instanceof RuntimeException re) {
@@ -140,14 +138,14 @@ public class UserWorkspace {
         return endpointPatientIdMap.get(endpoint.getId());
     }
 
-    public UserEndpoint getOrCreateUserEndpoint(Long endpointId, String patientId) {
+    public UserEndpoint getOrCreateUserEndpoint(Endpoint endpoint, String fhirPatientId) {
         UserEndpoint userEndpoint;
         try {
-            userEndpoint = endpointService.getUserEndpoint(userId, endpointId);
+            userEndpoint = endpointService.getUserEndpoint(user, endpoint);
         } catch (NoSuchElementException e) {
             logger.warn("caught {} getting launch user endpoint for session {} - {}", e.getClass().getSimpleName(), sessionId, e.getMessage());
             try {
-                userEndpoint = endpointService.createUserEndpoint(userId, endpointId, patientId, null, secretKey);
+                userEndpoint = endpointService.createUserEndpoint(user, endpoint, fhirPatientId, null, secretKey);
             } catch (Exception e1) {
                 logger.error("caught {} creating launch user endpoint for session {} - {}", e1.getClass().getSimpleName(), sessionId, e1.getMessage());
                 if (e1 instanceof RuntimeException re) {
@@ -211,6 +209,13 @@ public class UserWorkspace {
     private synchronized void resetEndpointProgress(Endpoint endpoint) {
         endpointReadProgressMap.values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
         sdsService.resetEndpointProgress(sessionId, endpoint);
+    }
+
+    private synchronized void clearCompletedProgressForAllExcept(Endpoint endpoint) {
+        endpointReadProgressMap.values().removeIf(pm ->
+                ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED)
+        );
+        sdsService.clearCompletedProgressForAllExcept(sessionId, endpoint);
     }
 
     public synchronized SseEmitter createNewEmitter() {
@@ -308,12 +313,12 @@ public class UserWorkspace {
     }
 
     public Long getUserId() {
-        return userId;
+        return user.getId();
     }
 
     public void populate() {
         resetAllProgress();
-        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             populateEndpoint(ue.getEndpoint());
         }
     }
@@ -324,15 +329,17 @@ public class UserWorkspace {
         //        if a valid one isn't present, prior to populating data sets
 
         // preliminary sanity check
-        UserEndpoint ue = endpointService.getUserEndpoint(userId, endpoint.getId());
+        UserEndpoint ue = endpointService.getUserEndpoint(user, endpoint);
         UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
         if (uec == null && ue.getLastSyncCompleted() == null) {
-            logger.debug("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS", endpoint.getName());
+            logger.warn("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS.  How did we get here?", endpoint.getName());
             return;
         }
         boolean loadFromEndpoint = uec != null;
 
         resetEndpointProgress(endpoint);
+        clearCompletedProgressForAllExcept(endpoint);
+
         endpointReadProgressMap.put(endpoint.getId(), new EndpointReadProgressModel(endpoint));
 
         Runnable runnable = new Runnable() {
@@ -359,10 +366,26 @@ public class UserWorkspace {
                             }
 
                         } catch (Exception e) {
-                            logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                            auditService.doAudit(sessionId, AuditSeverity.ERROR, "endpoint population",
-                                    "caught " + e.getClass().getSimpleName() + "populating " + dataSet.getName() + " from " + endpoint.getName() + " - " + e.getMessage());
+                            final String endpointNameForLogging = ! loadFromEndpoint ?
+                                    "SDS for " + endpoint.getName() :
+                                    endpoint.getName();
+
+                            logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
+                                    endpointNameForLogging, sessionId, e.getMessage(), e);
+                            auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
+                                    "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " +
+                                    endpointNameForLogging + " - " + e.getMessage());
                             addProgressError(endpoint, dataSet, e.getMessage());
+
+                            if (e instanceof ForbiddenOperationException && ! loadFromEndpoint) {
+                                // user can't access their SDS records that the app seems to think they have
+                                // maybe the SDS was reset?
+                                // in any case, it probably makes sense to just clear their lastSyncCompleted timestamp and abort this attempt
+                                endpointService.clearUserEndpointLastSyncCompleted(ue);
+                                auditService.doAudit(user, AuditSeverity.WARN, "endpoint population",
+                                        "cleared SDS lastSyncCompleted timestamp and aborting population for " + endpoint.getName());
+                                break;
+                            }
 
                         } finally {
                             updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
@@ -377,7 +400,7 @@ public class UserWorkspace {
                                 future.get(); // waits until this task completes
                             }
                             logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
-                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(userId, endpoint.getId());
+                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
                             endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
 
                         } catch (InterruptedException e) {
@@ -515,12 +538,12 @@ public class UserWorkspace {
         return new GenericResourceTransformer(rcs);
     }
 
-    public void setCurrentlyLaunchingEndpointId(Long endpointId) {
-        currentlyLaunchingEndpointId = endpointId;
+    public void setCurrentlyLaunchingEndpoint(Endpoint endpoint) {
+        currentlyLaunchingEndpoint = endpoint;
     }
 
-    public Long getCurrentlyLaunchingEndpointId() {
-        return currentlyLaunchingEndpointId;
+    public Endpoint getCurrentlyLaunchingEndpoint() {
+        return currentlyLaunchingEndpoint;
     }
 
     public List<EndpointModel> getAllActiveEndpointModels() {
@@ -578,7 +601,7 @@ public class UserWorkspace {
 
     public <T extends BaseDataSetModel<?>> List<T> getAllDataSetModels(DataSet<T> dataSet) {
         List<T> list = new ArrayList<>();
-        for (UserEndpoint ue : endpointService.getAllUserEndpoints(userId)) {
+        for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             Endpoint endpoint = null;
             if (ue.getLastSyncCompleted() != null) {
                 endpoint = ue.getEndpoint();
@@ -622,7 +645,7 @@ public class UserWorkspace {
     public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint, IDataSetBuilder dataSetBuilder) {
         return (List<T>) cache.get(buildDataSetEndpointKey(dataSet, endpoint), s -> {
             long start = System.currentTimeMillis();
-            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userId,
+            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, user.getId(),
                     endpoint.getName());
 
             List<? extends BaseDataSetModel<?>> list = null;
@@ -665,42 +688,51 @@ public class UserWorkspace {
                     throw new CaseNotHandledException("Case not handled for data set: " + dataSet.getName());
                 }
 
+                if (dataSetBuilder instanceof EndpointService) {
+                    auditService.doAudit(user, AuditSeverity.INFO, "cache population", "got " + list.size() + " resource(s) for dataSet=" + dataSet.getName() +
+                            " from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
+                }
+
             } catch (Exception e) {
-                if (e instanceof ForbiddenOperationException) {
+                final String endpointNameForLogging = dataSetBuilder instanceof SDSService ?
+                        "SDS for " + endpoint.getName() :
+                        endpoint.getName();
+
+                if (e instanceof ForbiddenOperationException foe) {
                     logger.error("attempt to retrieve {} from {} was forbidden - {}",
-                            dataSet.getName(), endpoint.getName(), e.getMessage());
+                            dataSet.getName(), endpointNameForLogging, foe.getMessage());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
-                        throw (ForbiddenOperationException) e;
+                        throw foe;
 
                     } else {
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
-                                " from " + endpoint.getName() + " was forbidden");
-                        addProgressError(endpoint, dataSet, e.getMessage());
+                        auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
+                                " from " + endpointNameForLogging + " was forbidden");
+                        addProgressError(endpoint, dataSet, foe.getMessage());
                     }
 
-                } else if (e instanceof InvalidRequestException) {
+                } else if (e instanceof InvalidRequestException ire) {
                     logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - {}",
-                            dataSet.getName(), endpoint.getName(), e.getMessage());
+                            dataSet.getName(), endpointNameForLogging, ire.getMessage());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
-                        throw (InvalidRequestException) e;
+                        throw ire;
 
                     } else {
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
-                                dataSet.getName() + " from " + endpoint.getName());
+                        auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
+                                dataSet.getName() + " from " + endpointNameForLogging);
                         addProgressError(endpoint, dataSet, e.getMessage());
                     }
 
                 } else if (e instanceof AuthenticationException ae) {
                     // access token expired
                     // handle gracefully if possible, otherwise abort
-                    throw (RuntimeException) e;
+                    throw ae;
 
-                } else if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
+                } else if (e instanceof RuntimeException re) {
+                    throw re;
 
                 } else {
                     throw new RuntimeException(e);
@@ -708,7 +740,7 @@ public class UserWorkspace {
             }
 
             logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
-                    userId, endpoint.getName(), (System.currentTimeMillis() - start));
+                    user.getId(), endpoint.getName(), (System.currentTimeMillis() - start));
 
             return list != null ?
                     list :
