@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,7 +26,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Object handleException(HttpSession session, HttpServletRequest request, HttpServletResponse response, Exception e) {
-        if (e instanceof SessionMissingException || e instanceof AsyncRequestNotUsableException) {
+        if (e instanceof SessionMissingException || e instanceof AsyncRequestNotUsableException ||
+                e instanceof HttpMessageNotWritableException || e instanceof AsyncRequestTimeoutException) {
             logger.debug("trapped " + e.getClass().getName() + " at " + request.getRequestURI() +
                     " for session " + session.getId());
 
