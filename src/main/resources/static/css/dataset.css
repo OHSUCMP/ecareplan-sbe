@@ -123,6 +123,18 @@ display.progress > div {
     border-radius: 0.5rem;
 }
 
+.progress-errors {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border-left: 0.25rem solid #dc3545;
+    background-color: #ffffff;
+}
+
+.progress-errors-label {
+    font-weight: 600;
+    color: #dc3545;
+}
+
 /* Two-panel selector/card layout */
 .card-selector-layout {
     align-items: flex-start;
