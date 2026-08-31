@@ -330,7 +330,7 @@ public class UserWorkspace {
         UserEndpoint ue = endpointService.getUserEndpoint(user, endpoint);
         UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
         if (uec == null && ue.getLastSyncCompleted() == null) {
-            logger.debug("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS", endpoint.getName());
+            logger.warn("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS.  How did we get here?", endpoint.getName());
             return;
         }
         boolean loadFromEndpoint = uec != null;
@@ -364,10 +364,23 @@ public class UserWorkspace {
                             }
 
                         } catch (Exception e) {
-                            logger.error("caught {} populating dataset {} for endpoint={} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(), endpoint.getName(), sessionId, e.getMessage(), e);
-                            auditService.doAudit(sessionId, AuditSeverity.ERROR, "endpoint population",
-                                    "caught " + e.getClass().getSimpleName() + "populating " + dataSet.getName() + " from " + endpoint.getName() + " - " + e.getMessage());
+                            final String endpointNameForLogging = ! loadFromEndpoint ?
+                                    "SDS for " + endpoint.getName() :
+                                    endpoint.getName();
+
+                            logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
+                                    endpointNameForLogging, sessionId, e.getMessage(), e);
+                            auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
+                                    "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " + endpointNameForLogging + " - " + e.getMessage());
                             addProgressError(endpoint, dataSet, e.getMessage());
+
+                            if (e instanceof ForbiddenOperationException && ! loadFromEndpoint) {
+                                // user can't access their SDS records that the app seems to think they have
+                                // maybe the SDS was reset?
+                                // in any case, it probably makes sense to just clear their lastSyncCompleted timestamp and abort this attempt
+                                endpointService.clearUserEndpointLastSyncCompleted(ue);
+                                break;
+                            }
 
                         } finally {
                             updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
@@ -670,32 +683,41 @@ public class UserWorkspace {
                     throw new CaseNotHandledException("Case not handled for data set: " + dataSet.getName());
                 }
 
+                if (dataSetBuilder instanceof EndpointService) {
+                    auditService.doAudit(user, AuditSeverity.INFO, "cache population", "got " + list.size() + " " + dataSet.getName() +
+                            " resources from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
+                }
+
             } catch (Exception e) {
+                final String endpointNameForLogging = dataSetBuilder instanceof SDSService ?
+                        "SDS for " + endpoint.getName() :
+                        endpoint.getName();
+
                 if (e instanceof ForbiddenOperationException) {
                     logger.error("attempt to retrieve {} from {} was forbidden - {}",
-                            dataSet.getName(), endpoint.getName(), e.getMessage());
+                            dataSet.getName(), endpointNameForLogging, e.getMessage());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (ForbiddenOperationException) e;
 
                     } else {
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
-                                " from " + endpoint.getName() + " was forbidden");
+                        auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
+                                " from " + endpointNameForLogging + " was forbidden");
                         addProgressError(endpoint, dataSet, e.getMessage());
                     }
 
                 } else if (e instanceof InvalidRequestException) {
                     logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - {}",
-                            dataSet.getName(), endpoint.getName(), e.getMessage());
+                            dataSet.getName(), endpointNameForLogging, e.getMessage());
 
                     if (DataSet.PATIENT.equals(dataSet)) {
                         logger.error("Patient is required for system operation; aborting -");
                         throw (InvalidRequestException) e;
 
                     } else {
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
-                                dataSet.getName() + " from " + endpoint.getName());
+                        auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
+                                dataSet.getName() + " from " + endpointNameForLogging);
                         addProgressError(endpoint, dataSet, e.getMessage());
                     }
 
