@@ -37,7 +37,7 @@ public class HealthRecordsController extends BasePatientController {
             setCommonViewComponents(sessionId, model);
 
             model.addAttribute("pageScripts", new String[] { "fhir-client-v2.6.3.min.js", "health-records.js" });
-            model.addAttribute("pageStyles", new String[] { "health-records.css" });
+            model.addAttribute("pageStyles", new String[] { "patient/health-records.css" });
 
             UserWorkspace workspace = userWorkspaceService.get(sessionId);
 

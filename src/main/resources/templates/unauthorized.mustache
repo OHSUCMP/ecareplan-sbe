@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Unauthorized</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{>fragments/css}}
+
+    <link rel="stylesheet" href="{{req.contextPath}}/css/auxiliary.css" />
+
     <script type="text/javascript" src="{{req.contextPath}}/webjars/jquery/jquery.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
@@ -9,7 +16,30 @@
         });
     </script>
 </head>
-<body style="font-size:1.5em;">
-    Unauthorized
+<body class="aux-page">
+<main class="aux-page-shell">
+    <section class="card aux-page-card" aria-labelledby="page-title">
+        <header class="aux-page-header">
+            <h1 id="page-title" class="aux-page-title">Access Not Authorized</h1>
+            <p class="aux-page-subtitle">Your session could not be validated.</p>
+        </header>
+
+        <div class="aux-page-body">
+            <div class="aux-page-icon" aria-hidden="true">
+                <span class="fa-solid fa-lock"></span>
+            </div>
+            <p class="aux-page-message">
+                You are not authorized to access this page.
+            </p>
+            <p class="aux-page-detail">
+                Please return to the system that launched MyCarePlanner and try again. If this continues, contact support or study staff.
+            </p>
+        </div>
+
+        <footer class="aux-page-footer">
+            For your privacy, local session data has been cleared from this browser.
+        </footer>
+    </section>
+</main>
 </body>
 </html>

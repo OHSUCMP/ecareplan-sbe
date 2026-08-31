@@ -102,14 +102,11 @@ function renderCard(id, card) {
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
         '<div class="card h-100">' +
-        '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">' +
-        '<h3 class="card-title mb-0">' + card.title +
-
-        // todo : if it exists, card.learnMoreUrl should appear in the same header bar as card.title, but
-        //        right-aligned, and in smaller text.  it should be a hyperlink with the text "Learn More" that directs
-        //        to the specified URL
-
-        '</h3>' +
+        '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center gap-3">' +
+        '<h3 class="card-title mb-0">' + escapeHtml(card.title ?? '') + '</h3>' +
+        (card.learnMoreUrl ?
+            '<a class="dataset-learn-more" href="' + escapeHtml(card.learnMoreUrl) + '" target="_blank" rel="noopener noreferrer">Learn More</a>' :
+            '') +
         '</div>' + // card-header
         '<div class="card-body">' +
         (typeof renderCardChartContainer === 'function' ? renderCardChartContainer(id, card.chart) : '') +
@@ -134,7 +131,7 @@ function renderCardRows(baseId, rows) {
 
         row.forEach(function(cell, cellIndex) {
             html += '<div class="col" id="' + baseId + '-row-' + rowIndex + '-cell-' + cellIndex + '">';
-            html += '<div class="border rounded bg-light p-2 h-100">';
+            html += '<div class="dataset-card-row-value p-3 h-100">';
             html += cell ?? '';
             html += '</div>';
             html += '</div>';

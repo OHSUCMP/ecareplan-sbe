@@ -3,51 +3,123 @@
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
 <div id="dataSets" class="hidden">{{dataSets}}</div>
 
-<div class="container">
+<div class="container home-page">
     {{#systemStatusMessage}}
-        <div class="row align-items-center alert alert-teal" role="alert">
-            <div class="col-md-auto text-center">
-                <img src="/images/info-icon.png" alt="System Status" height="50px" />
+        <div class="alert home-status-alert d-flex align-items-start gap-3" role="alert">
+            <div class="pt-1" aria-hidden="true">
+                <span class="fa-solid fa-circle-info"></span>
             </div>
-            <div class="col">
-                {{systemStatusMessage}}
+            <div>
+                <strong>System Status</strong>
+                <div>{{systemStatusMessage}}</div>
             </div>
         </div>
     {{/systemStatusMessage}}
 
-    <h1>{{applicationName}}</h1>
-    <p>
-        <a href="https://www.ohsu.edu/school-of-medicine/care-management-plus/mycareplanner-tos-and-privacy-policy">Terms of Use and Privacy Policy</a>
-    </p>
-    <p>
-        MyCarePlanner is a tool to help you and your care team work together to keep you healthy. It is a completely
-        personalized way to see what steps you’ve already taken and what else you can do to check for and prevent illnesses.
-    </p>
+    <section class="home-hero" aria-labelledby="home-title">
+        <div class="home-hero-content">
+            <div class="home-eyebrow">
+                <span class="fa-solid fa-heart-pulse" aria-hidden="true"></span>
+                Personalized Care Planning
+            </div>
+            <h1 id="home-title" class="home-title">{{applicationName}}</h1>
+            <p class="home-intro">
+                MyCarePlanner helps you and your care team work together to keep you healthy. It brings together
+                information from your connected health records so you can review your care plan, track key health
+                information, and see recommended next steps in one place.
+            </p>
+        </div>
+    </section>
 
     <div id="progressContainer" class="hidden"></div>
 
-    <h2>Patient Records</h2>
-    <div id="modelsContainer">
-        Loading...
+    <div class="row g-4 home-section">
+        <div class="col-lg-8">
+            <section class="card home-section-card" aria-labelledby="patient-records-title">
+                <div class="card-body p-4">
+                    <div class="home-section-header">
+                        <div>
+                            <h2 id="patient-records-title" class="home-section-title">Patient Records</h2>
+                            <p class="home-section-description">
+                                Review the patient records currently available from your connected health record sources.
+                            </p>
+                        </div>
+                        <div class="home-section-icon" aria-hidden="true">
+                            <span class="fa-solid fa-id-card-clip"></span>
+                        </div>
+                    </div>
+
+                    <div id="modelsContainer">
+                        <div class="home-loading-state" role="status">
+                            <div class="spinner-border spinner-border-sm color-primary" aria-label="Loading"></div>
+                            <span>Loading patient records...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <section class="card home-cta-card h-100" aria-labelledby="health-records-title">
+                <div class="card-body p-4">
+                    <div class="home-section-header">
+                        <div>
+                            <h2 id="health-records-title" class="home-section-title">Connected Health Records</h2>
+                            <p class="home-section-description">
+                                Connect additional health record providers to help keep your care information current.
+                            </p>
+                        </div>
+                        <div class="home-section-icon" aria-hidden="true">
+                            <span class="fa-solid fa-hospital-user"></span>
+                        </div>
+                    </div>
+
+                    <a class="btn button-primary w-100 mt-2" href="{{req.contextPath}}/patient/health-records">
+                        Connect or Manage Records
+                    </a>
+                </div>
+            </section>
+        </div>
     </div>
 
-    <h2>Manage Connected Health Records</h2>
-    <p>
-        <a href="/patient/health-records">Click here to connect additional health records to your account</a>
-    </p>
+    <section class="home-section" aria-labelledby="privacy-title">
+        <div class="card home-section-card">
+            <div class="card-body p-4">
+                <div class="home-section-header">
+                    <div>
+                        <h2 id="privacy-title" class="home-section-title">Privacy and Use</h2>
+                        <p class="home-section-description">
+                            Please review the terms and privacy policy for more information about how this application is used.
+                        </p>
+                    </div>
+                    <div class="home-section-icon" aria-hidden="true">
+                        <span class="fa-solid fa-shield-halved"></span>
+                    </div>
+                </div>
 
-    <h2>Disclaimer</h2>
-    <p>
-        <em>This application is provided for informational purposes only and does not constitute medical advice or
-            professional services. The information provided should not be used for diagnosing or treating a health
-            problem or disease, and those seeking personal medical advice should consult with a licensed physician.
-            Always seek the advice of your doctor or other qualified health provider regarding a medical condition.
-            Never disregard professional medical advice or delay in seeking it because of something you have read in
-            this application. If you think you may have a medical emergency, call 911 or go to the nearest emergency
-            room immediately. No physician-patient relationship is created by this application or its use. Neither OHSU,
-            nor its employees, nor any contributor to this application, makes any representations, express or implied,
-            with respect to the information herein or to its use.</em>
-    </p>
+                <a class="link thick" href="https://www.ohsu.edu/school-of-medicine/care-management-plus/mycareplanner-tos-and-privacy-policy">
+                    Terms of Use and Privacy Policy
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-section" aria-labelledby="disclaimer-title">
+        <h2 id="disclaimer-title" class="home-section-title">Disclaimer</h2>
+        <div class="home-disclaimer">
+            <p>
+                <em>This application is provided for informational purposes only and does not constitute medical advice or
+                    professional services. The information provided should not be used for diagnosing or treating a health
+                    problem or disease, and those seeking personal medical advice should consult with a licensed physician.
+                    Always seek the advice of your doctor or other qualified health provider regarding a medical condition.
+                    Never disregard professional medical advice or delay in seeking it because of something you have read in
+                    this application. If you think you may have a medical emergency, call 911 or go to the nearest emergency
+                    room immediately. No physician-patient relationship is created by this application or its use. Neither OHSU,
+                    nor its employees, nor any contributor to this application, makes any representations, express or implied,
+                    with respect to the information herein or to its use.</em>
+            </p>
+        </div>
+    </section>
 </div>
 
 <script type="text/javascript">
@@ -62,12 +134,24 @@
 
         let renderPatientModels = function(models) {
             if (models && models.length > 0) {
-                let html = '<ol>';
+                let html = '<div class="home-patient-list">';
                 models.forEach(function(model) {
-                    html += '<li><strong>' + model.name + '</strong> (age: ' + model.age + ', gender: ' + model.gender + ') (Source: ' + model.sourceEndpointName + ')</li>';
+                    html += '<article class="home-patient-card">';
+                    html += '<div class="home-patient-card-name">' + model.name + '</div>';
+                    html += '<div class="home-patient-card-meta"><span class="fa-solid fa-cake-candles me-2 color-primary" aria-hidden="true"></span>Age: ' + model.age + '</div>';
+                    html += '<div class="home-patient-card-meta"><span class="fa-solid fa-user me-2 color-primary" aria-hidden="true"></span>Gender: ' + model.gender + '</div>';
+                    html += '<p class="home-patient-card-source"><span class="fa-solid fa-database me-2 color-primary" aria-hidden="true"></span>Source: ' + model.sourceEndpointName + '</p>';
+                    html += '</article>';
                 });
-                html += '</ol>';
+                html += '</div>';
                 $('#modelsContainer').html(html);
+            } else {
+                $('#modelsContainer').html(
+                        '<div class="home-loading-state">' +
+                        '<span class="fa-solid fa-circle-info color-primary" aria-hidden="true"></span>' +
+                        '<span>No patient records are currently available. You may need to connect a health record provider.</span>' +
+                        '</div>'
+                );
             }
         }
 

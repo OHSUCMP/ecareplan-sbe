@@ -1,0 +1,110 @@
+/* Auxiliary system pages */
+
+.aux-page {
+    min-height: 100vh;
+    margin: 0;
+    background:
+            radial-gradient(circle at top left, rgba(179, 255, 240, 0.28), transparent 32rem),
+            linear-gradient(135deg, #f7fbfc 0%, #eaf3f6 100%);
+    color: #1f2933;
+}
+
+.aux-page-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.aux-page-card {
+    width: 100%;
+    max-width: 680px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 2.5rem rgba(0, 68, 102, 0.16);
+}
+
+.aux-page-header {
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, #004466 0%, #2e6e9e 100%);
+    color: #fff;
+}
+
+.aux-page-title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.aux-page-subtitle {
+    margin: 0.35rem 0 0;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.95rem;
+}
+
+.aux-page-body {
+    padding: 2rem 1.75rem;
+    background-color: #fff;
+}
+
+.aux-page-icon {
+    display: inline-flex;
+    width: 3.25rem;
+    height: 3.25rem;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    border-radius: 999px;
+    background-color: rgba(46, 110, 158, 0.12);
+    color: #004466;
+    font-size: 1.45rem;
+}
+
+.aux-page-message {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    line-height: 1.55;
+}
+
+.aux-page-detail {
+    margin-bottom: 0;
+    color: #5d6975;
+    line-height: 1.55;
+}
+
+.aux-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.aux-page-footer {
+    padding: 1rem 1.75rem;
+    border-top: 1px solid #edf2f5;
+    background-color: #f8fbfc;
+    color: #6b7785;
+    font-size: 0.9rem;
+}
+
+.aux-page-spinner {
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: 1.25rem;
+    color: #2e6e9e;
+}
+
+.aux-page-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background-color: #eef7fa;
+    color: #004466;
+    font-size: 0.9rem;
+    font-weight: 600;
+}

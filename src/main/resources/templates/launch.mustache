@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>{{applicationName}} - Loading</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{>fragments/css}}
+
+    <link rel="stylesheet" href="{{req.contextPath}}/css/auxiliary.css" />
+
     <script type="text/javascript" src="{{req.contextPath}}/webjars/jquery/jquery.min.js"></script>
 
     <!-- SMART on FHIR client library - see: https://docs.smarthealthit.org/client-js/#installation -->
@@ -30,7 +36,28 @@
         });
     </script>
 </head>
-<body style="font-size:1.5em;">
-Loading...
+<body class="aux-page">
+<main class="aux-page-shell">
+    <section class="card aux-page-card" aria-labelledby="page-title">
+        <header class="aux-page-header">
+            <h1 id="page-title" class="aux-page-title">{{applicationName}}</h1>
+            <p class="aux-page-subtitle">Preparing your secure connection.</p>
+        </header>
+
+        <div class="aux-page-body text-center">
+            <div class="spinner-border aux-page-spinner" role="status" aria-label="Loading"></div>
+            <p class="aux-page-message">
+                Starting secure sign-in...
+            </p>
+            <p class="aux-page-detail">
+                You will be redirected automatically. Please keep this browser window open.
+            </p>
+        </div>
+
+        <footer class="aux-page-footer">
+            Connecting using SMART on FHIR authorization.
+        </footer>
+    </section>
+</main>
 </body>
 </html>
