@@ -138,7 +138,8 @@ function renderCardRows(baseId, rows) {
                     baseId + '-row-' + rowIndex + '-accordion',
                     row.title ?? 'Details',
                     row.headers,
-                    row.rows
+                    row.rows,
+                    row.beginExpanded === true
                 ) +
                 '</div>';
             return;
@@ -166,17 +167,21 @@ function renderCardRows(baseId, rows) {
     return html;
 }
 
-function renderDataTableAccordion(baseId, title, headers, rows) {
+function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = false) {
     if (!rows || rows.length === 0) return '';
+
+    let buttonCollapsedClass = beginExpanded ? '' : ' collapsed';
+    let collapseShowClass = beginExpanded ? ' show' : '';
+    let ariaExpanded = beginExpanded ? 'true' : 'false';
 
     return '<div class="accordion accordion-flush border rounded dataset-table-accordion" id="' + baseId + '">' +
         '<div class="accordion-item">' +
         '<h2 class="accordion-header" id="heading-' + baseId + '">' +
-        '<button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + baseId + '" aria-expanded="false" aria-controls="collapse-' + baseId + '">' +
+        '<button class="accordion-button' + buttonCollapsedClass + ' py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + baseId + '" aria-expanded="' + ariaExpanded + '" aria-controls="collapse-' + baseId + '">' +
         escapeHtml(title) + ' (' + rows.length + ')' +
         '</button>' +
         '</h2>' + // accordion-header
-        '<div id="collapse-' + baseId + '" class="accordion-collapse collapse" aria-labelledby="heading-' + baseId + '" data-bs-parent="#' + baseId + '">' +
+        '<div id="collapse-' + baseId + '" class="accordion-collapse collapse' + collapseShowClass + '" aria-labelledby="heading-' + baseId + '" data-bs-parent="#' + baseId + '">' +
         '<div class="accordion-body">' +
         '<div class="table-responsive">' +
         '<table class="table table-sm table-striped table-hover align-middle mb-0">' +

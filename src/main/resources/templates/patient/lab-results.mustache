@@ -95,8 +95,13 @@
         card.rows = [];
         card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' ]);
         if (model.mostRecentData.performers) {
-            model.mostRecentData.performers.forEach(function(performer) {
-                card.rows.push([ 'Performed by: ' + performer ]);
+            card.rows.push({
+                title: 'Performers',
+                headers: [ 'Performer' ],
+                rows: model.mostRecentData.performers.map(function(performer) {
+                    return [ performer ];
+                }),
+                beginExpanded: true
             });
         }
         if (model.mostRecentData.referenceRange) {
@@ -108,7 +113,8 @@
                 headers: [ 'Note' ],
                 rows: model.mostRecentData.notes.map(function(note) {
                     return [ note ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
@@ -119,7 +125,8 @@
                 headers: [ 'Result', 'Effective Date' ],
                 rows: model.historicalData.map(function(data) {
                     return [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ];
-                })
+                }),
+                beginExpanded: false
             });
         }
 

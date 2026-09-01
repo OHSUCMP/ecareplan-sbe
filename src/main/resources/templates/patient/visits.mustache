@@ -59,7 +59,8 @@
                 headers: [ 'Participant' ],
                 rows: model.participants.map(function(participant) {
                     return [ participant ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         if (model.reasons && model.reasons.length > 0) {
@@ -68,7 +69,8 @@
                 headers: [ 'Reason' ],
                 rows: model.reasons.map(function(reason) {
                     return [ reason ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         if (model.notes && model.notes.length > 0) {
@@ -77,7 +79,8 @@
                 headers: [ 'Note' ],
                 rows: model.notes.map(function(note) {
                     return [ note ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         card.rows.push([ 'Source: ' + model.sourceEndpointName ]);

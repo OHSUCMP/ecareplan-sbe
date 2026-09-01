@@ -73,7 +73,8 @@
                 headers: [ 'Note' ],
                 rows: model.notes.map(function(note) {
                     return [ note ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         card.rows.push([ 'Source: ' + model.sourceEndpointName ]);

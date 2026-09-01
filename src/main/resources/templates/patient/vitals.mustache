@@ -60,7 +60,8 @@
                 headers: [ 'Performed by' ],
                 rows: model.mostRecentData.performers.map(function(performer) {
                     return [ performer ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         if (model.mostRecentData.notes && model.mostRecentData.notes.length > 0) {
@@ -69,7 +70,8 @@
                 headers: [ 'Note' ],
                 rows: model.mostRecentData.notes.map(function(note) {
                     return [ note ];
-                })
+                }),
+                beginExpanded: true
             });
         }
         card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
@@ -80,7 +82,8 @@
                 headers: [ 'Result', 'Effective Date' ],
                 rows: model.historicalData.map(function(data) {
                     return [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ];
-                })
+                }),
+                beginExpanded: false
             });
         }
 

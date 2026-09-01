@@ -65,7 +65,8 @@
                 headers: ['Name', 'Role', 'Time Period'],
                 rows: model.participants.map(function(participant) {
                     return [participant.name, participant.role ?? null, participant.period ?? null];
-                })
+                }),
+                beginExpanded: true
             });
         }
         card.rows.push(['Source: ' + model.sourceEndpointName]);
