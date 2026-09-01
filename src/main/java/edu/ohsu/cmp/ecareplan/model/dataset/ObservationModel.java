@@ -23,7 +23,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
     private String conceptName;
     private Date effectiveDate;
     private String resultText;
-    private BigDecimal resultValue;
+    private ResultValue resultValue;
     private String resultUnits;
     private String referenceRange;
     private String interpretation;      // complex; skip for now // todo : populate this
@@ -59,11 +59,16 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
                         systolic.getUnit() :
                         BP_UNIT;
                 resultText = systolic.getValue().toString() + "/" + diastolic.getValue().toString() + " " + unit;
+
+                ResultValue.Component systolicComponent = new ResultValue.Component("Systolic", systolic.getValue());
+                ResultValue.Component diastolicComponent = new ResultValue.Component("Diastolic", diastolic.getValue());
+                resultValue = new ResultValue(List.of(systolicComponent, diastolicComponent));
+
                 resultUnits = unit;
             }
         } else if (observation.hasValueQuantity()) {
             Quantity q = observation.getValueQuantity();
-            resultValue = q.getValue();
+            resultValue = new ResultValue(conceptName, q.getValue());
             if (q.hasUnit()) {
                 resultUnits = q.getUnit();
                 resultText = q.getValue().toString() + " " + q.getUnit();
@@ -90,10 +95,10 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
         }
 
         flag = false;
-        if (resultValue != null && referenceRangeLow != null) {
-            if (resultValue.compareTo(referenceRangeLow) < 0) {
+        if (resultValue != null && resultValue.isComparable() && referenceRangeLow != null) {
+            if (resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
                 flag = true;
-            } else if (resultValue.compareTo(referenceRangeHigh) > 0) {
+            } else if (resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
                 flag = true;
             }
         }
@@ -125,7 +130,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
         return resultText;
     }
 
-    public BigDecimal getResultValue() {
+    public ResultValue getResultValue() {
         return resultValue;
     }
 

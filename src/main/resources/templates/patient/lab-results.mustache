@@ -84,6 +84,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.mostRecentData.description;
+        card.chart = buildConsolidatedChartData(model);
 
         card.rows = [];
         card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' ]);

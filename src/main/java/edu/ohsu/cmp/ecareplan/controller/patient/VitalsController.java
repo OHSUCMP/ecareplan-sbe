@@ -36,8 +36,9 @@ public class VitalsController extends BasePatientController {
         if (sessionService.exists(sessionId)) {
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "dataset.js" });
-            model.addAttribute("pageStyles", new String[] { "dataset.css" });
+            model.addAttribute("pageWebjars", new String[] { "chart.js/dist/chart.umd.min.js" });
+            model.addAttribute("pageScripts", new String[] { "dataset.js", "chart.js" });
+            model.addAttribute("pageStyles", new String[] { "dataset.css", "chart.css" });
 
             model.addAttribute("dataSets", DataSet.VITALS);
 
