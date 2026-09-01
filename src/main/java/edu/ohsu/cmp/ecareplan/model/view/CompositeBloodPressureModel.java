@@ -1,9 +1,9 @@
 package edu.ohsu.cmp.ecareplan.model.view;
 
+import edu.ohsu.cmp.ecareplan.model.dataset.ResultValue;
 import edu.ohsu.cmp.ecareplan.model.dataset.VitalsModel;
 import org.apache.commons.lang3.StringUtils;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 public class CompositeBloodPressureModel implements IVitalsModel {
@@ -57,8 +57,10 @@ public class CompositeBloodPressureModel implements IVitalsModel {
     }
 
     @Override
-    public BigDecimal getResultValue() {
-        return null;
+    public ResultValue getResultValue() {
+        ResultValue.Component systolicComponent = new ResultValue.Component("Systolic", systolicModel.getResultValue().getValueForCompare());
+        ResultValue.Component diastolicComponent = new ResultValue.Component("Diastolic", diastolicModel.getResultValue().getValueForCompare());
+        return new ResultValue(List.of(systolicComponent, diastolicComponent));
     }
 
     @Override

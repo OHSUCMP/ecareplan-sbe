@@ -1,8 +1,8 @@
 package edu.ohsu.cmp.ecareplan.model.view;
 
 import edu.ohsu.cmp.ecareplan.model.dataset.Consolidatable;
+import edu.ohsu.cmp.ecareplan.model.dataset.ResultValue;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -12,7 +12,7 @@ public interface IVitalsModel extends Consolidatable<Date> {
     String getDescription();
     Date getEffectiveDate();
     String getResultText();
-    BigDecimal getResultValue();
+    ResultValue getResultValue();
     String getResultUnits();
     String getReferenceRange();
     String getInterpretation();
