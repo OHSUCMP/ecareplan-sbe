@@ -8,6 +8,7 @@ import org.hl7.fhir.r4.model.Quantity;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 public abstract class ObservationModel extends BaseDataSetModel<Observation> {
     private static final List<Coding> BP_CODINGS = List.of(
@@ -28,7 +29,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
     private String referenceRange;
     private String interpretation;      // complex; skip for now // todo : populate this
     private Boolean flag;
-    private List<String> performers;
+    private Set<String> performers;
     private List<String> notes;
     private String learnMore;           // complex; skip for now // todo : populate this
 
@@ -104,7 +105,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
         }
 
         if (observation.hasPerformer()) {
-            performers = getDisplayValuesFromReferences(observation.getPerformer());
+            performers = getDistinctDisplayValuesFromReferences(observation.getPerformer());
         }
 
         if (observation.hasNote()) {
@@ -150,7 +151,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
         return flag;
     }
 
-    public List<String> getPerformers() {
+    public Set<String> getPerformers() {
         return performers;
     }
 

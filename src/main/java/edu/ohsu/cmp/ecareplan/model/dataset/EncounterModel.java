@@ -4,14 +4,16 @@ import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Encounter;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public class EncounterModel extends BaseDataSetModel<Encounter> {
     private List<String> types;
     private String serviceType;
     private String period;
-    private List<String> reasons;
-    private List<String> participants;
+    private Set<String> reasons;
+    private Set<String> participants;
 
     public EncounterModel(Encounter encounter) {
         super(encounter);
@@ -35,16 +37,16 @@ public class EncounterModel extends BaseDataSetModel<Encounter> {
         }
 
         if (encounter.hasReasonCode()) {
-            reasons = getConceptNamesFromCodeableConcept(encounter.getReasonCode());
+            reasons = getDistinctConceptNamesFromCodeableConcept(encounter.getReasonCode());
 
         } else if (encounter.hasReasonReference()) {
-            reasons = getDisplayValuesFromReferences(encounter.getReasonReference());
+            reasons = getDistinctDisplayValuesFromReferences(encounter.getReasonReference());
         }
 
         if (encounter.hasParticipant()) {
             for (Encounter.EncounterParticipantComponent participant : encounter.getParticipant()) {
                 if (participant.hasIndividual() && participant.getIndividual().hasDisplay()) {
-                    if (participants == null) participants = new ArrayList<>();
+                    if (participants == null) participants = new LinkedHashSet<>();
                     participants.add(participant.getIndividual().getDisplay());
                 }
             }
@@ -74,11 +76,11 @@ public class EncounterModel extends BaseDataSetModel<Encounter> {
         return period;
     }
 
-    public List<String> getReasons() {
+    public Set<String> getReasons() {
         return reasons;
     }
 
-    public List<String> getParticipants() {
+    public Set<String> getParticipants() {
         return participants;
     }
 }

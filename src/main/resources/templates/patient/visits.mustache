@@ -51,24 +51,42 @@
         card.title = model.description;
         card.rows = [];
         if (model.serviceType || model.period) {
-            card.rows.push([ (model.serviceType ? 'Type: ' + model.serviceType : ''), (model.period ? 'Date (range): ' + model.period : '')]);
+            card.rows.push([
+                { label: 'Type', value: model.serviceType },
+                { label: 'Date (range)', value: model.period }
+            ]);
         }
-        if (model.participants) {
-            model.participants.forEach(function(participant) {
-                card.rows.push([ 'Participant: ' + participant ]);
+        if (model.participants && model.participants.length > 0) {
+            card.rows.push({
+                title: 'Participants',
+                headers: [ 'Participant' ],
+                rows: model.participants.map(function(participant) {
+                    return [ participant ];
+                }),
+                beginExpanded: true
             });
         }
-        if (model.reasons) {
-            model.reasons.forEach(function(reason) {
-                card.rows.push([ 'Reason: ' + reason ]);
+        if (model.reasons && model.reasons.length > 0) {
+            card.rows.push({
+                title: 'Reasons',
+                headers: [ 'Reason' ],
+                rows: model.reasons.map(function(reason) {
+                    return [ reason ];
+                }),
+                beginExpanded: true
             });
         }
-        if (model.notes) {
-            model.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.notes && model.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.notes.map(function(note) {
+                    return [ note ];
+                }),
+                beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

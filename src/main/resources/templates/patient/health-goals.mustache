@@ -56,17 +56,25 @@
         card.title = model.description ?? '(No Description)';
         card.rows = [];
         if (model.expressedBy || model.startDate) {
-            card.rows.push([ (model.expressedBy ? 'Expressed by: ' + model.expressedBy : ''), (model.startDate ? 'Start: ' + formatDate(model.startDate) : '') ]);
+            card.rows.push([
+                { label: 'Expressed By', value: model.expressedBy },
+                { label: 'Start Date', value: formatDate(model.startDate) }
+            ]);
         }
         if (model.consolidatedStatus) {
-            card.rows.push([ 'Status: ' + model.consolidatedStatus ]);
+            card.rows.push([{ label: 'Status', value: model.consolidatedStatus }]);
         }
-        if (model.notes) {
-            model.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.notes && model.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.notes.map(function(note) {
+                    return [ note ];
+                }),
+                beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

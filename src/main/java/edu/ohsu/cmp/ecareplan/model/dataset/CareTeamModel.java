@@ -2,15 +2,17 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.r4.model.CareTeam;
+import org.jspecify.annotations.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class CareTeamModel extends BaseDataSetModel<CareTeam> {
     private String name;
     private String category;
     private String period;
-    private List<ParticipantInfo> participants;
+    private Set<ParticipantInfo> participants;
 
     public CareTeamModel(CareTeam careTeam) {
         super(careTeam);
@@ -37,7 +39,7 @@ public class CareTeamModel extends BaseDataSetModel<CareTeam> {
                     String period = participant.hasPeriod() ?
                             formatPeriod(participant.getPeriod()) :
                             null;
-                    if (participants == null) participants = new ArrayList<>();
+                    if (participants == null) participants = new LinkedHashSet<>();
                     participants.add(new ParticipantInfo(name, role, period));
                 }
             }
@@ -71,31 +73,24 @@ public class CareTeamModel extends BaseDataSetModel<CareTeam> {
         return period;
     }
 
-    public List<ParticipantInfo> getParticipants() {
+    public Set<ParticipantInfo> getParticipants() {
         return participants;
     }
 
-    public static final class ParticipantInfo {
-        private final String name;
-        private final String role;
-        private final String period;
+    public record ParticipantInfo(String name, String role, String period) implements Comparable<ParticipantInfo> {
+        private static final Comparator<String> STRING_COMPARATOR =
+                Comparator.nullsLast(
+                        String.CASE_INSENSITIVE_ORDER.thenComparing(Comparator.naturalOrder())
+                );
 
-        public ParticipantInfo(String name, String role, String period) {
-            this.name = name;
-            this.role = role;
-            this.period = period;
-        }
+        private static final Comparator<ParticipantInfo> COMPARATOR =
+                Comparator.comparing(ParticipantInfo::name, STRING_COMPARATOR)
+                        .thenComparing(ParticipantInfo::role, STRING_COMPARATOR)
+                        .thenComparing(ParticipantInfo::period, STRING_COMPARATOR);
 
-        public String getName() {
-            return name;
-        }
-
-        public String getRole() {
-            return role;
-        }
-
-        public String getPeriod() {
-            return period;
+        @Override
+        public int compareTo(@NonNull ParticipantInfo other) {
+            return COMPARATOR.compare(this, other);
         }
     }
 }

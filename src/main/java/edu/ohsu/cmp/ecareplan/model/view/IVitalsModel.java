@@ -5,6 +5,7 @@ import edu.ohsu.cmp.ecareplan.model.dataset.ResultValue;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 public interface IVitalsModel extends Consolidatable<Date> {
     String getId();
@@ -17,7 +18,7 @@ public interface IVitalsModel extends Consolidatable<Date> {
     String getReferenceRange();
     String getInterpretation();
     Boolean getFlag();
-    List<String> getPerformers();
+    Set<String> getPerformers();
     List<String> getNotes();
     String getLearnMore();
     String getSourceEndpointName();

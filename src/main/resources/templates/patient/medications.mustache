@@ -55,30 +55,51 @@
         card.title = model.conceptName;
         card.rows = [];
         if (model.flags && model.flags.length > 0) {
-            card.rows.push([ 'Flags: ' + renderFlags(model.flags) ]);
+            card.rows.push([{ label: 'Flags', value: renderFlags(model.flags) }]);
         }
         if (model.category || model.status) {
-            card.rows.push([ (model.category ? 'Category: ' + model.category : ''), (model.status ? 'Status: ' + model.status : '') ]);
+            card.rows.push([
+                { label: 'Category', value: model.category },
+                { label: 'Status', value: model.status }
+            ]);
         }
         if (model.authoredOn || model.requester) {
-            card.rows.push([ (model.authoredOn ? 'Ordered On: ' + formatDate(model.authoredOn) : ''), (model.requester ? 'By: ' + model.requester : '') ]);
+            card.rows.push([
+                { label: 'Ordered On', value: formatDate(model.authoredOn) },
+                { label: 'Requested By', value: model.requester }
+            ]);
         }
-        if (model.dosageInstructions) {
-            model.dosageInstructions.forEach(function(dosageInstruction) {
-                card.rows.push([ dosageInstruction ]);
+        if (model.dosageInstructions && model.dosageInstructions.length > 0) {
+            card.rows.push({
+                title: 'Dosage Instructions',
+                headers: [ 'Dosage Instruction' ],
+                rows: model.dosageInstructions.map(function(dosageInstruction) {
+                    return [ dosageInstruction ];
+                }),
+                beginExpanded: true
             });
         }
-        if (model.reasons) {
-            model.reasons.forEach(function(reason) {
-                card.rows.push([ 'Reason: ' + reason ]);
+        if (model.reasons && model.reasons.length > 0) {
+            card.rows.push({
+                title: 'Reasons',
+                headers: [ 'Reason' ],
+                rows: model.reasons.map(function(reason) {
+                    return [ reason ];
+                }),
+                beginExpanded: true
             });
         }
-        if (model.notes) {
-            model.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.notes && model.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.notes.map(function(note) {
+                    return [ note ];
+                }),
+                beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

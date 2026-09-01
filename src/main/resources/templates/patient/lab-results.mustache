@@ -93,28 +93,43 @@
         card.chart = buildConsolidatedChartData(model);
 
         card.rows = [];
-        card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' ]);
+        card.rows.push([
+            { label: 'Result', value: model.mostRecentData.resultText ?? '(No Result)' },
+            { label: 'Effective Date', value: formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' }
+        ]);
         if (model.mostRecentData.performers) {
-            model.mostRecentData.performers.forEach(function(performer) {
-                card.rows.push([ 'Performed by: ' + performer ]);
+            card.rows.push({
+                title: 'Performers',
+                headers: [ 'Performer' ],
+                rows: model.mostRecentData.performers.map(function(performer) {
+                    return [ performer ];
+                }),
+                beginExpanded: true
             });
         }
         if (model.mostRecentData.referenceRange) {
             card.rows.push([ model.mostRecentData.referenceRange ]);
         }
-        if (model.mostRecentData.notes) {
-            model.mostRecentData.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.mostRecentData.notes && model.mostRecentData.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.mostRecentData.notes.map(function(note) {
+                    return [ note ];
+                }),
+                beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.mostRecentData.sourceEndpointName }]);
 
         if (model.historicalData && model.historicalData.length > 0) {
-            card.history = {};
-            card.history.headers = [ 'Result', 'Effective Date' ];
-            card.history.rows = [];
-            model.historicalData.forEach(function(data) {
-                card.history.rows.push([ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ]);
+            card.rows.push({
+                title: 'Historical Data',
+                headers: [ 'Result', 'Effective Date' ],
+                rows: model.historicalData.map(function(data) {
+                    return [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ];
+                }),
+                beginExpanded: false
             });
         }
 

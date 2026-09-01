@@ -56,23 +56,28 @@
         card.title = model.name;
         card.rows = [];
         if (model.asserter) {
-            card.rows.push([ 'Asserted by: ' + model.asserter ]);
+            card.rows.push([{ label: 'Asserted By', value: model.asserter }]);
         }
         if (model.recorder) {
-            card.rows.push([ 'Recorded by: ' + model.recorder ]);
+            card.rows.push([{ label: 'Recorded By', value: model.recorder }]);
         }
         if (model.recordedDate) {
-            card.rows.push([ 'Recorded on: ' + formatDate(model.recordedDate) ]);
+            card.rows.push([{ label: 'Recorded On', value: formatDate(model.recordedDate) }]);
         }
         if (model.onsetDate) {
-            card.rows.push([ 'When it started: ' + formatDate(model.onsetDate) ]);
+            card.rows.push([{ label: 'Onset Date', value: formatDate(model.onsetDate) }]);
         }
-        if (model.notes) {
-            model.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.notes && model.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.notes.map(function(note) {
+                    return [ note ];
+                }),
+                beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

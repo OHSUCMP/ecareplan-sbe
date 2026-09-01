@@ -91,7 +91,7 @@ public class CompositeBloodPressureModel implements IVitalsModel {
     }
 
     @Override
-    public List<String> getPerformers() {
+    public Set<String> getPerformers() {
         Set<String> performers = new LinkedHashSet<>();
         if (systolicModel.getPerformers() != null) {
             performers.addAll(systolicModel.getPerformers());
@@ -99,7 +99,7 @@ public class CompositeBloodPressureModel implements IVitalsModel {
         if (diastolicModel.getPerformers() != null) {
             performers.addAll(diastolicModel.getPerformers());
         }
-        return new ArrayList<>(performers);
+        return performers;
     }
 
     @Override

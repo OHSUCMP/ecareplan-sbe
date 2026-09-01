@@ -51,22 +51,32 @@
         card.title = model.description ?? '(No Description)';
         card.rows = [];
         if (model.requester) {
-            card.rows.push([ 'Requested by: ' + model.requester ]);
+            card.rows.push([{ label: 'Requested By', value: model.requester }]);
         }
         if (model.authoredOn) {
-            card.rows.push([ 'Ordered on: ' + formatDate(model.authoredOn) ]);
+            card.rows.push([{ label: 'Ordered On', value: formatDate(model.authoredOn) }]);
         }
-        if (model.reasons) {
-            model.reasons.forEach(function(reason) {
-                card.rows.push([ 'Reason: ' + reason ]);
+        if (model.reasons && model.reasons.length > 0) {
+            card.rows.push({
+                title: 'Reasons',
+                headers: [ 'Reason' ],
+                rows: model.reasons.map(function(reason) {
+                    return [ reason ];
+                }),
+                beginExpanded: true
             });
         }
-        if (model.notes) {
-            model.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.notes && model.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.notes.map(function(note) {
+                    return [ note ];
+                }),
+                beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 
