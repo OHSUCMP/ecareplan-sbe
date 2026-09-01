@@ -7,7 +7,9 @@ import org.hl7.fhir.r4.model.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public abstract class BaseDataSetModel<T extends IDomainResource> {
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("MMM d, yyyy");
@@ -87,18 +89,18 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
         this.sourceEndpointIss = sourceEndpointIss;
     }
 
-    protected List<String> getConceptNamesFromCodeableConcept(List<CodeableConcept> ccList) {
-        List<String> list = null;
+    protected Set<String> getDistinctConceptNamesFromCodeableConcept(List<CodeableConcept> ccList) {
+        Set<String> set = null;
         if (ccList != null) {
             for (CodeableConcept cc : ccList) {
                 String name = getConceptNameFromCodeableConcept(cc);
                 if (name != null) {
-                    if (list == null) list = new ArrayList<>();
-                    list.add(name);
+                    if (set == null) set = new LinkedHashSet<>();
+                    set.add(name);
                 }
             }
         }
-        return list;
+        return set;
     }
 
     protected String getConceptNameFromCodeableConcept(CodeableConcept cc) {
@@ -116,17 +118,17 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
         return null;
     }
 
-    protected List<String> getDisplayValuesFromReferences(List<Reference> references) {
-        List<String> list = null;
+    protected Set<String> getDistinctDisplayValuesFromReferences(List<Reference> references) {
+        Set<String> set = null;
         if (references != null) {
             for (Reference r : references) {
                 if (r.hasDisplay()) {
-                    if (list == null) list = new ArrayList<>();
-                    list.add(r.getDisplay());
+                    if (set == null) set = new LinkedHashSet<>();
+                    set.add(r.getDisplay());
                 }
             }
         }
-        return list;
+        return set;
     }
 
     protected String getPreferredName(List<HumanName> names) {

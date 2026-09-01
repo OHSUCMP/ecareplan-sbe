@@ -4,12 +4,13 @@ import org.hl7.fhir.r4.model.ServiceRequest;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 public class ServiceRequestModel extends BaseDataSetModel<ServiceRequest> {
     private String code;
     private String requester;
     private Date authoredOn;
-    private List<String> reasons;
+    private Set<String> reasons;
     private List<String> notes;
 
     public ServiceRequestModel(ServiceRequest serviceRequest) {
@@ -28,10 +29,10 @@ public class ServiceRequestModel extends BaseDataSetModel<ServiceRequest> {
         }
 
         if (serviceRequest.hasReasonCode()) {
-            reasons = getConceptNamesFromCodeableConcept(serviceRequest.getReasonCode());
+            reasons = getDistinctConceptNamesFromCodeableConcept(serviceRequest.getReasonCode());
 
         } else if (serviceRequest.hasReasonReference()) {
-            reasons = getDisplayValuesFromReferences(serviceRequest.getReasonReference());
+            reasons = getDistinctDisplayValuesFromReferences(serviceRequest.getReasonReference());
         }
 
         if (serviceRequest.hasNote()) {
@@ -62,7 +63,7 @@ public class ServiceRequestModel extends BaseDataSetModel<ServiceRequest> {
         return authoredOn;
     }
 
-    public List<String> getReasons() {
+    public Set<String> getReasons() {
         return reasons;
     }
 

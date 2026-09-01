@@ -21,7 +21,7 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
     private Date authoredOn;
     private String requester;
     private String dosageInstruction;
-    private List<String> reasons;
+    private Set<String> reasons;
     private List<String> notes;
     private String learnMore;               // complex; skip for now // todo : populate this
     private List<MedicationFlag> flags;
@@ -74,10 +74,10 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         }
 
         if (medicationRequest.hasReasonCode()) {
-            reasons = getConceptNamesFromCodeableConcept(medicationRequest.getReasonCode());
+            reasons = getDistinctConceptNamesFromCodeableConcept(medicationRequest.getReasonCode());
 
         } else if (medicationRequest.hasReasonReference()) {
-            reasons = getDisplayValuesFromReferences(medicationRequest.getReasonReference());
+            reasons = getDistinctDisplayValuesFromReferences(medicationRequest.getReasonReference());
         }
 
         if (medicationRequest.hasNote()) {
@@ -177,7 +177,7 @@ public class MedicationModel extends BaseDataSetModel<MedicationRequest> {
         return dosageInstruction;
     }
 
-    public List<String> getReasons() {
+    public Set<String> getReasons() {
         return reasons;
     }
 
