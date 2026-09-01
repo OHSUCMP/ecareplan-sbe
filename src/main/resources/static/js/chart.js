@@ -3,9 +3,31 @@
 const LINE_CHART_MIN_WIDTH = 100;
 const LINE_CHART_MAX_WIDTH = 800;
 const LINE_CHART_ASPECT_RATIO = 2;
+const LINE_CHART_COLORS = [
+    'rgb(48, 96, 128)',
+    'rgb(192, 80, 77)',
+    'rgb(79, 129, 189)',
+    'rgb(155, 187, 89)',
+    'rgb(128, 100, 162)',
+    'rgb(75, 172, 198)',
+    'rgb(247, 150, 70)'
+];
+
+function chartHasData(chartData) {
+    if (!chartData) return false;
+
+    if (Array.isArray(chartData.data) && chartData.data.length > 0) {
+        return true;
+    }
+
+    return Array.isArray(chartData.lines)
+        && chartData.lines.some(function(line) {
+            return line && Array.isArray(line.data) && line.data.length > 0;
+        });
+}
 
 function renderCardChartContainer(baseId, chartData) {
-    if (!chartData || !chartData.data || chartData.data.length === 0) return '';
+    if (!chartHasData(chartData)) return '';
 
     return '<div class="chart-container mb-3">' +
         '<canvas class="chart" id="' + baseId + '-chart" data-chart-id="' + baseId + '" aria-label="' + (chartData.title ?? 'Chart') + '"></canvas>' +
@@ -96,7 +118,9 @@ function renderCharts() {
         const chart = JSON.parse(chartDataElement.textContent || '{}');
         const chartData = getChartData(chart);
 
-        if (!chartData.datasets[0].data || chartData.datasets[0].data.length === 0) return;
+        if (!chartData.datasets || !chartData.datasets.some(function(dataset) {
+            return dataset.data && dataset.data.length > 0;
+        })) return;
 
         createLineChart(
             Object.assign(getChartOptions(chart), { canvas: canvas }),
@@ -105,8 +129,8 @@ function renderCharts() {
     });
 }
 
-function getChartData(chart) {
-    const points = (chart && chart.data ? chart.data : [])
+function normalizeChartPoints(points) {
+    return (points || [])
         .map(function(point) {
             return {
                 x: new Date(point.x).getTime(),
@@ -119,12 +143,35 @@ function getChartData(chart) {
         .sort(function(a, b) {
             return a.x - b.x;
         });
+}
+
+function getChartData(chart) {
+    if (chart && Array.isArray(chart.lines) && chart.lines.length > 0) {
+        return {
+            datasets: chart.lines
+                .map(function(line, index) {
+                    return {
+                        label: line.label ?? '',
+                        data: normalizeChartPoints(line.data),
+                        borderColor: LINE_CHART_COLORS[index % LINE_CHART_COLORS.length],
+                        backgroundColor: LINE_CHART_COLORS[index % LINE_CHART_COLORS.length],
+                        fill: false
+                    };
+                })
+                .filter(function(dataset) {
+                    return dataset.data.length > 0;
+                })
+        };
+    }
+
+    const points = normalizeChartPoints(chart && chart.data ? chart.data : []);
 
     return {
         datasets: [
             {
                 data: points,
-                borderColor: 'rgb(48, 96, 128)',
+                borderColor: LINE_CHART_COLORS[0],
+                backgroundColor: LINE_CHART_COLORS[0],
                 fill: false
             }
         ]
@@ -134,6 +181,7 @@ function getChartData(chart) {
 function getChartOptions(chart) {
     const title = chart && chart.title ? chart.title : '';
     const yAxisTitle = chart && chart.labels && chart.labels.y ? chart.labels.y : '';
+    const hasMultipleLines = chart && Array.isArray(chart.lines) && chart.lines.length > 1;
 
     return {
         responsive: true,
@@ -149,7 +197,7 @@ function getChartOptions(chart) {
                 text: title
             },
             legend: {
-                display: false
+                display: hasMultipleLines
             },
             tooltip: {
                 callbacks: {
@@ -187,5 +235,56 @@ function getChartOptions(chart) {
                 }
             }
         }
+    };
+}
+
+function buildConsolidatedChartData(model) {
+    if (!model || !model.mostRecentData) return null;
+
+    const records = [ model.mostRecentData ].concat(model.historicalData || []);
+    const linesByConceptName = new Map();
+
+    records.forEach(function(record) {
+        if (!record || !record.effectiveDate || !record.resultValue || !Array.isArray(record.resultValue.components)) {
+            return;
+        }
+
+        record.resultValue.components.forEach(function(component) {
+            if (!component || !component.conceptName) return;
+
+            const y = Number(component.value);
+            if (!Number.isFinite(y)) return;
+
+            if (!linesByConceptName.has(component.conceptName)) {
+                linesByConceptName.set(component.conceptName, []);
+            }
+
+            linesByConceptName.get(component.conceptName).push({
+                x: record.effectiveDate,
+                y: y
+            });
+        });
+    });
+
+    const lines = Array.from(linesByConceptName.entries())
+        .map(function(entry) {
+            return {
+                label: entry[0],
+                data: entry[1]
+            };
+        })
+        .filter(function(line) {
+            return line.data.length > 0;
+        });
+
+    if (lines.length === 0) return null;
+
+    return {
+        title: model.mostRecentData.description + ' Over Time',
+        labels: {
+            x: 'Date',
+            y: model.mostRecentData.resultUnits ?? ''
+        },
+        lines: lines
     };
 }
