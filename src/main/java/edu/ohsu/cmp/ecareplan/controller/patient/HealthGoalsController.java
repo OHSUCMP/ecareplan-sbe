@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -44,28 +43,6 @@ public class HealthGoalsController extends BasePatientController {
             logger.debug("session does not exist for {}.  redirecting to launch page", sessionId);
             return "redirect:/patient/launch";
         }
-    }
-
-    private List<GoalModel> filterPersonalHealthGoals(List<GoalModel> goalModels) {
-        if (goalModels == null) return null;
-        List<GoalModel> list = new ArrayList<>();
-        for (GoalModel goalModel : goalModels) {
-            if (goalModel.getCategory() != null && ! goalModel.getCategory().toLowerCase().contains("inpatient")) {
-                list.add(goalModel);
-            }
-        }
-        return list;
-    }
-
-    private List<GoalModel> filterHospitalizationGoals(List<GoalModel> goalModels) {
-        if (goalModels == null) return null;
-        List<GoalModel> list = new ArrayList<>();
-        for (GoalModel goalModel : goalModels) {
-            if (goalModel.getCategory() != null && goalModel.getCategory().toLowerCase().contains("inpatient")) {
-                list.add(goalModel);
-            }
-        }
-        return list;
     }
 
     @PostMapping("progress")
