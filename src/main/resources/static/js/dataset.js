@@ -152,9 +152,7 @@ function renderCardRows(baseId, rows) {
 
         row.forEach(function(cell, cellIndex) {
             html += '<div class="col" id="' + baseId + '-row-' + rowIndex + '-cell-' + cellIndex + '">';
-            html += '<div class="dataset-card-row-value p-3 h-100">';
-            html += cell ?? '';
-            html += '</div>';
+            html += renderCardRowCell(cell);
             html += '</div>';
         });
 
@@ -165,6 +163,27 @@ function renderCardRows(baseId, rows) {
     html += '</div>'; // row
 
     return html;
+}
+
+function isLabeledCardCell(cell) {
+    return cell
+        && typeof cell === 'object'
+        && !Array.isArray(cell)
+        && Object.prototype.hasOwnProperty.call(cell, 'label')
+        && Object.prototype.hasOwnProperty.call(cell, 'value');
+}
+
+function renderCardRowCell(cell) {
+    if (isLabeledCardCell(cell)) {
+        return '<div class="dataset-card-row-cell h-100">' +
+            '<div class="dataset-card-row-label">' + escapeHtml(cell.label ?? '') + '</div>' +
+            '<div class="dataset-card-row-value p-3 h-100">' + (cell.value ?? '') + '</div>' +
+            '</div>';
+    }
+
+    return '<div class="dataset-card-row-value p-3 h-100">' +
+        (cell ?? '') +
+        '</div>';
 }
 
 function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = false) {

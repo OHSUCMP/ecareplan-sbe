@@ -51,13 +51,13 @@
         card.title = model.description;
         card.rows = [];
         if (model.name) {
-            card.rows.push(['Name: ' + model.name]);
+            card.rows.push([{ label: 'Name', value: model.name }]);
         }
         if (model.category) {
-            card.rows.push(['Category: ' + model.category]);
+            card.rows.push([{ label: 'Category', value: model.category }]);
         }
         if (model.period) {
-            card.rows.push(['Time Period: ' + model.period]);
+            card.rows.push([{ label: 'Time Period', value: model.period }]);
         }
         if (model.participants && model.participants.length > 0) {
             card.rows.push({
@@ -69,7 +69,7 @@
                 beginExpanded: true
             });
         }
-        card.rows.push(['Source: ' + model.sourceEndpointName]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

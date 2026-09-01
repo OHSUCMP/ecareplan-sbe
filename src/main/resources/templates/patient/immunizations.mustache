@@ -55,9 +55,9 @@
         let card = {};
         card.title = model.description ?? '(No Description)';
         card.rows = [];
-        card.rows.push([ 'Administered on: ' + (formatDate(model.effectiveDate) ?? '(Unknown)') ]);
+        card.rows.push([{ label: 'Administered On', value: formatDate(model.effectiveDate) ?? '(Unknown)' }]);
         if (model.location) {
-            card.rows.push([ 'Location: ' + model.location ]);
+            card.rows.push([{ label: 'Location', value: model.location }]);
         }
         if (model.notes && model.notes.length > 0) {
             card.rows.push({
@@ -69,7 +69,7 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

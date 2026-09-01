@@ -93,7 +93,10 @@
         card.chart = buildConsolidatedChartData(model);
 
         card.rows = [];
-        card.rows.push([ model.mostRecentData.resultText ?? '(No Result)', formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' ]);
+        card.rows.push([
+            { label: 'Result', value: model.mostRecentData.resultText ?? '(No Result)' },
+            { label: 'Effective Date', value: formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' }
+        ]);
         if (model.mostRecentData.performers) {
             card.rows.push({
                 title: 'Performers',
@@ -117,7 +120,7 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.mostRecentData.sourceEndpointName }]);
 
         if (model.historicalData && model.historicalData.length > 0) {
             card.rows.push({

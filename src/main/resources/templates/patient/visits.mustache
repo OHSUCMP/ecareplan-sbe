@@ -51,7 +51,10 @@
         card.title = model.description;
         card.rows = [];
         if (model.serviceType || model.period) {
-            card.rows.push([ (model.serviceType ? 'Type: ' + model.serviceType : ''), (model.period ? 'Date (range): ' + model.period : '')]);
+            card.rows.push([
+                { label: 'Type', value: model.serviceType },
+                { label: 'Date (range)', value: model.period }
+            ]);
         }
         if (model.participants && model.participants.length > 0) {
             card.rows.push({
@@ -83,7 +86,7 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

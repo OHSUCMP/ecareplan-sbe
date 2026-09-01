@@ -55,13 +55,19 @@
         card.title = model.conceptName;
         card.rows = [];
         if (model.flags && model.flags.length > 0) {
-            card.rows.push([ 'Flags: ' + renderFlags(model.flags) ]);
+            card.rows.push([{ label: 'Flags', value: renderFlags(model.flags) }]);
         }
         if (model.category || model.status) {
-            card.rows.push([ (model.category ? 'Category: ' + model.category : ''), (model.status ? 'Status: ' + model.status : '') ]);
+            card.rows.push([
+                { label: 'Category', value: model.category },
+                { label: 'Status', value: model.status }
+            ]);
         }
         if (model.authoredOn || model.requester) {
-            card.rows.push([ (model.authoredOn ? 'Ordered On: ' + formatDate(model.authoredOn) : ''), (model.requester ? 'By: ' + model.requester : '') ]);
+            card.rows.push([
+                { label: 'Ordered On', value: formatDate(model.authoredOn) },
+                { label: 'Requested By', value: model.requester }
+            ]);
         }
         if (model.dosageInstructions && model.dosageInstructions.length > 0) {
             card.rows.push({
@@ -93,7 +99,7 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([ 'Source: ' + model.sourceEndpointName ]);
+        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 
