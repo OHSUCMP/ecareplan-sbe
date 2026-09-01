@@ -67,9 +67,13 @@
         if (model.onsetDate) {
             card.rows.push([ 'When it started: ' + formatDate(model.onsetDate) ]);
         }
-        if (model.notes) {
-            model.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.notes && model.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.notes.map(function(note) {
+                    return [ note ];
+                })
             });
         }
         card.rows.push([ 'Source: ' + model.sourceEndpointName ]);

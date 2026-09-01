@@ -102,19 +102,24 @@
         if (model.mostRecentData.referenceRange) {
             card.rows.push([ model.mostRecentData.referenceRange ]);
         }
-        if (model.mostRecentData.notes) {
-            model.mostRecentData.notes.forEach(function(note) {
-                card.rows.push([ 'Note: ' + note ]);
+        if (model.mostRecentData.notes && model.mostRecentData.notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: model.mostRecentData.notes.map(function(note) {
+                    return [ note ];
+                })
             });
         }
         card.rows.push([ 'Source: ' + model.mostRecentData.sourceEndpointName ]);
 
         if (model.historicalData && model.historicalData.length > 0) {
-            card.history = {};
-            card.history.headers = [ 'Result', 'Effective Date' ];
-            card.history.rows = [];
-            model.historicalData.forEach(function(data) {
-                card.history.rows.push([ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ]);
+            card.rows.push({
+                title: 'Historical Data',
+                headers: [ 'Result', 'Effective Date' ],
+                rows: model.historicalData.map(function(data) {
+                    return [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ];
+                })
             });
         }
 

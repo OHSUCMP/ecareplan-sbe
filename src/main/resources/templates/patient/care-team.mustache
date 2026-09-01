@@ -59,9 +59,13 @@
         if (model.period) {
             card.rows.push(['Time Period: ' + model.period]);
         }
-        if (model.participants) {
-            model.participants.forEach(function(participant) {
-                card.rows.push([participant.name, participant.role ?? null, participant.period ?? null]);
+        if (model.participants && model.participants.length > 0) {
+            card.rows.push({
+                title: 'Participants',
+                headers: ['Name', 'Role', 'Time Period'],
+                rows: model.participants.map(function(participant) {
+                    return [participant.name, participant.role ?? null, participant.period ?? null];
+                })
             });
         }
         card.rows.push(['Source: ' + model.sourceEndpointName]);

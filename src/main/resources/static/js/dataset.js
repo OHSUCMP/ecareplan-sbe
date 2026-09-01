@@ -111,11 +111,17 @@ function renderCard(id, card) {
         '<div class="card-body">' +
         (typeof renderCardChartContainer === 'function' ? renderCardChartContainer(id, card.chart) : '') +
         renderCardRows(id, card.rows) +
-        renderCardHistory(id, card.history) +
         '</div>' + // card-body
         '</div>' + // card
         '</div>' + // col
         '</div>'; // row
+}
+
+function isAccordionRow(row) {
+    return row
+        && !Array.isArray(row)
+        && Array.isArray(row.headers)
+        && Array.isArray(row.rows);
 }
 
 function renderCardRows(baseId, rows) {
@@ -124,7 +130,21 @@ function renderCardRows(baseId, rows) {
     let html = '<div class="row g-2 mb-3">';
 
     rows.forEach(function (row, rowIndex) {
-        if (!row || row.length === 0) return;
+        if (!row) return;
+
+        if (isAccordionRow(row)) {
+            html += '<div class="col-sm-12" id="' + baseId + '-row-' + rowIndex + '">' +
+                renderDataTableAccordion(
+                    baseId + '-row-' + rowIndex + '-accordion',
+                    row.title ?? 'Details',
+                    row.headers,
+                    row.rows
+                ) +
+                '</div>';
+            return;
+        }
+
+        if (!Array.isArray(row) || row.length === 0) return;
 
         html += '<div class="col-sm-12" id="' + baseId + '-row-' + rowIndex + '">';
         html += '<div class="row g-2">';
@@ -146,33 +166,27 @@ function renderCardRows(baseId, rows) {
     return html;
 }
 
-function renderCardHistory(baseId, history) {
-    if (!history || !history.rows || history.rows.length === 0) return '';
+function renderDataTableAccordion(baseId, title, headers, rows) {
+    if (!rows || rows.length === 0) return '';
 
-    // todo : construct a bootstrap-based grid based on the data in the history parameter.
-    //        the history parameter will have an element 'headers' which is an array of strings, and should be
-    //        displayed at the top of the grid, one item per cell, and formatted appropriately in the context of
-    //        a table header that will be followed by one or more rows of data.
-    //
-
-    return '<div class="accordion accordion-flush border rounded" id="history-' + baseId + '">' +
+    return '<div class="accordion accordion-flush border rounded dataset-table-accordion" id="' + baseId + '">' +
         '<div class="accordion-item">' +
         '<h2 class="accordion-header" id="heading-' + baseId + '">' +
         '<button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + baseId + '" aria-expanded="false" aria-controls="collapse-' + baseId + '">' +
-        'View History (' + history.rows.length + ' events)' +
+        escapeHtml(title) + ' (' + rows.length + ')' +
         '</button>' +
         '</h2>' + // accordion-header
-        '<div id="collapse-' + baseId + '" class="accordion-collapse collapse" aria-labelledby="heading-' + baseId + '" data-bs-parent="#history-' + baseId + '">' +
+        '<div id="collapse-' + baseId + '" class="accordion-collapse collapse" aria-labelledby="heading-' + baseId + '" data-bs-parent="#' + baseId + '">' +
         '<div class="accordion-body">' +
         '<div class="table-responsive">' +
         '<table class="table table-sm table-striped table-hover align-middle mb-0">' +
         '<thead>' +
         '<tr>' +
-        renderHistoryHeaders(baseId, history.headers) +
+        renderDataTableHeaders(baseId, headers) +
         '</tr>' +
         '</thead>' +
         '<tbody>' +
-        renderHistoryRows(baseId, history.rows) +
+        renderDataTableRows(baseId, rows) +
         '</tbody>' +
         '</table>' +
         '</div>' + // table-responsive
@@ -182,15 +196,13 @@ function renderCardHistory(baseId, history) {
         '</div>'; // accordion
 }
 
-function renderHistoryHeaders(baseId, headers) {
-    // todo : render history headers
-
+function renderDataTableHeaders(baseId, headers) {
     if (!headers || headers.length === 0) return '';
 
     let html = '';
 
     headers.forEach(function(header, index) {
-        html += '<th scope="col" class="text-nowrap" id="' + baseId + '-history-header-' + index + '">';
+        html += '<th scope="col" class="text-nowrap" id="' + baseId + '-header-' + index + '">';
         html += header ?? '';
         html += '</th>';
     });
@@ -198,9 +210,7 @@ function renderHistoryHeaders(baseId, headers) {
     return html;
 }
 
-function renderHistoryRows(baseId, rows) {
-    // todo : render history rows
-
+function renderDataTableRows(baseId, rows) {
     if (!rows || rows.length === 0) return '';
 
     let html = '';
@@ -208,10 +218,10 @@ function renderHistoryRows(baseId, rows) {
     rows.forEach(function(row, rowIndex) {
         if (!row || row.length === 0) return;
 
-        html += '<tr id="' + baseId + '-history-row-' + rowIndex + '">';
+        html += '<tr id="' + baseId + '-row-' + rowIndex + '">';
 
         row.forEach(function(cell, cellIndex) {
-            html += '<td id="' + baseId + '-history-row-' + rowIndex + '-cell-' + cellIndex + '">';
+            html += '<td id="' + baseId + '-row-' + rowIndex + '-cell-' + cellIndex + '">';
             html += cell ?? '';
             html += '</td>';
         });
