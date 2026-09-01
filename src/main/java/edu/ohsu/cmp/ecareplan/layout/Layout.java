@@ -9,7 +9,7 @@ import java.io.Writer;
 // source: https://spring.io/blog/2016/11/21/the-joy-of-mustache-server-side-templates-for-the-jvm
 public class Layout implements Mustache.Lambda {
 
-    private Mustache.Compiler compiler;
+    private final Mustache.Compiler compiler;
 
     private String title;
     private String head;
