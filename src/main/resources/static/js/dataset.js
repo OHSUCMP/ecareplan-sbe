@@ -430,6 +430,12 @@ function getUpdatedModels(_callback) {
     });
 }
 
+function renderNoModelsCompletedMessage() {
+    return '<div class="alert alert-info" role="status">' +
+        'No records were found for this section after the data load completed.' +
+        '</div>';
+}
+
 function renderModels(models) {
     if (models && models.length > 0) {
         if (typeof buildCardSelectorData === 'function') {
@@ -454,6 +460,13 @@ function renderModels(models) {
 
             $('#modelsContainer').html(cards.join('\n'));
         }
+
+    } else {
+        getCurrentProgress(function(progressData) {
+            if (isAllProgressComplete(progressData)) {
+                $('#modelsContainer').html(renderNoModelsCompletedMessage());
+            }
+        });
     }
 
     if (typeof renderCharts === 'function') {
