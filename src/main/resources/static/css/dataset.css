@@ -8,13 +8,42 @@ display.progress > div {
 
 /* Shared dataset page polish */
 .container > h1 {
+    position: relative;
+    overflow: hidden;
     margin: 1.5rem 0 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #dbe8ee;
-    color: #004466;
-    font-size: 2rem;
+    padding: 1.35rem 1.5rem;
+    border: 0;
+    border-radius: 1rem;
+    background:
+            radial-gradient(circle at top right, rgba(179, 255, 240, 0.34), transparent 18rem),
+            linear-gradient(135deg, #004466 0%, #2e6e9e 100%);
+    color: #ffffff;
+    font-size: clamp(1.8rem, 3vw, 2.45rem);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 68, 102, 0.16);
+}
+
+.container > h1::after {
+    content: "";
+    position: absolute;
+    right: -3rem;
+    bottom: -3rem;
+    width: 9rem;
+    height: 9rem;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.container > h1::before {
+    content: "MyCarePlanner";
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #b3fff0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .alert-teal {
@@ -350,6 +379,7 @@ span.flag {
 
 @media (max-width: 768px) {
     .container > h1 {
+        padding: 1.15rem 1.25rem;
         font-size: 1.65rem;
     }
 
