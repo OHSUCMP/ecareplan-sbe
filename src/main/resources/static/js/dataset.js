@@ -250,6 +250,7 @@ function refreshProgress() {
         }
     });
 }
+
 function getCurrentProgress(_callback) {
     $.ajax({
         method: "POST",
