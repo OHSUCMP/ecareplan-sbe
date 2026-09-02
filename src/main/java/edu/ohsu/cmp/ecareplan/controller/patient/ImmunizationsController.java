@@ -60,9 +60,9 @@ public class ImmunizationsController extends BasePatientController {
     }
 
     @GetMapping(value = "sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter getEmitter(HttpSession session) {
+    public ResponseEntity<SseEmitter> getEmitter(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
-                userWorkspaceService.get(session.getId()).createNewEmitter() :
-                null;
+                ResponseEntity.ok(userWorkspaceService.get(session.getId()).createNewEmitter()) :
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 }
