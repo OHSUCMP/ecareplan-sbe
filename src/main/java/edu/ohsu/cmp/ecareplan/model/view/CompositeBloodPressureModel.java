@@ -53,13 +53,16 @@ public class CompositeBloodPressureModel implements IVitalsModel {
 
     @Override
     public String getResultText() {
-        return systolicModel.getResultValue().toString() + "/" + diastolicModel.getResultValue().toString() + " " + BP_UNIT;
+        return systolicModel.getResultValue().getValueForCompare().toString() + "/" +
+                diastolicModel.getResultValue().getValueForCompare().toString() + " " + BP_UNIT;
     }
 
     @Override
     public ResultValue getResultValue() {
-        ResultValue.Component systolicComponent = new ResultValue.Component("Systolic", systolicModel.getResultValue().getValueForCompare());
-        ResultValue.Component diastolicComponent = new ResultValue.Component("Diastolic", diastolicModel.getResultValue().getValueForCompare());
+        ResultValue.Component systolicComponent = new ResultValue.Component("Systolic",
+                systolicModel.getResultValue().getValueForCompare());
+        ResultValue.Component diastolicComponent = new ResultValue.Component("Diastolic",
+                diastolicModel.getResultValue().getValueForCompare());
         return new ResultValue(List.of(systolicComponent, diastolicComponent));
     }
 
