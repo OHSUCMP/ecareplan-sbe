@@ -17,6 +17,7 @@ import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
 import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
+import jakarta.annotation.PreDestroy;
 import org.hl7.fhir.instance.model.api.IDomainResource;
 import org.hl7.fhir.r4.model.Patient;
 import org.slf4j.Logger;
@@ -31,14 +32,18 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class SDSService extends BaseService implements IDataSetBuilder {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private static final Logger logger = LoggerFactory.getLogger(SDSService.class);
 
     private static final String PARTITION_HEADER = "X-Partition-Name";
     private static final int POOL_SIZE = 5;
     private static final String AUDIT_ACTION_SHARE = "share to SDS";
+
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+
 
     @Value("${socket.timeout:300000}")
     private Integer socketTimeout;
@@ -63,8 +68,14 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         sessionIdProgressMap = Collections.synchronizedMap(new HashMap<>());
     }
 
+    @PreDestroy
     public void shutdown() {
-        ExecutorUtil.shutdownAndAwaitTermination(executorService, 60);
+        if ( ! shutdown.compareAndSet(false, true) ) {
+            logger.debug("SDS service already shut down");
+            return;
+        }
+
+        ExecutorUtil.shutdownAndAwaitTermination(executorService, 10);
         sessionIdProgressMap.clear();
     }
 
