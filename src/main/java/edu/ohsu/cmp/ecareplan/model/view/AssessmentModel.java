@@ -4,15 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.ohsu.cmp.ecareplan.entity.Assessment;
 import org.hl7.fhir.r4.model.Questionnaire;
 import org.hl7.fhir.r4.model.QuestionnaireResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.List;
 
 public class AssessmentModel {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
     private final String name;
     private final String label;
     private final String resourceId;

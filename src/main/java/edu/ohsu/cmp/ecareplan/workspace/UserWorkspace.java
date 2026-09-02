@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UserWorkspace {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -52,22 +53,18 @@ public class UserWorkspace {
     private final Integer socketTimeout;
     private final FHIRCredentials launchCredentials;
     private final User user;
-
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
     private final Map<Long, String> endpointPatientIdMap;
     private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
-
     private final ExecutorService executorService;
-
     private final EndpointService endpointService;
     private final SDSService sdsService;
     private final AuditService auditService;
+    private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private SecretKey secretKey;
-
     private Endpoint currentlyLaunchingEndpoint = null;
-
-    private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
 
     private volatile SseEmitter emitter = null;
 
@@ -217,15 +214,16 @@ public class UserWorkspace {
     }
 
     public synchronized SseEmitter createNewEmitter() {
-        if (this.emitter != null) {
-            try {
-                this.emitter.complete();
-            } catch (Exception e) {
-                // do nothing
-            }
+        if (shutdown.get()) {
+            SseEmitter closedEmitter = new SseEmitter(0L);
+            closedEmitter.complete();
+            return closedEmitter;
         }
 
-        SseEmitter newEmitter = new SseEmitter(3600000L); // 1 hour
+        closeEmitterIfPresent();
+
+        SseEmitter newEmitter = new SseEmitter(30 * 60 * 1000L); // 30 minutes
+
         newEmitter.onCompletion(() -> clearEmitter(newEmitter));
         newEmitter.onTimeout(() -> clearEmitter(newEmitter));
         newEmitter.onError((ex) -> clearEmitter(newEmitter));
@@ -244,6 +242,20 @@ public class UserWorkspace {
         }
     }
 
+    private synchronized void closeEmitterIfPresent() {
+        SseEmitter currentEmitter = this.emitter;
+        this.emitter = null;
+
+        if (currentEmitter != null) {
+            try {
+                currentEmitter.complete();
+            } catch (Exception e) {
+                logger.debug("caught {} completing SSE emitter for session {} - {}", e.getClass().getSimpleName(), sessionId,
+                        e.getMessage(), e);
+            }
+        }
+    }
+
     private void sendNotification(String eventName, Map<String, String> payload) {
         SseEmitter currentEmitter = this.emitter;
         if (currentEmitter != null) {
@@ -253,6 +265,11 @@ public class UserWorkspace {
             } catch (Exception e) {
                 logger.debug("caught {} attempting to send {} - {}", e.getClass().getSimpleName(), eventName, e.getMessage(), e);
                 clearEmitter(currentEmitter);
+                try {
+                    currentEmitter.completeWithError(e);
+                } catch (Exception ignored) {
+                    // emitter may already be completed/closed
+                }
             }
         }
     }
@@ -424,12 +441,15 @@ public class UserWorkspace {
     }
 
     public void shutdown() {
-        logger.info("shutting down workspace for session={}", sessionId);
+        if ( ! shutdown.compareAndSet(false, true) ) {
+            logger.debug("workspace for session={} already shut down", sessionId);
+            return;
+        }
+        closeEmitterIfPresent();
+        sdsService.shutdown(sessionId);
+        ExecutorUtil.shutdownAndAwaitTermination(executorService, 10);
         secretKey = null;
         endpointReadProgressMap.clear();
-        sdsService.shutdown(sessionId);
-        emitter = null;
-        ExecutorUtil.shutdownAndAwaitTermination(executorService, 60);
         clearCacheAndCredentials();
         shutdownJobs();
     }

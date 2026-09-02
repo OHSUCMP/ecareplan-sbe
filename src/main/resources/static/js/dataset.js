@@ -272,7 +272,7 @@ function refreshProgress() {
                 logCompletedProgressErrors(progressData);
 
                 let modelsContainer = $('#modelsContainer');
-                let hasRenderedModels = modelsContainer.find('.card-panel, .card-selector, .card').length > 0;
+                let hasRenderedModels = modelsContainer.find('.card-panel, .card-selector, .card, .home-patient-card').length > 0;
                 let isShowingNoModelsMessage = modelsContainer.find('.alert[role="status"]').length > 0;
 
                 if (!hasRenderedModels && !isShowingNoModelsMessage) {
@@ -452,8 +452,14 @@ function getDataSets() {
     return $('#dataSets').html().split(',').map(s => s.trim());
 }
 
+let eventSource = null;
+
 function initializeSSE(_callback) {
-    const eventSource = new EventSource(getBasePath() + '/sse');
+    if (eventSource !== null) {
+        eventSource.close();
+    }
+
+    eventSource = new EventSource(getBasePath() + '/sse');
 
     eventSource.addEventListener("dataset-update", function(event) {
         const eventData = JSON.parse(event.data);
@@ -463,6 +469,13 @@ function initializeSSE(_callback) {
         }
     });
 }
+
+window.addEventListener("pagehide", function() {
+    if (eventSource !== null) {
+        eventSource.close();
+        eventSource = null;
+    }
+});
 
 function getUpdatedModels(_callback) {
     $.ajax({

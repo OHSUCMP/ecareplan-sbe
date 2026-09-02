@@ -4,6 +4,7 @@ import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.SessionMissingException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,5 +65,21 @@ public class UserWorkspaceService {
             return true;
         }
         return false;
+    }
+
+    @PreDestroy
+    public void shutdownAll() {
+        logger.info("shutting down all user workspaces");
+
+        for (UserWorkspace workspace : map.values()) {
+            try {
+                workspace.shutdown();
+            } catch (Exception e) {
+                logger.error("caught {} shutting down workspace for session {} - {}",
+                        e.getClass().getSimpleName(), workspace.getSessionId(), e.getMessage(), e);
+            }
+        }
+
+        map.clear();
     }
 }

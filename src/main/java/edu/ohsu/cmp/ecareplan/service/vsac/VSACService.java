@@ -37,12 +37,12 @@ import java.util.regex.Pattern;
  */
 @Service
 public class VSACService {
+    private static final Logger logger = LoggerFactory.getLogger(VSACService.class);
+
     private static final String API_KEY_URL = "https://utslogin.nlm.nih.gov/cas/v1/api-key";
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private static final Pattern SERVICE_TICKET_URI_PATTERN = Pattern.compile("<form\\s+action=\"([^\"]+)\"");
 
-
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Value("${vsac.api-key}")
     private String apiKey;
