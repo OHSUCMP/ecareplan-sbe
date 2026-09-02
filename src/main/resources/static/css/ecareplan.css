@@ -230,6 +230,11 @@ body {
     height: 100%;
 }
 
+body.session-validation-pending main,
+body.session-validation-pending header {
+    visibility: hidden;
+}
+
 .heading {
     display: block;
     color: black;
@@ -262,28 +267,129 @@ body {
     background-color: #888;
 }
 
-/* pulled from https://www.w3schools.com/howto/howto_css_modals.asp */
-/* The Modal (background) */
-.modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+/* Idle timeout dialog */
+.idle-timeout-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background:
+            radial-gradient(circle at top left, rgba(179, 255, 240, 0.18), transparent 26rem),
+            rgba(0, 34, 51, 0.62);
+    backdrop-filter: blur(3px);
 }
 
-/* Modal Content/Box */
-.modalContent {
-    background-color: #fefefe;
-    margin: 15% auto; /* 15% from the top and centered */
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%; /* Could be more or less, depending on screen size */
+.idle-timeout-backdrop.is-visible {
+    display: flex;
+}
+
+.idle-timeout-dialog {
+    display: flex;
+    gap: 1.25rem;
+    width: min(100%, 34rem);
+    padding: 1.5rem;
+    border: 1px solid rgba(179, 255, 240, 0.32);
+    border-radius: 1.15rem;
+    background:
+            linear-gradient(#ffffff, #ffffff) padding-box,
+            linear-gradient(135deg, rgba(179, 255, 240, 0.85), rgba(46, 110, 158, 0.7)) border-box;
+    box-shadow: 0 1.25rem 3rem rgba(0, 34, 51, 0.34);
+    color: #244653;
+}
+
+.idle-timeout-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1rem;
+    background:
+            radial-gradient(circle at 30% 20%, rgba(179, 255, 240, 0.85), transparent 60%),
+            linear-gradient(135deg, #004466, #2e6e9e);
+    color: #ffffff;
+    font-size: 1.35rem;
+    box-shadow: 0 0.55rem 1.15rem rgba(0, 68, 102, 0.22);
+}
+
+.idle-timeout-content {
+    min-width: 0;
+}
+
+.idle-timeout-title {
+    margin-bottom: 0.35rem;
+    color: #003852;
+    font-size: 1.45rem;
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+}
+
+.idle-timeout-message {
+    margin-bottom: 1rem;
+    color: #496975;
+    line-height: 1.5;
+}
+
+.idle-timeout-countdown {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin-bottom: 1.25rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #dbe8ee;
+    border-radius: 0.85rem;
+    background-color: #eef7fa;
+    color: #244653;
+}
+
+.idle-timeout-countdown-number {
+    color: #004466;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.idle-timeout-countdown-label {
+    font-size: 0.95rem;
+    font-weight: 650;
+}
+
+.idle-timeout-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.idle-timeout-button {
+    min-width: 11rem;
+    padding: 0.65rem 1rem;
+    border-radius: 999px;
+    font-weight: 700;
+    box-shadow: 0 0.45rem 1rem rgba(46, 110, 158, 0.24);
+}
+
+.idle-timeout-button:focus-visible {
+    outline: 3px solid rgba(179, 255, 240, 0.95);
+    outline-offset: 3px;
+}
+
+@media (max-width: 575.98px) {
+    .idle-timeout-dialog {
+        flex-direction: column;
+        padding: 1.25rem;
+    }
+
+    .idle-timeout-actions {
+        justify-content: stretch;
+    }
+
+    .idle-timeout-button {
+        width: 100%;
+    }
 }
 
 .shrink {

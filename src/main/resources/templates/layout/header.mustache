@@ -26,19 +26,42 @@
     {{/pageScripts}}
 
     <script type="text/javascript">
-        const IDLE_TIMEOUT_SECONDS = {{idleTimeoutSeconds}};
-        const IDLE_COUNTDOWN_SECONDS = 60;
-        const IDLE_COUNTDOWN_APPEAR_SECONDS = IDLE_TIMEOUT_SECONDS - IDLE_COUNTDOWN_SECONDS;
+        const IDLE_TIMEOUT_SECONDS = Number({{idleTimeoutSeconds}});
+        const IDLE_COUNTDOWN_SECONDS = Math.min(60, Math.max(1, IDLE_TIMEOUT_SECONDS));
+        const IDLE_COUNTDOWN_APPEAR_SECONDS = Math.max(0, IDLE_TIMEOUT_SECONDS - IDLE_COUNTDOWN_SECONDS);
+
+        function getContextPath() {
+            return $('meta[name="ctx"]').attr('content') || '/';
+        }
+
+        function buildContextUrl(path) {
+            const contextPath = getContextPath().replace(/\/$/, '');
+            return contextPath + path;
+        }
+
+        function hideProtectedPageContent() {
+            $('body').addClass('session-validation-pending');
+        }
+
+        function showProtectedPageContent() {
+            $('body').removeClass('session-validation-pending');
+        }
+
+        function redirectToUnauthorized() {
+            hideProtectedPageContent();
+            window.location.replace(buildContextUrl("/unauthorized"));
+        }
 
         // adapted from https://stackoverflow.com/questions/667555/how-to-detect-idle-time-in-javascript
         let setupIdleTimeout = function() {
             if (window.idleTimeoutConfigured === true) {
-                console.log("idle timeout already configured, skipping -");
                 return;
             }
             window.idleTimeoutConfigured = true;
 
-            console.log("configuring idle timeout -");
+            let backgroundTimer;
+            let timeoutCountdown;
+            let timeoutCountdownVisible = false;
 
             window.addEventListener('load', resetBackgroundTimer);
             window.addEventListener('mousemove', resetBackgroundTimer);
@@ -50,79 +73,153 @@
             window.addEventListener('scroll', resetBackgroundTimer, true); // improved; see comments
             window.addEventListener('focus', resetBackgroundTimer);
 
-            let backgroundTimer;
-            let timeoutCountdown;
-
             // adapted from https://www.w3schools.com/howto/howto_js_countdown.asp
             function startTimeoutCountdown(el) {
-                let s = IDLE_COUNTDOWN_SECONDS;
-                $(el).html(s);
+                let secondsRemaining = IDLE_COUNTDOWN_SECONDS;
+                $(el).text(secondsRemaining);
+
                 return setInterval(function() {
-                    if (s <= 0) {
+                    secondsRemaining -= 1;
+                    $(el).text(Math.max(0, secondsRemaining));
+
+                    if (secondsRemaining <= 0) {
                         clearInterval(timeoutCountdown);
                         clearTimeout(backgroundTimer);
-                        window.location.replace("/inactivity-logout");
-                    } else {
-                        s -= 1;
-                        $(el).html(s);
+                        window.location.replace(buildContextUrl("/inactivity-logout"));
                     }
                 }, 1000);
             }
 
             function showTimeoutCountdown() {
-                $("#timeoutCountdownContainer").show(function() {
-                    timeoutCountdown = startTimeoutCountdown('#timeoutCountdownSeconds');
-                });
+                if (timeoutCountdownVisible) {
+                    return;
+                }
+
+                timeoutCountdownVisible = true;
+                clearInterval(timeoutCountdown);
+
+                $("#timeoutCountdownContainer")
+                        .addClass('is-visible')
+                        .attr('aria-hidden', 'false');
+
+                timeoutCountdown = startTimeoutCountdown('#timeoutCountdownSeconds');
+                $('#continueSession').trigger('focus');
+            }
+
+            function hideTimeoutCountdown() {
+                timeoutCountdownVisible = false;
+                clearInterval(timeoutCountdown);
+
+                $('#timeoutCountdownContainer')
+                        .removeClass('is-visible')
+                        .attr('aria-hidden', 'true');
             }
 
             function resetBackgroundTimer() {
+                if (timeoutCountdownVisible) {
+                    return;
+                }
+
                 clearTimeout(backgroundTimer);
                 backgroundTimer = setTimeout(showTimeoutCountdown, IDLE_COUNTDOWN_APPEAR_SECONDS * 1000);
             }
 
             $(document).on('click', '#continueSession', function() {
-                $('#timeoutCountdownContainer').hide(function() {
-                    clearInterval(timeoutCountdown);
-                    resetBackgroundTimer();
-                });
+                hideTimeoutCountdown();
+                resetBackgroundTimer();
             });
 
-            console.log("idle timeout configured.");
+            $(document).on('keydown', function(event) {
+                if (event.key === 'Escape' && timeoutCountdownVisible) {
+                    $('#continueSession').trigger('click');
+                }
+            });
+
+            resetBackgroundTimer();
         };
 
+        let sessionValidationRequest = null;
+
         function validateSession() {
-            $.ajax({
+            if (sessionValidationRequest) {
+                return sessionValidationRequest;
+            }
+
+            sessionValidationRequest = $.ajax({
                 method: "POST",
-                url: "/validate-session",
+                url: buildContextUrl("/validate-session"),
                 async: true,
+                cache: false,
                 success: function(result) {
                     if (result === true) {
+                        showProtectedPageContent();
+
                         if (IDLE_TIMEOUT_SECONDS > 0) {
                             setupIdleTimeout();
                         }
                     } else {
-                        window.location.replace("/unauthorized");
+                        redirectToUnauthorized();
                     }
                 },
-                error: function() {
-                    window.location.replace("/error");
+                error: function(xhr) {
+                    hideProtectedPageContent();
+
+                    if (xhr.status === 401 || xhr.status === 403) {
+                        window.location.replace(buildContextUrl("/unauthorized"));
+                    } else {
+                        window.location.replace(buildContextUrl("/error"));
+                    }
+                },
+                complete: function() {
+                    sessionValidationRequest = null;
                 }
             });
+
+            return sessionValidationRequest;
         }
 
-        $(window).on('focus', function() {
+        $(document).ready(function() {
+            validateSession();
+        });
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                hideProtectedPageContent();
+            }
+
             validateSession();
         });
     </script>
 </head>
 <body>
-<div id="timeoutCountdownContainer" class="modal">
-    <div id="timeoutCountdown" class="modalContent">
-        <div class="heading">Continue Session?</div>
-        <div>You are about to be logged out due to inactivity.  Click the button below to continue your session.</div>
-        <div><strong><span id="timeoutCountdownSeconds">SECONDS</span></strong> second(s) remaining ...</div>
-        <div class="buttonContainer">
-            <button id="continueSession" class="btn btn-sm button-primary">Continue Session</button>
+<div id="timeoutCountdownContainer"
+     class="idle-timeout-backdrop"
+     role="dialog"
+     aria-modal="true"
+     aria-hidden="true"
+     aria-labelledby="timeoutCountdownTitle"
+     aria-describedby="timeoutCountdownDescription">
+    <div id="timeoutCountdown" class="idle-timeout-dialog">
+        <div class="idle-timeout-icon" aria-hidden="true">
+            <span class="fa-solid fa-clock"></span>
+        </div>
+
+        <div class="idle-timeout-content">
+            <div id="timeoutCountdownTitle" class="idle-timeout-title">Still there?</div>
+            <div id="timeoutCountdownDescription" class="idle-timeout-message">
+                For your privacy and security, your session will end soon because there has been no recent activity.
+            </div>
+
+            <div class="idle-timeout-countdown" aria-live="polite">
+                <span class="idle-timeout-countdown-number" id="timeoutCountdownSeconds">60</span>
+                <span class="idle-timeout-countdown-label">seconds remaining</span>
+            </div>
+
+            <div class="idle-timeout-actions">
+                <button id="continueSession" type="button" class="btn button-primary idle-timeout-button">
+                    Continue Session
+                </button>
+            </div>
         </div>
     </div>
 </div>
