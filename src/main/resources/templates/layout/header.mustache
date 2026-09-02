@@ -39,6 +39,19 @@
             return contextPath + path;
         }
 
+        function hideProtectedPageContent() {
+            $('body').addClass('session-validation-pending');
+        }
+
+        function showProtectedPageContent() {
+            $('body').removeClass('session-validation-pending');
+        }
+
+        function redirectToUnauthorized() {
+            hideProtectedPageContent();
+            window.location.replace(buildContextUrl("/unauthorized"));
+        }
+
         // adapted from https://stackoverflow.com/questions/667555/how-to-detect-idle-time-in-javascript
         let setupIdleTimeout = function() {
             if (window.idleTimeoutConfigured === true) {
@@ -125,27 +138,55 @@
             resetBackgroundTimer();
         };
 
+        let sessionValidationRequest = null;
+
         function validateSession() {
-            $.ajax({
+            if (sessionValidationRequest) {
+                return sessionValidationRequest;
+            }
+
+            sessionValidationRequest = $.ajax({
                 method: "POST",
                 url: buildContextUrl("/validate-session"),
                 async: true,
+                cache: false,
                 success: function(result) {
                     if (result === true) {
+                        showProtectedPageContent();
+
                         if (IDLE_TIMEOUT_SECONDS > 0) {
                             setupIdleTimeout();
                         }
                     } else {
-                        window.location.replace(buildContextUrl("/unauthorized"));
+                        redirectToUnauthorized();
                     }
                 },
-                error: function() {
-                    window.location.replace(buildContextUrl("/error"));
+                error: function(xhr) {
+                    hideProtectedPageContent();
+
+                    if (xhr.status === 401 || xhr.status === 403) {
+                        window.location.replace(buildContextUrl("/unauthorized"));
+                    } else {
+                        window.location.replace(buildContextUrl("/error"));
+                    }
+                },
+                complete: function() {
+                    sessionValidationRequest = null;
                 }
             });
+
+            return sessionValidationRequest;
         }
 
-        $(window).on('focus', function() {
+        $(document).ready(function() {
+            validateSession();
+        });
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                hideProtectedPageContent();
+            }
+
             validateSession();
         });
     </script>
