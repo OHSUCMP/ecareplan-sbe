@@ -272,7 +272,7 @@ function refreshProgress() {
                 logCompletedProgressErrors(progressData);
 
                 let modelsContainer = $('#modelsContainer');
-                let hasRenderedModels = modelsContainer.find('.card-panel, .card-selector, .card').length > 0;
+                let hasRenderedModels = modelsContainer.find('.card-panel, .card-selector, .card, .home-patient-card').length > 0;
                 let isShowingNoModelsMessage = modelsContainer.find('.alert[role="status"]').length > 0;
 
                 if (!hasRenderedModels && !isShowingNoModelsMessage) {
