@@ -230,6 +230,11 @@ body {
     height: 100%;
 }
 
+body.session-validation-pending main,
+body.session-validation-pending header {
+    visibility: hidden;
+}
+
 .heading {
     display: block;
     color: black;

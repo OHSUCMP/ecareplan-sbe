@@ -3,10 +3,12 @@ package edu.ohsu.cmp.ecareplan.controller;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.service.SessionService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,11 +23,20 @@ public class SessionController extends BaseController {
 
 
     @PostMapping("validate-session")
-    public ResponseEntity<?> validateSession(HttpSession session) {
-        logger.debug("validating session {} - exists? --> {}, ", session.getId(), userWorkspaceService.exists(session.getId()));
-        return userWorkspaceService.exists(session.getId()) ?
+    public ResponseEntity<?> validateSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+
+        if (session == null) {
+            logger.debug("validating session - no HTTP session exists");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
+        }
+
+        boolean sessionExists = userWorkspaceService.exists(session.getId());
+        logger.debug("validating session {} - exists? --> {}", session.getId(), sessionExists);
+
+        return sessionExists ?
                 ResponseEntity.ok(true) :
-                ResponseEntity.ok(false);
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
     }
 
     @GetMapping("unauthorized")
@@ -40,8 +51,7 @@ public class SessionController extends BaseController {
             sessionService.forceExpiration(session.getId());
         }
 
-        // what if someone goes to this page manually, or by the browser back button, and lands here with no session?
-        // should we redirect them somewhere?
+        session.invalidate();
 
         return "logout";
     }
@@ -53,8 +63,7 @@ public class SessionController extends BaseController {
             sessionService.forceExpiration(session.getId());
         }
 
-        // what if someone goes to this page manually, or by the browser back button, and lands here with no session?
-        // should we redirect them somewhere?
+        session.invalidate();
 
         return "inactivity-logout";
     }
