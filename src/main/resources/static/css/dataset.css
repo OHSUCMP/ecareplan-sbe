@@ -405,7 +405,7 @@ span.flag {
     box-shadow: 0 0.1rem 0.25rem rgba(0, 68, 102, 0.12);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .container > h1 {
         padding: 1.15rem 1.25rem;
         font-size: 1.65rem;

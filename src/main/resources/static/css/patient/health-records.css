@@ -259,7 +259,7 @@
     line-height: 1.5;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .health-records-hero {
         padding: 1.5rem;
     }
