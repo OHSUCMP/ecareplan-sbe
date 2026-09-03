@@ -5,7 +5,12 @@ import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import java.util.Date;
 
 public abstract class BaseProgressModel implements IProgress {
+    private final String endpointName;
     protected Date lastUpdated;
+
+    public BaseProgressModel(String endpointName) {
+        this.endpointName = endpointName;
+    }
 
     @Override
     public Integer getPercentComplete() {
@@ -22,6 +27,11 @@ public abstract class BaseProgressModel implements IProgress {
                     getCurrent() :
                     Math.round(getCurrent() * 100 / (float) getTotal());
         }
+    }
+
+    @Override
+    public String getEndpointName() {
+        return endpointName;
     }
 
     @Override

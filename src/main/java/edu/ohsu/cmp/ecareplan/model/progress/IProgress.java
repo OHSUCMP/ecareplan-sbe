@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 
 public interface IProgress {
+    String getEndpointName();
     String getLabel();
     ProgressStatus getStatus();
     String getMessage();

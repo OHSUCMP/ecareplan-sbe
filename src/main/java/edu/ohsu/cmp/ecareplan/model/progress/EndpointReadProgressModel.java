@@ -12,6 +12,8 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     private final Map<DataSet<?>, List<String>> dataSetErrorsMap;
 
     public EndpointReadProgressModel(Endpoint endpoint) {
+        super(endpoint.getName());
+
         this.endpoint = endpoint;
         dataSetStatusMap = new LinkedHashMap<>();
         for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {

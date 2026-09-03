@@ -377,6 +377,69 @@ function escapeHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
+function groupProgressByEndpoint(progressData) {
+    let endpointGroups = new Map();
+
+    if (!Array.isArray(progressData)) {
+        return endpointGroups;
+    }
+
+    progressData.forEach(function(item) {
+        let endpointName = item.endpointName || 'Unknown Endpoint';
+
+        if (!endpointGroups.has(endpointName)) {
+            endpointGroups.set(endpointName, []);
+        }
+
+        endpointGroups.get(endpointName).push(item);
+    });
+
+    return endpointGroups;
+}
+
+function buildSafeProgressId(value) {
+    return String(value ?? 'progress')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'progress';
+}
+
+function getProgressGroupStatus(progressItems) {
+    if (!Array.isArray(progressItems) || progressItems.length === 0) {
+        return 'WAITING_TO_START';
+    }
+
+    if (progressItems.every(item => item.status === 'COMPLETED')) {
+        return 'COMPLETED';
+    }
+
+    if (progressItems.some(item => item.status === 'RUNNING')) {
+        return 'RUNNING';
+    }
+
+    return 'WAITING_TO_START';
+}
+
+function getProgressGroupMessage(progressItems) {
+    let status = getProgressGroupStatus(progressItems);
+    let hasErrors = Array.isArray(progressItems)
+        && progressItems.some(item => item.errors && item.errors.length > 0);
+
+    if (status === 'COMPLETED') {
+        return hasErrors ?
+            'Completed with errors' :
+            'Completed';
+    }
+
+    if (status === 'RUNNING') {
+        return hasErrors ?
+            'Running with errors' :
+            'Running';
+    }
+
+    return 'Waiting to start';
+}
+
 function renderProgressBar(percentComplete, label, extraCssClass) {
     let safePercentComplete = Math.max(0, Math.min(100, Number(percentComplete) || 0));
 
@@ -387,11 +450,80 @@ function renderProgressBar(percentComplete, label, extraCssClass) {
         '</div>';
 }
 
+function renderProgressItem(item) {
+    let itemPercentComplete = getProgressItemPercentComplete(item);
+    let itemLabel = (item.label ?? 'Progress Item') + ': ' + itemPercentComplete + '% Complete';
+
+    if (item.message) {
+        itemLabel += ' - ' + item.message;
+    }
+
+    let html = '<div class="progress-detail-item">' +
+        renderProgressBar(itemPercentComplete, itemLabel, 'progress-detail-bar');
+
+    if (item.errors && item.errors.length > 0) {
+        html += '<div class="progress-errors">' +
+            '<div class="progress-errors-label">Errors:</div>' +
+            '<ul class="mb-0">';
+
+        $.each(item.errors, function(j, error) {
+            html += '<li>' + escapeHtml(error) + '</li>';
+        });
+
+        html += '</ul>' +
+            '</div>';
+    }
+
+    html += '</div>';
+
+    return html;
+}
+
+function renderEndpointProgressGroup(endpointName, progressItems, endpointExpanded = false) {
+    let endpointId = 'progress-endpoint-' + buildSafeProgressId(endpointName);
+    let endpointPercentComplete = getProgressSummaryPercentComplete(progressItems);
+    let endpointStatusMessage = getProgressGroupMessage(progressItems);
+    let endpointHasErrors = progressItems.some(item => item.errors && item.errors.length > 0);
+    // let endpointLabel = endpointName + ': ' + endpointPercentComplete + '% Complete - ' + endpointStatusMessage +
+    //     (endpointHasErrors ? ' - Some items have errors' : '');
+    let endpointLabel = endpointName + ': ' + endpointPercentComplete + '% Complete' +
+        (endpointHasErrors ? ' - Some items have errors' : '');
+
+    let collapseClass = endpointExpanded ? ' show' : '';
+    let buttonCollapsedClass = endpointExpanded ? '' : ' collapsed';
+    let ariaExpanded = endpointExpanded ? 'true' : 'false';
+
+    let html = '<div class="accordion endpoint-progress-accordion" id="' + endpointId + '-accordion">' +
+        '<div class="accordion-item endpoint-progress-item">' +
+        '<h3 class="accordion-header" id="' + endpointId + '-heading">' +
+        '<button class="accordion-button endpoint-progress-button' + buttonCollapsedClass + '" type="button"' +
+        ' data-bs-toggle="collapse" data-bs-target="#' + endpointId + '-details"' +
+        ' aria-expanded="' + ariaExpanded + '" aria-controls="' + endpointId + '-details">' +
+        renderProgressBar(endpointPercentComplete, endpointLabel, 'endpoint-progress-bar') +
+        '</button>' +
+        '</h3>' +
+        '<div id="' + endpointId + '-details" class="accordion-collapse collapse' + collapseClass + '"' +
+        ' aria-labelledby="' + endpointId + '-heading">' +
+        '<div class="accordion-body endpoint-progress-details">';
+
+    progressItems.forEach(function(item) {
+        html += renderProgressItem(item);
+    });
+
+    html += '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+
+    return html;
+}
+
 function renderProgressData(progressData, detailsExpanded = false) {
     if (!Array.isArray(progressData) || progressData.length === 0) {
         return '';
     }
 
+    let endpointGroups = groupProgressByEndpoint(progressData);
     let summaryPercentComplete = getProgressSummaryPercentComplete(progressData);
     let hasErrors = progressData.some(item => item.errors && item.errors.length > 0);
     let summaryLabel = 'Overall Progress: ' + summaryPercentComplete + '% Complete' +
@@ -399,6 +531,11 @@ function renderProgressData(progressData, detailsExpanded = false) {
     let collapseClass = detailsExpanded ? ' show' : '';
     let buttonCollapsedClass = detailsExpanded ? '' : ' collapsed';
     let ariaExpanded = detailsExpanded ? 'true' : 'false';
+
+    let expandedEndpointIds = new Set();
+    $('#progressDetails .endpoint-progress-accordion .accordion-collapse.show').each(function() {
+        expandedEndpointIds.add(this.id);
+    });
 
     let html = '<div class="accordion progress-summary-accordion" id="progressAccordion">' +
         '<div class="accordion-item progress-summary-item">' +
@@ -413,31 +550,13 @@ function renderProgressData(progressData, detailsExpanded = false) {
         ' aria-labelledby="progressSummaryHeading" data-bs-parent="#progressAccordion">' +
         '<div class="accordion-body progress-details">';
 
-    $.each(progressData, function(i, item) {
-        let itemPercentComplete = getProgressItemPercentComplete(item);
-        let itemLabel = (item.label ?? 'Progress Item') + ': ' + itemPercentComplete + '% Complete';
-
-        if (item.message) {
-            itemLabel += ' - ' + item.message;
-        }
-
-        html += '<div class="progress-detail-item">' +
-            renderProgressBar(itemPercentComplete, itemLabel, 'progress-detail-bar');
-
-        if (item.errors && item.errors.length > 0) {
-            html += '<div class="progress-errors">' +
-                '<div class="progress-errors-label">Errors:</div>' +
-                '<ul class="mb-0">';
-
-            $.each(item.errors, function(j, error) {
-                html += '<li>' + escapeHtml(error) + '</li>';
-            });
-
-            html += '</ul>' +
-                '</div>';
-        }
-
-        html += '</div>';
+    endpointGroups.forEach(function(endpointItems, endpointName) {
+        let endpointId = 'progress-endpoint-' + buildSafeProgressId(endpointName) + '-details';
+        html += renderEndpointProgressGroup(
+            endpointName,
+            endpointItems,
+            expandedEndpointIds.has(endpointId)
+        );
     });
 
     html += '</div>' +
