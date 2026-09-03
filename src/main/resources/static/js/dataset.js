@@ -48,7 +48,9 @@ function renderCardSelectorHeaders(selector) {
     selector.forEach(function(selectorItem, index) {
         html += '<div class="col-sm-' + selectorItem.bootstrapWidth + ' card-selector-field">' +
             '<button type="button" class="card-selector-sort-button" data-sort-index="' + index + '" aria-sort="none">' +
-            '<span>' + escapeHtml(selectorItem.label ?? '') + '</span>' +
+            '<span class="card-selector-sort-label">' +
+            '<span class="card-selector-sort-text">' + escapeHtml(selectorItem.label ?? '') + '</span>' +
+            '</span>' +
             '<span class="card-selector-sort-indicator" aria-hidden="true"></span>' +
             '</button>' +
             '</div>';
