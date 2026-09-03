@@ -420,26 +420,6 @@ function getProgressGroupStatus(progressItems) {
     return 'WAITING_TO_START';
 }
 
-function getProgressGroupMessage(progressItems) {
-    let status = getProgressGroupStatus(progressItems);
-    let hasErrors = Array.isArray(progressItems)
-        && progressItems.some(item => item.errors && item.errors.length > 0);
-
-    if (status === 'COMPLETED') {
-        return hasErrors ?
-            'Completed with errors' :
-            'Completed';
-    }
-
-    if (status === 'RUNNING') {
-        return hasErrors ?
-            'Running with errors' :
-            'Running';
-    }
-
-    return 'Waiting to start';
-}
-
 function renderProgressBar(percentComplete, label, extraCssClass) {
     let safePercentComplete = Math.max(0, Math.min(100, Number(percentComplete) || 0));
 
@@ -482,10 +462,7 @@ function renderProgressItem(item) {
 function renderEndpointProgressGroup(endpointName, progressItems, endpointExpanded = false) {
     let endpointId = 'progress-endpoint-' + buildSafeProgressId(endpointName);
     let endpointPercentComplete = getProgressSummaryPercentComplete(progressItems);
-    let endpointStatusMessage = getProgressGroupMessage(progressItems);
     let endpointHasErrors = progressItems.some(item => item.errors && item.errors.length > 0);
-    // let endpointLabel = endpointName + ': ' + endpointPercentComplete + '% Complete - ' + endpointStatusMessage +
-    //     (endpointHasErrors ? ' - Some items have errors' : '');
     let endpointLabel = endpointName + ': ' + endpointPercentComplete + '% Complete' +
         (endpointHasErrors ? ' - Some items have errors' : '');
 
