@@ -1,6 +1,8 @@
 package edu.ohsu.cmp.ecareplan.controller;
 
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
+import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
+import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.service.SessionService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+
+import java.util.List;
 
 @Controller
 public class SessionController extends BaseController {
@@ -80,8 +84,15 @@ public class SessionController extends BaseController {
     @PostMapping("refresh")
     public ResponseEntity<?> refresh(HttpSession session) {
         if (userWorkspaceService.exists(session.getId())) {
-            logger.info("refreshing data for session=" + session.getId());
             UserWorkspace workspace = userWorkspaceService.get(session.getId());
+
+            List<IProgress> progress = workspace.getCurrentProgress();
+            boolean isRunning = progress.stream().anyMatch(p -> p.getStatus() != ProgressStatus.COMPLETED);
+            if (isRunning) {
+                return ResponseEntity.status(HttpStatus.TOO_EARLY).body("cannot trigger refresh as progress is running");
+            }
+
+            logger.info("refreshing data for session=" + session.getId());
             workspace.populate();
             return ResponseEntity.ok("refreshing");
         }

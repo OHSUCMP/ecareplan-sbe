@@ -1,9 +1,11 @@
 package edu.ohsu.cmp.ecareplan.controller.patient;
 
 import edu.ohsu.cmp.ecareplan.controller.BaseController;
+import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.dataset.Consolidatable;
 import edu.ohsu.cmp.ecareplan.model.dataset.Consolidated;
 import edu.ohsu.cmp.ecareplan.service.SessionService;
+import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 
@@ -21,6 +23,14 @@ public class BasePatientController extends BaseController {
 
     protected void setCommonViewComponents(String sessionId, Model model) {
         model.addAttribute("applicationName", APPLICATION_NAME);
+
+        if (sessionId != null && userWorkspaceService.exists(sessionId)) {
+            UserWorkspace workspace = userWorkspaceService.get(sessionId);
+            boolean loading = workspace.getCurrentProgress().stream().anyMatch(p ->
+                    p.getStatus().equals(ProgressStatus.WAITING_TO_START) || p.getStatus().equals(ProgressStatus.RUNNING));
+            model.addAttribute("loading", loading);
+        }
+
         super.setCommonViewComponents(sessionId, model);
     }
 
