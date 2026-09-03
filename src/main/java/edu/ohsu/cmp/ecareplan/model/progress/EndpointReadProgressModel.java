@@ -5,11 +5,13 @@ import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 public class EndpointReadProgressModel extends BaseProgressModel implements IProgress {
     private final Endpoint endpoint;
     private final Map<DataSet<?>, ProgressStatus> dataSetStatusMap;
     private final Map<DataSet<?>, List<String>> dataSetErrorsMap;
+    private transient Future<Void> future;
 
     public EndpointReadProgressModel(Endpoint endpoint) {
         super(endpoint.getName());
@@ -25,6 +27,14 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
 
     public Endpoint getEndpoint() {
         return endpoint;
+    }
+
+    public Future<Void> getFuture() {
+        return future;
+    }
+
+    public void setFuture(Future<Void> future) {
+        this.future = future;
     }
 
     @Override

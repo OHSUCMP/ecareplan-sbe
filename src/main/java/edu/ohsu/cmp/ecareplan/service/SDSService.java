@@ -28,10 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
@@ -136,24 +133,33 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         return null;
     }
 
-    public void resetEndpointProgress(String sessionId, Endpoint endpoint) {
+    public void clearAllCompletedProgress(String sessionId) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
+            sessionIdProgressMap.get(sessionId).values().removeIf(pm -> pm.getFuture() == null || pm.getFuture().isDone());
         }
     }
 
-    public void clearCompletedProgressForAllExcept(String sessionId, Endpoint endpoint) {
+    public void waitUntilAllProgressComplete(String sessionId) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            sessionIdProgressMap.get(sessionId).values().removeIf(pm ->
-                    ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED)
-            );
+            sessionIdProgressMap.get(sessionId).values().forEach(pm -> {
+                try {
+                    if (pm.getFuture() != null) {
+                        pm.getFuture().get();
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    logger.error("Error waiting for future to complete", e);
+                }
+            });
         }
     }
 
-    public void resetAllProgress(String sessionId) {
+    public void terminateRemainingProgress(String sessionId) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            sessionIdProgressMap.get(sessionId).clear();
-            sessionIdProgressMap.remove(sessionId);
+            sessionIdProgressMap.get(sessionId).values().forEach(pm -> {
+                if (pm.getFuture() != null) {
+                    pm.getFuture().cancel(true);
+                }
+            });
         }
     }
 

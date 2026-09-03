@@ -61,7 +61,7 @@ public class UserWorkspaceService {
     public boolean shutdown(String sessionId) {
         if (map.containsKey(sessionId)) {
             UserWorkspace workspace = map.remove(sessionId);
-            workspace.shutdown();
+            workspace.shutdown(false);
             return true;
         }
         return false;
@@ -73,7 +73,7 @@ public class UserWorkspaceService {
 
         for (UserWorkspace workspace : map.values()) {
             try {
-                workspace.shutdown();
+                workspace.shutdown(true);
             } catch (Exception e) {
                 logger.error("caught {} shutting down workspace for session {} - {}",
                         e.getClass().getSimpleName(), workspace.getSessionId(), e.getMessage(), e);
