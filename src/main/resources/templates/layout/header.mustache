@@ -199,7 +199,6 @@
                 _callback();
             }).fail(function(jqXHR) {
                 console.error("caught error refreshing: '" + jqXHR.responseText + "' (status=" + jqXHR.status + ")");
-                $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
             });
         }
 
@@ -294,7 +293,7 @@
                 </ul>
                 <ul class="navbar-nav app-navbar-actions">
                     <li class="nav-item">
-                        <a id="refresh" href="#" class="nav-link app-nav-link app-nav-action">
+                        <a id="refresh" href="#" class="nav-link app-nav-link app-nav-action{{#loading}} disabled{{/loading}}"{{#loading}} aria-disabled="true" style="display: none;"{{/loading}}>
                             <span class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></span>
                             Refresh
                         </a>

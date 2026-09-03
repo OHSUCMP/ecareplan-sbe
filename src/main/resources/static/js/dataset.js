@@ -292,13 +292,6 @@ function getCurrentProgress(_callback) {
         method: "POST",
         url: getBasePath() + '/progress'
     }).done(function(progressData) {
-        if (progressData) {
-            if (isAllProgressComplete(progressData)) {
-                $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
-            } else {
-                $('#refresh').hide().addClass('disabled').attr('aria-disabled', 'true');
-            }
-        }
         if (_callback) {
             _callback(progressData);
         }
@@ -574,6 +567,21 @@ function initializeSSE(_callback) {
             console.log("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint);
             getUpdatedModels(_callback);
         }
+    });
+
+    eventSource.addEventListener("endpoint-population-started", function(event) {
+        const eventData = JSON.parse(event.data);
+        console.log("endpoint-population-started: endpoint=" + eventData.endpoint);
+    });
+
+    eventSource.addEventListener("endpoint-population-complete", function(event) {
+        const eventData = JSON.parse(event.data);
+        console.log("endpoint-population-complete: endpoint=" + eventData.endpoint);
+    });
+
+    eventSource.addEventListener("all-complete", function(event) {
+        console.log("all-complete");
+        $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
     });
 }
 

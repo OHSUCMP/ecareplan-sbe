@@ -267,12 +267,12 @@ public class UserWorkspace {
         }
     }
 
-    private void sendUpdateNotification(Map<String, String> payload) {
+    private void sendUpdateNotification(String eventName, Map<String, String> payload) {
         SseEmitter currentEmitter = this.emitter;
         if (currentEmitter != null) {
             try {
                 currentEmitter.send(SseEmitter.event()
-                        .name("dataset-update")
+                        .name(eventName)
                         .data(payload, MediaType.APPLICATION_JSON)
                 );
 
@@ -289,10 +289,29 @@ public class UserWorkspace {
     }
 
     private void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
-        sendUpdateNotification(Map.of(
+        sendUpdateNotification("dataset-update", Map.of(
                 "dataSet", dataSet.toString(),
                 "endpoint", endpoint.getName()
         ));
+    }
+
+    private void notifyEndpointPopulationStarted(Endpoint endpoint) {
+        sendUpdateNotification("endpoint-population-started", Map.of(
+                "endpoint", endpoint.getName()
+        ));
+    }
+
+    private void notifyEndpointPopulationComplete(Endpoint endpoint) {
+        sendUpdateNotification("endpoint-population-complete", Map.of(
+                "endpoint", endpoint.getName()
+        ));
+    }
+
+    private void notifyIfAllComplete() {
+        List<IProgress> progress = getCurrentProgress();
+        if (progress.stream().allMatch(p -> p.getStatus().equals(ProgressStatus.COMPLETED))) {
+            sendUpdateNotification("all-complete", Map.of());
+        }
     }
 
     public String getSessionId() {
@@ -367,6 +386,7 @@ public class UserWorkspace {
             public Void call() {
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
+                notifyEndpointPopulationStarted(endpoint);
                 List<Future<Void>> futures = new ArrayList<>();
                 try {
                     for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
@@ -434,6 +454,9 @@ public class UserWorkspace {
 
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+
+                notifyEndpointPopulationComplete(endpoint);
+                notifyIfAllComplete();
 
                 return null;
             }
