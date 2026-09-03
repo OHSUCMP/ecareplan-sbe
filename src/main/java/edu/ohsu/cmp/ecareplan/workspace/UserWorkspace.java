@@ -61,7 +61,7 @@ public class UserWorkspace {
     private final SDSService sdsService;
     private final AuditService auditService;
     private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
-    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicBoolean shutdown;
 
     private SecretKey secretKey;
     private Endpoint currentlyLaunchingEndpoint = null;
@@ -114,6 +114,7 @@ public class UserWorkspace {
 
         executorService = Executors.newFixedThreadPool(POOL_SIZE);
 
+        shutdown = new AtomicBoolean(false);
         setupAutoShutdownJob();
     }
 
@@ -196,21 +197,31 @@ public class UserWorkspace {
         }
     }
 
-    private synchronized void resetAllProgress() {
-        endpointReadProgressMap.clear();
-        sdsService.resetAllProgress(sessionId);
+    private synchronized void clearAllCompletedProgress() {
+        endpointReadProgressMap.values().removeIf(pm -> pm.getFuture() == null || pm.getFuture().isDone());
+        sdsService.clearAllCompletedProgress(sessionId);
     }
 
-    private synchronized void resetEndpointProgress(Endpoint endpoint) {
-        endpointReadProgressMap.values().removeIf(pm -> pm.getEndpoint().getId().equals(endpoint.getId()));
-        sdsService.resetEndpointProgress(sessionId, endpoint);
+    private void waitUntilAllProgressComplete() {
+        endpointReadProgressMap.values().forEach(pm -> {
+            try {
+                if (pm.getFuture() != null) {
+                    pm.getFuture().get();
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                logger.error("Error waiting for future to complete", e);
+            }
+        });
+        sdsService.waitUntilAllProgressComplete(sessionId);
     }
 
-    private synchronized void clearCompletedProgressForAllExcept(Endpoint endpoint) {
-        endpointReadProgressMap.values().removeIf(pm ->
-                ! pm.getEndpoint().getId().equals(endpoint.getId()) && pm.getStatus().equals(ProgressStatus.COMPLETED)
-        );
-        sdsService.clearCompletedProgressForAllExcept(sessionId, endpoint);
+    private synchronized void terminateRemainingProgress() {
+        endpointReadProgressMap.values().forEach(pm -> {
+            if (pm.getFuture() != null) {
+                pm.getFuture().cancel(true);
+            }
+        });
+        sdsService.terminateRemainingProgress(sessionId);
     }
 
     public synchronized SseEmitter createNewEmitter() {
@@ -256,14 +267,17 @@ public class UserWorkspace {
         }
     }
 
-    private void sendNotification(String eventName, Map<String, String> payload) {
+    private void sendUpdateNotification(Map<String, String> payload) {
         SseEmitter currentEmitter = this.emitter;
         if (currentEmitter != null) {
             try {
-                currentEmitter.send(SseEmitter.event().name(eventName).data(payload, MediaType.APPLICATION_JSON));
+                currentEmitter.send(SseEmitter.event()
+                        .name("dataset-update")
+                        .data(payload, MediaType.APPLICATION_JSON)
+                );
 
             } catch (Exception e) {
-                logger.debug("caught {} attempting to send {} - {}", e.getClass().getSimpleName(), eventName, e.getMessage(), e);
+                logger.debug("caught {} attempting to send {} - {}", e.getClass().getSimpleName(), "dataset-update", e.getMessage(), e);
                 clearEmitter(currentEmitter);
                 try {
                     currentEmitter.completeWithError(e);
@@ -275,7 +289,7 @@ public class UserWorkspace {
     }
 
     private void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
-        sendNotification("dataset-update", Map.of(
+        sendUpdateNotification(Map.of(
                 "dataSet", dataSet.toString(),
                 "endpoint", endpoint.getName()
         ));
@@ -326,7 +340,7 @@ public class UserWorkspace {
     }
 
     public void populate() {
-        resetAllProgress();
+        clearAllCompletedProgress();
         for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             populateEndpoint(ue.getEndpoint());
         }
@@ -346,15 +360,11 @@ public class UserWorkspace {
         }
         boolean loadFromEndpoint = uec != null;
 
-        resetEndpointProgress(endpoint);
-        clearCompletedProgressForAllExcept(endpoint);
+        clearAllCompletedProgress();
 
-        endpointReadProgressMap.put(endpoint.getId(), new EndpointReadProgressModel(endpoint));
-
-        Runnable runnable = new Runnable() {
+        Callable<Void> callable = new Callable<>() {
             @Override
-            public void run() {
-
+            public Void call() {
                 long start = System.currentTimeMillis();
                 logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
                 List<Future<Void>> futures = new ArrayList<>();
@@ -424,10 +434,16 @@ public class UserWorkspace {
 
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+
+                return null;
             }
         };
 
-        executorService.submit(runnable);
+        EndpointReadProgressModel progressModel = new EndpointReadProgressModel(endpoint);
+        endpointReadProgressMap.put(endpoint.getId(), progressModel);
+        Future<Void> future = executorService.submit(callable);
+        progressModel.setFuture(future);
+        logger.info("Submitted callable for endpoint={} for session {}", endpoint.getIss(), sessionId);
     }
 
     public void clearCacheAndCredentials() {
@@ -440,12 +456,19 @@ public class UserWorkspace {
         endpointPatientIdMap.clear();
     }
 
-    public void shutdown() {
+    public void shutdown(boolean force) {
         if ( ! shutdown.compareAndSet(false, true) ) {
             logger.debug("workspace for session={} already shut down", sessionId);
             return;
         }
         closeEmitterIfPresent();
+
+        if (force) {
+            terminateRemainingProgress();
+        } else {
+            waitUntilAllProgressComplete();
+        }
+
         sdsService.shutdown(sessionId);
         ExecutorUtil.shutdownAndAwaitTermination(executorService, 10);
         secretKey = null;
