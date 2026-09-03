@@ -38,15 +38,16 @@
         return [{
             label: 'Name',
             value: model.conceptName,
-            bootstrapWidth: 4
+            bootstrapWidth: 5
         }, {
             label: 'Flag',
             value: (model.flags && model.flags.length > 0 ? renderFlags(model.flags) : ''),
             bootstrapWidth: 4
         }, {
-            label: 'Source',
-            value: model.sourceEndpointName,
-            bootstrapWidth: 4
+            label: 'Ordered On',
+            value: formatDate(model.authoredOn),
+            valueForCompare: model.authoredOn,
+            bootstrapWidth: 3
         }];
     }
 

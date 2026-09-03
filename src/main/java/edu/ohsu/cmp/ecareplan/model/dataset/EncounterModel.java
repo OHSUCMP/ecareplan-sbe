@@ -3,15 +3,13 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Encounter;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class EncounterModel extends BaseDataSetModel<Encounter> {
     private List<String> types;
     private String serviceType;
     private String period;
+    private Date effectiveDate;
     private Set<String> reasons;
     private Set<String> participants;
 
@@ -34,6 +32,11 @@ public class EncounterModel extends BaseDataSetModel<Encounter> {
 
         if (encounter.hasPeriod()) {
             period = formatPeriod(encounter.getPeriod());
+            if (encounter.getPeriod().hasStart()) {
+                effectiveDate = encounter.getPeriod().getStart();
+            } else if (encounter.getPeriod().hasEnd()) {
+                effectiveDate = encounter.getPeriod().getEnd();
+            }
         }
 
         if (encounter.hasReasonCode()) {
@@ -74,6 +77,10 @@ public class EncounterModel extends BaseDataSetModel<Encounter> {
 
     public String getPeriod() {
         return period;
+    }
+
+    public Date getEffectiveDate() {
+        return effectiveDate;
     }
 
     public Set<String> getReasons() {

@@ -17,6 +17,7 @@ public class AssessmentModel {
     private final Boolean scored;
     private final String codeSystem;
     private final String code;
+    private final Date effectiveDate;
 
     @JsonIgnore
     private final Questionnaire questionnaire;
@@ -34,17 +35,21 @@ public class AssessmentModel {
         this.code = assessment.getCode();
         this.questionnaire = assessment.getQuestionnaire();
 
-        if (responseSummaryList != null) {
-            for (ResponseSummary responseSummary : responseSummaryList) {
-                // verify that the response summary is for the same questionnaire as the assessment
-                if ( ! responseSummary.getQuestionnaireResponse().getQuestionnaire().equals(assessment.getQuestionnaire().getUrl()) ) {
-                    throw new IllegalArgumentException("Response summary questionnaire does not match assessment questionnaire");
-                }
+        if (responseSummaryList == null || responseSummaryList.isEmpty()) {
+            throw new IllegalArgumentException("Response summary list is null or empty");
+        }
+
+        for (ResponseSummary responseSummary : responseSummaryList) {
+            // verify that the response summary is for the same questionnaire as the assessment
+            if ( ! responseSummary.getQuestionnaireResponse().getQuestionnaire().equals(assessment.getQuestionnaire().getUrl()) ) {
+                throw new IllegalArgumentException("Response summary questionnaire does not match assessment questionnaire");
             }
         }
 
         this.responseSummaryList = responseSummaryList;
         this.responseSummaryList.sort((o1, o2) -> o2.getAuthored().compareTo(o1.getAuthored())); // inverse sort order, most recent first
+
+        this.effectiveDate = responseSummaryList.getFirst().getAuthored();
     }
 
     public String getName() {
@@ -77,6 +82,10 @@ public class AssessmentModel {
 
     public String getCode() {
         return code;
+    }
+
+    public Date getEffectiveDate() {
+        return effectiveDate;
     }
 
     public Questionnaire getQuestionnaire() {

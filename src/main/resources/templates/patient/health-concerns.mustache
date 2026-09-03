@@ -38,16 +38,12 @@
         return [{
             label: 'Name',
             value: model.name,
-            bootstrapWidth: 4
+            bootstrapWidth: 7
         }, {
-            label: 'Recorded Date',
-            value: formatDate(model.recordedDate),
-            valueForCompare: model.recordedDate,
-            bootstrapWidth: 4
-        }, {
-            label: 'Source',
-            value: model.sourceEndpointName,
-            bootstrapWidth: 4
+            label: 'Effective Date',
+            value: formatDate(model.onsetDate || model.recordedDate),
+            valueForCompare: model.onsetDate || model.recordedDate,
+            bootstrapWidth: 5
         }];
     }
 

@@ -38,7 +38,12 @@
         return [{
             label: 'Name',
             value: model.label,
-            bootstrapWidth: 12
+            bootstrapWidth: 8
+        }, {
+            label: 'Effective Date',
+            value: formatDate(model.effectiveDate),
+            valueForCompare: model.effectiveDate,
+            bootstrapWidth: 4
         }];
     }
 

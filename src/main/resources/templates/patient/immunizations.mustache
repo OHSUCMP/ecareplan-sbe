@@ -38,15 +38,11 @@
         return [{
             label: 'Description',
             value: model.description,
-            bootstrapWidth: 4
+            bootstrapWidth: 8
         }, {
             label: 'Effective Date',
             value: formatDate(model.effectiveDate),
             valueForCompare: model.effectiveDate,
-            bootstrapWidth: 4
-        }, {
-            label: 'Source',
-            value: model.sourceEndpointName,
             bootstrapWidth: 4
         }];
     }

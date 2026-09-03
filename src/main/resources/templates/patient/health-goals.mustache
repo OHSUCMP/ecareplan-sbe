@@ -38,16 +38,16 @@
         return [{
             label: 'Description',
             value: model.description,
-            bootstrapWidth: 4
+            bootstrapWidth: 5
         }, {
             label: 'Start Date',
             value: formatDate(model.startDate),
             valueForCompare: model.startDate,
             bootstrapWidth: 4
         }, {
-            label: 'Source',
-            value: model.sourceEndpointName,
-            bootstrapWidth: 4
+            label: 'Status',
+            value: model.consolidatedStatus,
+            bootstrapWidth: 3
         }];
     }
 

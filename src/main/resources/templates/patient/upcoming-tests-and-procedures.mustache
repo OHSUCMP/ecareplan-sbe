@@ -40,8 +40,9 @@
             value: model.description ?? '(No Description)',
             bootstrapWidth: 8
         }, {
-            label: 'Source',
-            value: model.sourceEndpointName,
+            label: 'Ordered On',
+            value: formatDate(model.authoredOn),
+            valueForCompare: model.authoredOn,
             bootstrapWidth: 4
         }];
     }

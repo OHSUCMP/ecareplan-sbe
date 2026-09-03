@@ -81,8 +81,9 @@
             value: model.mostRecentData.description,
             bootstrapWidth: 8
         }, {
-            label: 'Source',
-            value: model.mostRecentData.sourceEndpointName,
+            label: 'Effective Date',
+            value: formatDate(model.mostRecentData.effectiveDate),
+            valueForCompare: model.mostRecentData.effectiveDate,
             bootstrapWidth: 4
         }];
     }
