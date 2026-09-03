@@ -17,7 +17,7 @@ public class AssessmentModel {
     private final Boolean scored;
     private final String codeSystem;
     private final String code;
-    private final Date effectiveDate;
+    private final Date authored;
 
     @JsonIgnore
     private final Questionnaire questionnaire;
@@ -49,7 +49,7 @@ public class AssessmentModel {
         this.responseSummaryList = responseSummaryList;
         this.responseSummaryList.sort((o1, o2) -> o2.getAuthored().compareTo(o1.getAuthored())); // inverse sort order, most recent first
 
-        this.effectiveDate = responseSummaryList.getFirst().getAuthored();
+        this.authored = responseSummaryList.getFirst().getAuthored();
     }
 
     public String getName() {
@@ -84,8 +84,8 @@ public class AssessmentModel {
         return code;
     }
 
-    public Date getEffectiveDate() {
-        return effectiveDate;
+    public Date getAuthored() {
+        return authored;
     }
 
     public Questionnaire getQuestionnaire() {
