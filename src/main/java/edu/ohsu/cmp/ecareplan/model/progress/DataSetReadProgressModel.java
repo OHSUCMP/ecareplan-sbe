@@ -15,6 +15,8 @@ public class DataSetReadProgressModel extends BaseProgressModel implements IProg
     private final List<String> errors;
 
     public DataSetReadProgressModel(DataSet<?> dataSet, Endpoint endpoint, ProgressStatus status, List<String> errors, Date lastUpdated) {
+        super(endpoint.getName());
+
         this.dataSet = dataSet;
         this.endpoint = endpoint;
         this.status = status;

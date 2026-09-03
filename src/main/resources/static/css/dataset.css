@@ -139,6 +139,49 @@ display.progress > div {
     background-color: #f8fbfc;
 }
 
+.endpoint-progress-accordion {
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    border: 1px solid #dbe8ee;
+    border-radius: 0.65rem;
+    background-color: #ffffff;
+}
+
+.endpoint-progress-accordion:last-child {
+    margin-bottom: 0;
+}
+
+.endpoint-progress-item {
+    border: 0;
+}
+
+.endpoint-progress-button {
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.endpoint-progress-button:not(.collapsed) {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.endpoint-progress-button::after {
+    position: absolute;
+    right: 1rem;
+    z-index: 2;
+    filter: brightness(0) invert(1);
+}
+
+.endpoint-progress-bar .progress-bar {
+    background: linear-gradient(90deg, #2e6e9e 0%, #7698a1 100%);
+}
+
+.endpoint-progress-details {
+    padding: 0.85rem;
+    background-color: #ffffff;
+}
+
 .progress-detail-item {
     margin-bottom: 1rem;
 }

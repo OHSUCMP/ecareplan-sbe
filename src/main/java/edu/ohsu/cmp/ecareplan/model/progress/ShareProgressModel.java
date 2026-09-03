@@ -19,6 +19,8 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
     private transient Future<Void> future = null;
 
     public ShareProgressModel(DataSet<?> dataSet, Endpoint endpoint, ProgressStatus status, Integer current, Integer total) {
+        super(endpoint.getName());
+
         this.dataSet = dataSet;
         this.endpoint = endpoint;
         this.status = status;
