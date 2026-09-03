@@ -292,7 +292,16 @@ function getCurrentProgress(_callback) {
         method: "POST",
         url: getBasePath() + '/progress'
     }).done(function(progressData) {
-        _callback(progressData);
+        if (progressData) {
+            if (isAllProgressComplete(progressData)) {
+                $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
+            } else {
+                $('#refresh').hide().addClass('disabled').attr('aria-disabled', 'true');
+            }
+        }
+        if (_callback) {
+            _callback(progressData);
+        }
     });
 }
 

@@ -189,6 +189,29 @@
 
             validateSession();
         });
+
+        function doRefresh(_callback) {
+            $('#refresh').hide().addClass('disabled').attr('aria-disabled', 'true');
+            $.ajax({
+                method: "POST",
+                url: "/refresh"
+            }).done(function() {
+                _callback();
+            }).fail(function(jqXHR) {
+                console.error("caught error refreshing: '" + jqXHR.responseText + "' (status=" + jqXHR.status + ")");
+                $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
+            });
+        }
+
+        $(document).on('click', '#refresh', function(e) {
+            e.preventDefault();
+            if ($(this).hasClass('disabled') || $(this).attr('aria-disabled') === 'true') {
+                return;
+            }
+            doRefresh(function() {
+                window.location.reload();
+            });
+        });
     </script>
 </head>
 <body>
