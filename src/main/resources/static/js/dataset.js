@@ -353,6 +353,8 @@ function applyDatasetFilter() {
         selectors.length + ' records available.' :
         'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
     container.find('#datasetFilterStatus').text(status);
+
+    scheduleCardSelectorListResize();
 }
 
 function applySourceEndpointVisibility(container = $('#modelsContainer')) {
@@ -380,10 +382,71 @@ function applySourceEndpointVisibility(container = $('#modelsContainer')) {
 }
 
 function resizeCardSelectorList() {
-    $('.card-selector-scroll').each(function() {
-        let top = this.getBoundingClientRect().top;
-        this.style.height = Math.max(0, window.innerHeight - top - 75) + 'px';
+    const minimumListHeight = 240;
+
+    $('.card-selector-layout').each(function() {
+        let layout = $(this);
+        let listContainer = layout.find('.card-selector-list-container').first();
+        let scroll = layout.find('.card-selector-scroll').first();
+        let header = layout.find('.card-selector-header').first();
+        let items = layout.find('.card-selector-items').first();
+        let activePanel = layout.find('.card-panel:not(.d-none):not(.dataset-filtered-out)').first();
+
+        if (listContainer.length === 0 || scroll.length === 0 || items.length === 0) {
+            return;
+        }
+
+        listContainer.css('height', '');
+        listContainer.css('min-height', '');
+        scroll.css('height', '');
+        scroll.css('min-height', '');
+
+        if (window.matchMedia('(max-width: 767.98px)').matches) {
+            return;
+        }
+
+        let containerRect = listContainer[0].getBoundingClientRect();
+        let containerTop = containerRect.top;
+        let availableViewportHeight = Math.max(minimumListHeight, window.innerHeight - containerTop - 75);
+        let activePanelAlignedHeight = minimumListHeight;
+
+        if (activePanel.length > 0) {
+            let activePanelRect = activePanel[0].getBoundingClientRect();
+            activePanelAlignedHeight = Math.max(minimumListHeight, activePanelRect.bottom - containerTop);
+        }
+
+        let baselineHeight = activePanelAlignedHeight;
+
+        let headerHeight = header.length > 0 ? header[0].getBoundingClientRect().height : 0;
+        let selectorItemsHeight = items[0].scrollHeight;
+        let contentHeight = headerHeight + selectorItemsHeight;
+
+        let targetContainerHeight;
+        if (contentHeight <= baselineHeight) {
+            targetContainerHeight = baselineHeight;
+        } else {
+            targetContainerHeight = Math.min(contentHeight, Math.max(baselineHeight, availableViewportHeight));
+        }
+
+        listContainer.css('height', targetContainerHeight + 'px');
+        listContainer.css('min-height', baselineHeight + 'px');
+
+        let targetScrollHeight = Math.max(0, listContainer[0].clientHeight - headerHeight);
+        scroll.css('height', targetScrollHeight + 'px');
+        scroll.css('min-height', '0');
     });
+}
+
+function scheduleCardSelectorListResize() {
+    requestAnimationFrame(function() {
+        resizeCardSelectorList();
+
+        requestAnimationFrame(function() {
+            resizeCardSelectorList();
+        });
+    });
+
+    setTimeout(resizeCardSelectorList, 150);
 }
 
 function renderCard(id, card) {
@@ -1013,7 +1076,7 @@ function renderModels(models) {
         if (typeof buildCardSelectorData === 'function') {
             $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
             applySourceEndpointVisibility();
-            resizeCardSelectorList();
+            scheduleCardSelectorListResize();
 
         } else {
             let cards = [];
@@ -1035,6 +1098,7 @@ function renderModels(models) {
 
     if (typeof renderCharts === 'function') {
         renderCharts();
+        scheduleCardSelectorListResize();
     }
 }
 
@@ -1097,9 +1161,11 @@ $(document).on('click', '#modelsContainer .card-selector', function() {
     selector.addClass('active').attr('aria-selected', 'true');
     container.find('.card-panel').addClass('d-none').attr('aria-hidden', 'true');
     container.find('#' + targetId).removeClass('d-none').removeAttr('aria-hidden');
+
+    scheduleCardSelectorListResize();
 });
 
-$(window).on('resize', resizeCardSelectorList);
+$(window).on('resize', scheduleCardSelectorListResize);
 
 $(document).ready(function() {
     if (!exists('#sessionEstablished')) {
