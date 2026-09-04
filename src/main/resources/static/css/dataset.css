@@ -729,6 +729,10 @@ display.progress > div {
     border-radius: 0.75rem !important;
 }
 
+.dataset-table-accordion-count {
+    margin-left: 0.25rem;
+}
+
 .card-panel .accordion-button {
     color: #004466;
     font-weight: 700;

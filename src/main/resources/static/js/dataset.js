@@ -588,7 +588,8 @@ function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = 
         '<div class="accordion-item">' +
         '<h2 class="accordion-header" id="heading-' + baseId + '">' +
         '<button class="accordion-button' + buttonCollapsedClass + ' py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + baseId + '" aria-expanded="' + ariaExpanded + '" aria-controls="collapse-' + baseId + '">' +
-        escapeHtml(title) + ' (' + rows.length + ')' +
+        '<span class="dataset-table-accordion-title">' + escapeHtml(title) + '</span>' +
+        ' <span class="dataset-table-accordion-count" aria-label="' + rows.length + ' visible rows">(' + rows.length + ')</span>' +
         '</button>' +
         '</h2>' + // accordion-header
         '<div id="collapse-' + baseId + '" class="accordion-collapse collapse' + collapseShowClass + '" aria-labelledby="heading-' + baseId + '" data-bs-parent="#' + baseId + '">' +
@@ -609,6 +610,19 @@ function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = 
         '</div>' + // accordion-collapse
         '</div>' + // accordion-item
         '</div>'; // accordion
+}
+
+function updateDataTableAccordionCounts(container) {
+    $(container).find('.dataset-table-accordion').each(function() {
+        let accordion = $(this);
+        let visibleRowCount = accordion.find('tbody tr').filter(function() {
+            return !$(this).hasClass('dataset-filtered-out');
+        }).length;
+        let count = accordion.find('.dataset-table-accordion-count').first();
+
+        count.text('(' + visibleRowCount + ')');
+        count.attr('aria-label', visibleRowCount + ' visible rows');
+    });
 }
 
 function renderDataTableHeaders(baseId, headers) {
@@ -667,6 +681,8 @@ function applyDataTableSourceVisibility(container) {
         let sourceEndpointNames = row.attr('data-source-endpoint-name');
         row.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
     });
+
+    updateDataTableAccordionCounts(container);
 }
 
 function getDataTableRowData(row) {
