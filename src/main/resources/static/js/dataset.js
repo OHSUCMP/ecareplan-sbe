@@ -123,12 +123,76 @@ function selectFirstVisibleCard(layout) {
         .removeAttr('aria-hidden');
 }
 
+function clearDatasetFilterHighlights(container) {
+    container.find('mark.dataset-filter-highlight').each(function() {
+        let highlight = $(this);
+        highlight.replaceWith(document.createTextNode(highlight.text()));
+    });
+
+    container.find('.card-panel').each(function() {
+        this.normalize();
+    });
+}
+
+function highlightDatasetFilterText(element, query) {
+    if (!query) {
+        return;
+    }
+
+    let normalizedQuery = query.toLocaleLowerCase();
+
+    $(element).contents().each(function() {
+        if (this.nodeType === Node.TEXT_NODE) {
+            let text = this.nodeValue;
+            let normalizedText = text.toLocaleLowerCase();
+            let matchIndex = normalizedText.indexOf(normalizedQuery);
+
+            if (matchIndex === -1) {
+                return;
+            }
+
+            let fragment = document.createDocumentFragment();
+            let currentIndex = 0;
+
+            while (matchIndex !== -1) {
+                if (matchIndex > currentIndex) {
+                    fragment.appendChild(document.createTextNode(text.substring(currentIndex, matchIndex)));
+                }
+
+                let mark = document.createElement('mark');
+                mark.className = 'dataset-filter-highlight';
+                mark.textContent = text.substring(matchIndex, matchIndex + query.length);
+                fragment.appendChild(mark);
+
+                currentIndex = matchIndex + query.length;
+                matchIndex = normalizedText.indexOf(normalizedQuery, currentIndex);
+            }
+
+            if (currentIndex < text.length) {
+                fragment.appendChild(document.createTextNode(text.substring(currentIndex)));
+            }
+
+            this.parentNode.replaceChild(fragment, this);
+
+        } else if (this.nodeType === Node.ELEMENT_NODE) {
+            let child = $(this);
+
+            if (!child.is('script, style, mark')) {
+                highlightDatasetFilterText(this, query);
+            }
+        }
+    });
+}
+
 function applyDatasetFilter() {
     let container = $('#modelsContainer');
     let layout = container.find('.card-selector-layout');
     let normalizedQuery = datasetFilterQuery.trim().toLocaleLowerCase();
+    let query = datasetFilterQuery.trim();
     let selectors = layout.find('.card-selector');
     let matchingCount = 0;
+
+    clearDatasetFilterHighlights(container);
 
     selectors.each(function() {
         let selector = $(this);
@@ -139,6 +203,10 @@ function applyDatasetFilter() {
         panel.toggleClass('dataset-filtered-out', !matches);
         if (matches) {
             matchingCount++;
+
+            if (query !== '') {
+                highlightDatasetFilterText(panel, query);
+            }
         }
     });
 

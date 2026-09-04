@@ -166,6 +166,14 @@ display.progress > div {
     display: none !important;
 }
 
+.dataset-filter-highlight {
+    padding: 0.05rem 0.12rem;
+    border-radius: 0.2rem;
+    background-color: #fff3cd;
+    color: #244653;
+    font-weight: 700;
+}
+
 /* Progress summary */
 #progressContainer {
     position: sticky;
