@@ -1,0 +1,11 @@
+{{#systemStatusMessage}}
+    <div class="system-status-alert alert d-flex align-items-start gap-3" role="alert">
+        <div class="system-status-alert-icon" aria-hidden="true">
+            <img src="{{req.contextPath}}/images/info-icon.png" alt="" height="50" />
+        </div>
+        <div class="system-status-alert-content">
+            <strong class="system-status-alert-title">System Status</strong>
+            <div class="system-status-alert-message">{{systemStatusMessage}}</div>
+        </div>
+    </div>
+{{/systemStatusMessage}}

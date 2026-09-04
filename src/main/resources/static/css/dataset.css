@@ -46,16 +46,6 @@ display.progress > div {
     text-transform: uppercase;
 }
 
-.alert-teal {
-    margin-top: 1rem;
-    border: 0;
-    border-left: 0.35rem solid #2e6e9e;
-    border-radius: 0.75rem;
-    background: linear-gradient(135deg, #eef7fa 0%, #f8fbfc 100%);
-    color: #244653;
-    box-shadow: 0 0.35rem 1rem rgba(0, 68, 102, 0.08);
-}
-
 #modelsContainer {
     margin-top: 1rem;
 }
