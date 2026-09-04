@@ -200,18 +200,45 @@ display.progress > div {
     font-weight: 700;
     line-height: 1.2;
     box-shadow: 0 0.15rem 0.45rem rgba(0, 68, 102, 0.08);
-    transition: filter 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition: filter 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.source-endpoint-legend-item:hover,
-.source-endpoint-legend-item:focus {
-    box-shadow: 0 0.25rem 0.7rem rgba(0, 68, 102, 0.14);
-    transform: translateY(-1px);
+.source-endpoint-legend-item[data-source-endpoint-interactive="true"] {
+    cursor: pointer;
 }
 
-.source-endpoint-legend-item:focus-visible {
+.source-endpoint-legend-item[data-source-endpoint-interactive="true"]:hover {
+    border-color: var(--source-endpoint-accent, #2e6e9e);
+    background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.18)),
+            var(--source-endpoint-bg, #f8fbfc);
+    color: #003852;
+    box-shadow:
+            0 0.35rem 0.9rem rgba(0, 68, 102, 0.18),
+            0 0 0 0.18rem color-mix(in srgb, var(--source-endpoint-accent, #2e6e9e) 24%, transparent);
+    transform: translateY(-2px);
+}
+
+.source-endpoint-legend-item[data-source-endpoint-interactive="true"]:focus-visible {
+    border-color: var(--source-endpoint-accent, #2e6e9e);
     outline: 2px solid var(--source-endpoint-accent, #7698a1);
     outline-offset: 2px;
+    box-shadow:
+            0 0.25rem 0.7rem rgba(0, 68, 102, 0.16),
+            0 0 0 0.18rem color-mix(in srgb, var(--source-endpoint-accent, #2e6e9e) 20%, transparent);
+}
+
+.source-endpoint-legend-item[data-source-endpoint-interactive="true"]:active {
+    box-shadow:
+            0 0.15rem 0.4rem rgba(0, 68, 102, 0.16),
+            inset 0 0 0 1px var(--source-endpoint-accent, #2e6e9e);
+    transform: translateY(0);
+}
+
+.source-endpoint-legend-item:not([data-source-endpoint-interactive]):hover,
+.source-endpoint-legend-item:not([data-source-endpoint-interactive]):focus {
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 68, 102, 0.14);
+    transform: translateY(-1px);
 }
 
 .source-endpoint-legend-item.source-endpoint-hidden {
