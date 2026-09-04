@@ -750,7 +750,59 @@ function renderProgressBar(percentComplete, label, extraCssClass) {
         '</div>';
 }
 
-function renderProgressItem(item) {
+let progressErrorAccordionExpandedState = {};
+
+function buildProgressErrorAccordionKey(parentId, item, itemIndex) {
+    return parentId + '-' + itemIndex + '-' + buildSafeProgressId(item.endpointName) + '-' + buildSafeProgressId(item.label);
+}
+
+function isProgressErrorAccordionExpanded(stateKey) {
+    return !Object.prototype.hasOwnProperty.call(progressErrorAccordionExpandedState, stateKey) ||
+        progressErrorAccordionExpandedState[stateKey] === true;
+}
+
+function renderProgressErrorsAccordion(item, parentId, itemIndex) {
+    if (!item.errors || item.errors.length === 0) {
+        return '';
+    }
+
+    let stateKey = buildProgressErrorAccordionKey(parentId, item, itemIndex);
+    let expanded = isProgressErrorAccordionExpanded(stateKey);
+    let accordionId = 'progress-errors-' + stateKey;
+    let headingId = accordionId + '-heading';
+    let collapseId = accordionId + '-collapse';
+    let buttonCollapsedClass = expanded ? '' : ' collapsed';
+    let collapseShowClass = expanded ? ' show' : '';
+    let ariaExpanded = expanded ? 'true' : 'false';
+
+    let html = '<div class="accordion progress-errors-accordion" id="' + accordionId + '" data-progress-errors-key="' + stateKey + '">' +
+        '<div class="accordion-item progress-errors-item">' +
+        '<h4 class="accordion-header" id="' + headingId + '">' +
+        '<button class="accordion-button progress-errors-button' + buttonCollapsedClass + '" type="button"' +
+        ' data-bs-toggle="collapse" data-bs-target="#' + collapseId + '"' +
+        ' aria-expanded="' + ariaExpanded + '" aria-controls="' + collapseId + '">' +
+        'Errors (' + item.errors.length + ')' +
+        '</button>' +
+        '</h4>' +
+        '<div id="' + collapseId + '" class="accordion-collapse collapse' + collapseShowClass + '"' +
+        ' aria-labelledby="' + headingId + '">' +
+        '<div class="accordion-body progress-errors-body">' +
+        '<ul class="mb-0">';
+
+    $.each(item.errors, function(j, error) {
+        html += '<li>' + escapeHtml(error) + '</li>';
+    });
+
+    html += '</ul>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+
+    return html;
+}
+
+function renderProgressItem(item, parentId, itemIndex) {
     let itemPercentComplete = getProgressItemPercentComplete(item);
     let itemLabel = (item.label ?? 'Progress Item') + ': ' + itemPercentComplete + '% Complete';
 
@@ -762,16 +814,7 @@ function renderProgressItem(item) {
         renderProgressBar(itemPercentComplete, itemLabel, 'progress-detail-bar');
 
     if (item.errors && item.errors.length > 0) {
-        html += '<div class="progress-errors">' +
-            '<div class="progress-errors-label">Errors:</div>' +
-            '<ul class="mb-0">';
-
-        $.each(item.errors, function(j, error) {
-            html += '<li>' + escapeHtml(error) + '</li>';
-        });
-
-        html += '</ul>' +
-            '</div>';
+        html += renderProgressErrorsAccordion(item, parentId, itemIndex);
     }
 
     html += '</div>';
@@ -803,8 +846,8 @@ function renderEndpointProgressGroup(endpointName, progressItems, endpointExpand
         ' aria-labelledby="' + endpointId + '-heading">' +
         '<div class="accordion-body endpoint-progress-details">';
 
-    progressItems.forEach(function(item) {
-        html += renderProgressItem(item);
+    progressItems.forEach(function(item, itemIndex) {
+        html += renderProgressItem(item, endpointId, itemIndex);
     });
 
     html += '</div>' +
@@ -814,6 +857,20 @@ function renderEndpointProgressGroup(endpointName, progressItems, endpointExpand
 
     return html;
 }
+
+$(document).on('shown.bs.collapse', '.progress-errors-accordion .accordion-collapse', function() {
+    let stateKey = $(this).closest('.progress-errors-accordion').attr('data-progress-errors-key');
+    if (stateKey) {
+        progressErrorAccordionExpandedState[stateKey] = true;
+    }
+});
+
+$(document).on('hidden.bs.collapse', '.progress-errors-accordion .accordion-collapse', function() {
+    let stateKey = $(this).closest('.progress-errors-accordion').attr('data-progress-errors-key');
+    if (stateKey) {
+        progressErrorAccordionExpandedState[stateKey] = false;
+    }
+});
 
 function renderProgressData(progressData, detailsExpanded = false) {
     if (!Array.isArray(progressData) || progressData.length === 0) {
