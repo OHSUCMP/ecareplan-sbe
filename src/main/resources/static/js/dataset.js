@@ -112,28 +112,40 @@ function getSourceEndpointNamesFromModels(models) {
     return sourceNames;
 }
 
-function renderSourceEndpointLegend(sourceEndpointNames) {
+function renderSourceEndpointLegend(sourceEndpointNames, interactive = true) {
     if (!Array.isArray(sourceEndpointNames) || sourceEndpointNames.length === 0) {
         return '';
     }
 
-    let html = '<div class="source-endpoint-legend" aria-label="Filter by source">' +
+    let html = '<div class="source-endpoint-legend" aria-label="' + (interactive ? 'Filter by source' : 'Record sources') + '">' +
         '<div class="source-endpoint-legend-label">Sources</div>' +
         '<div class="source-endpoint-legend-items">';
 
     sourceEndpointNames.forEach(function(sourceEndpointName) {
         let normalizedSourceName = getSourceEndpointName(sourceEndpointName);
-        let isHidden = hiddenSourceEndpointNames.has(normalizedSourceName);
+        let isHidden = interactive && hiddenSourceEndpointNames.has(normalizedSourceName);
 
-        html += '<button type="button" class="source-endpoint-legend-item source-endpoint-tinted' +
-            (isHidden ? ' source-endpoint-hidden' : '') + '"' +
-            ' data-source-endpoint-name="' + escapeHtml(normalizedSourceName) + '"' +
-            ' aria-pressed="' + (isHidden ? 'true' : 'false') + '"' +
-            ' title="' + (isHidden ? 'Show ' : 'Hide ') + escapeHtml(normalizedSourceName) + '"' +
-            renderSourceEndpointStyle(normalizedSourceName) + '>' +
-            '<span class="source-endpoint-legend-swatch" aria-hidden="true"></span>' +
-            '<span class="source-endpoint-legend-text">' + escapeHtml(normalizedSourceName) + '</span>' +
-            '</button>';
+        if (interactive) {
+            html += '<button type="button" class="source-endpoint-legend-item source-endpoint-tinted' +
+                (isHidden ? ' source-endpoint-hidden' : '') + '"' +
+                ' data-source-endpoint-name="' + escapeHtml(normalizedSourceName) + '"' +
+                ' data-source-endpoint-interactive="true"' +
+                ' aria-pressed="' + (isHidden ? 'true' : 'false') + '"' +
+                ' title="' + (isHidden ? 'Show ' : 'Hide ') + escapeHtml(normalizedSourceName) + '"' +
+                renderSourceEndpointStyle(normalizedSourceName) + '>' +
+                '<span class="source-endpoint-legend-swatch" aria-hidden="true"></span>' +
+                '<span class="source-endpoint-legend-text">' + escapeHtml(normalizedSourceName) + '</span>' +
+                '</button>';
+        } else {
+            html += '<span class="source-endpoint-legend-item source-endpoint-tinted source-endpoint-legend-item-static"' +
+                ' data-source-endpoint-name="' + escapeHtml(normalizedSourceName) + '"' +
+                ' data-source-endpoint-interactive="false"' +
+                ' title="' + escapeHtml(normalizedSourceName) + '"' +
+                renderSourceEndpointStyle(normalizedSourceName) + '>' +
+                '<span class="source-endpoint-legend-swatch" aria-hidden="true"></span>' +
+                '<span class="source-endpoint-legend-text">' + escapeHtml(normalizedSourceName) + '</span>' +
+                '</span>';
+        }
     });
 
     html += '</div>' +
@@ -378,7 +390,7 @@ function applyDatasetFilter() {
 }
 
 function applySourceEndpointVisibility(container = $('#modelsContainer')) {
-    container.find('.source-endpoint-legend-item').each(function() {
+    container.find('.source-endpoint-legend-item[data-source-endpoint-interactive="true"]').each(function() {
         let button = $(this);
         let sourceEndpointName = getSourceEndpointName(button.attr('data-source-endpoint-name'));
         let isHidden = hiddenSourceEndpointNames.has(sourceEndpointName);
@@ -404,7 +416,6 @@ function applySourceEndpointVisibility(container = $('#modelsContainer')) {
         renderCharts();
     }
 }
-
 
 function resizeCardSelectorList() {
     const minimumListHeight = 240;
@@ -1132,7 +1143,7 @@ $(document).on('input', '#datasetFilter', function() {
     applyDatasetFilter();
 });
 
-$(document).on('click', '#modelsContainer .source-endpoint-legend-item', function() {
+$(document).on('click', '#modelsContainer .source-endpoint-legend-item[data-source-endpoint-interactive="true"]', function() {
     let sourceEndpointName = getSourceEndpointName($(this).attr('data-source-endpoint-name'));
 
     if (hiddenSourceEndpointNames.has(sourceEndpointName)) {

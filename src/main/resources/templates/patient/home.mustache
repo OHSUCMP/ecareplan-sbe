@@ -124,7 +124,7 @@
 
         let renderPatientModels = function(models) {
             if (models && models.length > 0) {
-                let html = renderSourceEndpointLegend(getSourceEndpointNamesFromModels(models)) +
+                let html = renderSourceEndpointLegend(getSourceEndpointNamesFromModels(models), false) +
                         '<div class="home-patient-list">';
                 models.forEach(function(model) {
                     let sourceEndpointName = getSourceEndpointName(model.sourceEndpointName);
@@ -139,7 +139,6 @@
                 });
                 html += '</div>';
                 $('#modelsContainer').html(html);
-                applySourceEndpointVisibility();
             } else {
                 $('#modelsContainer').html(
                         '<div class="home-loading-state">' +

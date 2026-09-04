@@ -774,6 +774,16 @@ span.flag {
     box-shadow: 0 0.1rem 0.25rem rgba(0, 68, 102, 0.12);
 }
 
+.source-endpoint-legend-item-static {
+    cursor: default;
+}
+
+.source-endpoint-legend-item-static:hover,
+.source-endpoint-legend-item-static:focus {
+    box-shadow: 0 0.15rem 0.45rem rgba(0, 68, 102, 0.08);
+    transform: none;
+}
+
 @media (max-width: 767.98px) {
     .container > h1 {
         padding: 1.15rem 1.25rem;
