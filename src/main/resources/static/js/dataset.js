@@ -10,23 +10,39 @@ const sourceEndpointColorPalette = [
     { background: '#fff0f5', border: '#eda8c5', accent: '#c0567a' },
     { background: '#eefcfb', border: '#8fd8d3', accent: '#2c8f8a' },
     { background: '#f8f9e8', border: '#d9dc8f', accent: '#7a7f22' },
-    { background: '#f3f4ff', border: '#aeb8f0', accent: '#4c5fc0' }
+    { background: '#f3f4ff', border: '#aeb8f0', accent: '#4c5fc0' },
+    { background: '#fff4ed', border: '#f0a879', accent: '#c45a2f' },
+    { background: '#effaf0', border: '#93d59b', accent: '#3b8f43' },
+    { background: '#f1f7ff', border: '#8fb8e8', accent: '#3366aa' },
+    { background: '#fffbed', border: '#ead26f', accent: '#9a7a00' },
+    { background: '#f6f1ff', border: '#b99fe6', accent: '#6b46c1' },
+    { background: '#eef9f3', border: '#87cfa5', accent: '#237a4f' },
+    { background: '#fff0f0', border: '#e8a0a0', accent: '#b64040' },
+    { background: '#eef6f7', border: '#8fc8cf', accent: '#2f7f8f' }
 ];
+
+const defaultSourceEndpointColor = { background: '#f8fbfc', border: '#dbe8ee', accent: '#7698a1' };
+
+function getSourceEndpointColorPaletteIndex(sourceEndpointName) {
+    let source = String(sourceEndpointName ?? '').trim().toLocaleLowerCase();
+
+    let hash = 2166136261;
+    for (let i = 0; i < source.length; i++) {
+        hash ^= source.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0) % sourceEndpointColorPalette.length;
+}
 
 function getSourceEndpointColor(sourceEndpointName) {
     let source = String(sourceEndpointName ?? '').trim();
 
     if (source === '') {
-        return { background: '#f8fbfc', border: '#dbe8ee', accent: '#7698a1' };
+        return defaultSourceEndpointColor;
     }
 
-    let hash = 0;
-    for (let i = 0; i < source.length; i++) {
-        hash = ((hash << 5) - hash) + source.charCodeAt(i);
-        hash |= 0;
-    }
-
-    return sourceEndpointColorPalette[Math.abs(hash) % sourceEndpointColorPalette.length];
+    return sourceEndpointColorPalette[getSourceEndpointColorPaletteIndex(source)];
 }
 
 function renderSourceEndpointStyle(sourceEndpointName) {
