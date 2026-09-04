@@ -432,12 +432,15 @@ function resizeCardSelectorList() {
             return;
         }
 
+        let previousScrollTop = scroll[0].scrollTop;
+
         listContainer.css('height', '');
         listContainer.css('min-height', '');
         scroll.css('height', '');
         scroll.css('min-height', '');
 
         if (window.matchMedia('(max-width: 767.98px)').matches) {
+            scroll[0].scrollTop = previousScrollTop;
             return;
         }
 
@@ -470,6 +473,9 @@ function resizeCardSelectorList() {
         let targetScrollHeight = Math.max(0, listContainer[0].clientHeight - headerHeight);
         scroll.css('height', targetScrollHeight + 'px');
         scroll.css('min-height', '0');
+
+        let maxScrollTop = Math.max(0, scroll[0].scrollHeight - scroll[0].clientHeight);
+        scroll[0].scrollTop = Math.min(previousScrollTop, maxScrollTop);
     });
 }
 
