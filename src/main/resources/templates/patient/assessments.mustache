@@ -43,6 +43,12 @@
         card.title = model.label;
         card.learnMoreUrl = model.learnMoreUrl;
 
+        let sources = new Set();
+        (model.responseSummaryList ?? []).forEach(function(data) {
+            sources.add(data.sourceEndpointName);
+        })
+        card.source = [...sources];
+
         if (model.responseSummaryList && model.responseSummaryList.length >= 2) {
             let chartData = [];
 
@@ -52,6 +58,7 @@
 
                 if (x && Number.isFinite(y)) {
                     chartData.push({
+                        source: response.sourceEndpointName,
                         x: x,
                         y: y
                     });
@@ -73,9 +80,12 @@
         if (model.responseSummaryList && model.responseSummaryList.length > 0) {
             card.rows.push({
                 title: 'Historical Data',
-                headers: [ 'Authored Date', 'Score', 'Interpretation', 'Source' ],
+                headers: [ 'Authored Date', 'Score', 'Interpretation' ],
                 rows: model.responseSummaryList.map(function(data) {
-                    return [ formatDate(data.authored), data.score, data.interpretation, data.sourceEndpointName ];
+                    return {
+                        source: data.sourceEndpointName,
+                        data: [ formatDate(data.authored), data.score, data.interpretation ]
+                    };
                 }),
                 beginExpanded: true
             });

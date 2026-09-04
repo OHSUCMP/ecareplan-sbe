@@ -41,6 +41,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.name;
+        card.source = model.sourceEndpointName;
         card.rows = [];
         if (model.asserter) {
             card.rows.push([{ label: 'Asserted By', value: model.asserter }]);
@@ -64,7 +65,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

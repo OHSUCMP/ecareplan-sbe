@@ -78,14 +78,29 @@ function createLineChart(options, data) {
         .flatMap((dataset) => dataset.data || [])
         .map((point) => typeof point === 'object' ? Number(point.x) : NaN)
         .filter((value) => Number.isFinite(value));
-    if (xValues.length > 1) {
+    if (xValues.length > 0) {
         const xScale = Object.assign({}, chartOptions.scales && chartOptions.scales.x);
-        if (xScale.min === undefined) {
-            xScale.min = Math.min(...xValues);
+        const minX = Math.min(...xValues);
+        const maxX = Math.max(...xValues);
+
+        if (minX === maxX) {
+            const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+
+            if (xScale.min === undefined) {
+                xScale.min = minX - oneDayInMilliseconds;
+            }
+            if (xScale.max === undefined) {
+                xScale.max = maxX + oneDayInMilliseconds;
+            }
+        } else {
+            if (xScale.min === undefined) {
+                xScale.min = minX;
+            }
+            if (xScale.max === undefined) {
+                xScale.max = maxX;
+            }
         }
-        if (xScale.max === undefined) {
-            xScale.max = Math.max(...xValues);
-        }
+
         xScale.offset = false;
         chartOptions.scales = Object.assign({}, chartOptions.scales, { x: xScale });
     }
@@ -115,12 +130,23 @@ function renderCharts() {
 
         if (!chartDataElement) return;
 
+        const existingChart = typeof Chart !== 'undefined' && typeof Chart.getChart === 'function'
+            ? Chart.getChart(canvas)
+            : null;
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
         const chart = JSON.parse(chartDataElement.textContent || '{}');
         const chartData = getChartData(chart);
 
-        if (!chartData.datasets || !chartData.datasets.some(function(dataset) {
+        const hasVisibleData = chartData.datasets && chartData.datasets.some(function(dataset) {
             return dataset.data && dataset.data.length > 0;
-        })) return;
+        });
+
+        $(canvas).closest('.chart-container').toggleClass('d-none', !hasVisibleData);
+
+        if (!hasVisibleData) return;
 
         createLineChart(
             Object.assign(getChartOptions(chart), { canvas: canvas }),
@@ -129,10 +155,24 @@ function renderCharts() {
     });
 }
 
+function chartPointHasVisibleSource(point) {
+    if (!point || point.source === undefined || point.source === null) {
+        return true;
+    }
+
+    if (typeof hasVisibleSourceEndpoint !== 'function') {
+        return true;
+    }
+
+    return hasVisibleSourceEndpoint(point.source);
+}
+
 function normalizeChartPoints(points) {
     return (points || [])
+        .filter(chartPointHasVisibleSource)
         .map(function(point) {
             return {
+                source: point.source,
                 x: new Date(point.x).getTime(),
                 y: Number(point.y)
             };
@@ -163,6 +203,7 @@ function getChartData(chart) {
                 })
         };
     }
+
 
     const points = normalizeChartPoints(chart && chart.data ? chart.data : []);
 
@@ -260,6 +301,7 @@ function buildConsolidatedChartData(model) {
             }
 
             linesByConceptName.get(component.conceptName).push({
+                source: record.sourceEndpointName,
                 x: record.effectiveDate,
                 y: y
             });

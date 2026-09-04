@@ -45,6 +45,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.conceptName;
+        card.source = model.sourceEndpointName;
         card.rows = [];
         if (model.flags && model.flags.length > 0) {
             card.rows.push([{ label: 'Flags', value: renderFlags(model.flags) }]);
@@ -84,7 +85,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

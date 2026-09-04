@@ -41,6 +41,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';
+        card.source = model.sourceEndpointName;
         card.rows = [];
         if (model.requester) {
             card.rows.push([{ label: 'Requested By', value: model.requester }]);
@@ -68,7 +69,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

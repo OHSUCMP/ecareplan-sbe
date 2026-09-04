@@ -2,8 +2,162 @@ function getCardSelectorSortValue(value) {
     return $('<div>').html(value ?? '').text().trim().toLowerCase();
 }
 
+const sourceEndpointColorPalette = [
+    { background: '#eef7ff', border: '#9dccf0', accent: '#2f80c0' },
+    { background: '#f0fbf6', border: '#9fdcbd', accent: '#2e8b57' },
+    { background: '#fff7e8', border: '#f0c57a', accent: '#b7791f' },
+    { background: '#f7f0ff', border: '#c8a7ed', accent: '#805ad5' },
+    { background: '#fff0f5', border: '#eda8c5', accent: '#c0567a' },
+    { background: '#eefcfb', border: '#8fd8d3', accent: '#2c8f8a' },
+    { background: '#f8f9e8', border: '#d9dc8f', accent: '#7a7f22' },
+    { background: '#f3f4ff', border: '#aeb8f0', accent: '#4c5fc0' },
+    { background: '#fff4ed', border: '#f0a879', accent: '#c45a2f' },
+    { background: '#effaf0', border: '#93d59b', accent: '#3b8f43' },
+    { background: '#f1f7ff', border: '#8fb8e8', accent: '#3366aa' },
+    { background: '#fffbed', border: '#ead26f', accent: '#9a7a00' },
+    { background: '#f6f1ff', border: '#b99fe6', accent: '#6b46c1' },
+    { background: '#eef9f3', border: '#87cfa5', accent: '#237a4f' },
+    { background: '#fff0f0', border: '#e8a0a0', accent: '#b64040' },
+    { background: '#eef6f7', border: '#8fc8cf', accent: '#2f7f8f' }
+];
+
+const defaultSourceEndpointColor = { background: '#f8fbfc', border: '#dbe8ee', accent: '#7698a1' };
+
+function getSourceEndpointColorPaletteIndex(sourceEndpointName) {
+    let source = String(sourceEndpointName ?? '').trim().toLocaleLowerCase();
+
+    let hash = 2166136261;
+    for (let i = 0; i < source.length; i++) {
+        hash ^= source.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0) % sourceEndpointColorPalette.length;
+}
+
+function getSourceEndpointColor(sourceEndpointName) {
+    let source = String(sourceEndpointName ?? '').trim();
+
+    if (source === '') {
+        return defaultSourceEndpointColor;
+    }
+
+    return sourceEndpointColorPalette[getSourceEndpointColorPaletteIndex(source)];
+}
+
+function renderSourceEndpointStyle(sourceEndpointName) {
+    let color = getSourceEndpointColor(sourceEndpointName);
+
+    return ' style="' +
+        '--source-endpoint-bg: ' + escapeHtml(color.background) + '; ' +
+        '--source-endpoint-border: ' + escapeHtml(color.border) + '; ' +
+        '--source-endpoint-accent: ' + escapeHtml(color.accent) + ';"';
+}
+
+let hiddenSourceEndpointNames = new Set();
+
+function getSourceEndpointName(value) {
+    let source = String(value ?? '').trim();
+    return source === '' ? 'Unknown Source' : source;
+}
+
+function getSourceEndpointNames(source) {
+    let sources = Array.isArray(source) ? source : [source];
+
+    return [...new Set(
+        sources
+            .map(getSourceEndpointName)
+            .filter(sourceEndpointName => sourceEndpointName)
+    )];
+}
+
+function getPrimarySourceEndpointName(source) {
+    return getSourceEndpointNames(source)[0] ?? getSourceEndpointName(null);
+}
+
+function getSourceEndpointDataAttribute(source) {
+    return getSourceEndpointNames(source).join('|');
+}
+
+function hasVisibleSourceEndpoint(source) {
+    return getSourceEndpointNames(source)
+        .some(sourceEndpointName => !hiddenSourceEndpointNames.has(sourceEndpointName));
+}
+
+function getSourceEndpointNamesFromModels(models) {
+    let sourceNames = [];
+
+    if (!Array.isArray(models)) {
+        return sourceNames;
+    }
+
+    models.forEach(function(model) {
+        let sources = [];
+
+        if (model?.card?.source !== undefined) {
+            sources = getSourceEndpointNames(model.card.source);
+        } else if (model?.source !== undefined) {
+            sources = getSourceEndpointNames(model.source);
+        } else {
+            sources = getSourceEndpointNames(model?.sourceEndpointName);
+        }
+
+        sources.forEach(function(sourceName) {
+            if (!sourceNames.includes(sourceName)) {
+                sourceNames.push(sourceName);
+            }
+        });
+    });
+
+    return sourceNames;
+}
+
+function renderSourceEndpointLegend(sourceEndpointNames, interactive = true) {
+    if (!Array.isArray(sourceEndpointNames) || sourceEndpointNames.length === 0) {
+        return '';
+    }
+
+    let html = '<div class="source-endpoint-legend" aria-label="' + (interactive ? 'Filter by source' : 'Record sources') + '">' +
+        '<div class="source-endpoint-legend-label">Sources</div>' +
+        '<div class="source-endpoint-legend-items">';
+
+    sourceEndpointNames.forEach(function(sourceEndpointName) {
+        let normalizedSourceName = getSourceEndpointName(sourceEndpointName);
+        let isHidden = interactive && hiddenSourceEndpointNames.has(normalizedSourceName);
+
+        if (interactive) {
+            html += '<button type="button" class="source-endpoint-legend-item source-endpoint-tinted' +
+                (isHidden ? ' source-endpoint-hidden' : '') + '"' +
+                ' data-source-endpoint-name="' + escapeHtml(normalizedSourceName) + '"' +
+                ' data-source-endpoint-interactive="true"' +
+                ' aria-pressed="' + (isHidden ? 'true' : 'false') + '"' +
+                ' title="' + (isHidden ? 'Show ' : 'Hide ') + escapeHtml(normalizedSourceName) + '"' +
+                renderSourceEndpointStyle(normalizedSourceName) + '>' +
+                '<span class="source-endpoint-legend-swatch" aria-hidden="true"></span>' +
+                '<span class="source-endpoint-legend-text">' + escapeHtml(normalizedSourceName) + '</span>' +
+                '</button>';
+        } else {
+            html += '<span class="source-endpoint-legend-item source-endpoint-tinted source-endpoint-legend-item-static"' +
+                ' data-source-endpoint-name="' + escapeHtml(normalizedSourceName) + '"' +
+                ' data-source-endpoint-interactive="false"' +
+                ' title="' + escapeHtml(normalizedSourceName) + '"' +
+                renderSourceEndpointStyle(normalizedSourceName) + '>' +
+                '<span class="source-endpoint-legend-swatch" aria-hidden="true"></span>' +
+                '<span class="source-endpoint-legend-text">' + escapeHtml(normalizedSourceName) + '</span>' +
+                '</span>';
+        }
+    });
+
+    html += '</div>' +
+        '</div>';
+
+    return html;
+}
+
 function renderCardSelectors(id, cardSelector, card, selected) {
     let sortAttributes = '';
+    let primarySourceEndpointName = getPrimarySourceEndpointName(card?.source);
+    let sourceEndpointNames = getSourceEndpointDataAttribute(card?.source);
 
     if (Array.isArray(cardSelector)) {
         cardSelector.forEach(function(selectorItem, index) {
@@ -15,10 +169,12 @@ function renderCardSelectors(id, cardSelector, card, selected) {
         });
     }
 
-    let html = '<button type="button" class="list-group-item list-group-item-action card-selector' +
+    let html = '<button type="button" class="list-group-item list-group-item-action card-selector source-endpoint-tinted' +
         (selected ? ' active' : '') + '"' +
         ' id="' + id + '-selector" data-card-target="' + id + '-panel"' +
         ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '"' +
+        ' data-source-endpoint-name="' + escapeHtml(sourceEndpointNames) + '"' +
+        renderSourceEndpointStyle(primarySourceEndpointName) +
         sortAttributes + '>';
 
     if (Array.isArray(cardSelector)) {
@@ -73,7 +229,7 @@ function renderDatasetFilter(query = '') {
         '</div>';
 }
 
-function renderCardSelectorLayout(items) {
+function renderCardSelectorLayout(items, sourceEndpointNames = []) {
     let selectors = [];
     let cards = [];
 
@@ -87,7 +243,8 @@ function renderCardSelectorLayout(items) {
             '</div>');
     });
 
-    return renderDatasetFilter(datasetFilterQuery) +
+    return renderSourceEndpointLegend(sourceEndpointNames) +
+        renderDatasetFilter(datasetFilterQuery) +
         '<div class="row g-4 card-selector-layout">' +
         '<div class="col-6 d-none d-md-block">' +
         '<div class="card-selector-list-container">' +
@@ -197,10 +354,15 @@ function applyDatasetFilter() {
     selectors.each(function() {
         let selector = $(this);
         let panel = layout.find('#' + selector.attr('data-card-target'));
-        let matches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
+        let sourceEndpointNames = selector.attr('data-source-endpoint-name');
+        let sourceIsVisible = hasVisibleSourceEndpoint(sourceEndpointNames.split('|'));
+        let textMatches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
+        let matches = sourceIsVisible && textMatches;
 
         selector.toggleClass('dataset-filtered-out', !matches);
         panel.toggleClass('dataset-filtered-out', !matches);
+        applyDataTableSourceVisibility(panel);
+
         if (matches) {
             matchingCount++;
 
@@ -215,12 +377,44 @@ function applyDatasetFilter() {
         selectFirstVisibleCard(layout);
     }
 
-    let status = matchingCount === selectors.length && normalizedQuery === '' ?
+    let status = matchingCount === selectors.length && normalizedQuery === '' && hiddenSourceEndpointNames.size === 0 ?
         selectors.length + ' records available.' :
         'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
     container.find('#datasetFilterStatus').text(status);
 
+    if (typeof renderCharts === 'function') {
+        renderCharts();
+    }
+
     scheduleCardSelectorListResize();
+}
+
+function applySourceEndpointVisibility(container = $('#modelsContainer')) {
+    container.find('.source-endpoint-legend-item[data-source-endpoint-interactive="true"]').each(function() {
+        let button = $(this);
+        let sourceEndpointName = getSourceEndpointName(button.attr('data-source-endpoint-name'));
+        let isHidden = hiddenSourceEndpointNames.has(sourceEndpointName);
+
+        button.toggleClass('source-endpoint-hidden', isHidden);
+        button.attr('aria-pressed', isHidden ? 'true' : 'false');
+        button.attr('title', (isHidden ? 'Show ' : 'Hide ') + sourceEndpointName);
+    });
+
+    let layout = container.find('.card-selector-layout');
+    if (layout.length > 0) {
+        applyDatasetFilter();
+        return;
+    }
+
+    container.find('.home-patient-card').each(function() {
+        let card = $(this);
+        let sourceEndpointNames = card.attr('data-source-endpoint-name');
+        card.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
+    });
+
+    if (typeof renderCharts === 'function') {
+        renderCharts();
+    }
 }
 
 function resizeCardSelectorList() {
@@ -238,12 +432,15 @@ function resizeCardSelectorList() {
             return;
         }
 
+        let previousScrollTop = scroll[0].scrollTop;
+
         listContainer.css('height', '');
         listContainer.css('min-height', '');
         scroll.css('height', '');
         scroll.css('min-height', '');
 
         if (window.matchMedia('(max-width: 767.98px)').matches) {
+            scroll[0].scrollTop = previousScrollTop;
             return;
         }
 
@@ -276,6 +473,9 @@ function resizeCardSelectorList() {
         let targetScrollHeight = Math.max(0, listContainer[0].clientHeight - headerHeight);
         scroll.css('height', targetScrollHeight + 'px');
         scroll.css('min-height', '0');
+
+        let maxScrollTop = Math.max(0, scroll[0].scrollHeight - scroll[0].clientHeight);
+        scroll[0].scrollTop = Math.min(previousScrollTop, maxScrollTop);
     });
 }
 
@@ -292,9 +492,13 @@ function scheduleCardSelectorListResize() {
 }
 
 function renderCard(id, card) {
+    let primarySourceEndpointName = getPrimarySourceEndpointName(card?.source);
+    let sourceEndpointNames = getSourceEndpointDataAttribute(card?.source);
+
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
-        '<div class="card h-100">' +
+        '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointNames) + '"' +
+        renderSourceEndpointStyle(primarySourceEndpointName) + '>' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center gap-3">' +
         '<h3 class="card-title mb-0">' + escapeHtml(card.title ?? '') + '</h3>' +
         (card.learnMoreUrl ?
@@ -390,7 +594,8 @@ function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = 
         '<div class="accordion-item">' +
         '<h2 class="accordion-header" id="heading-' + baseId + '">' +
         '<button class="accordion-button' + buttonCollapsedClass + ' py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + baseId + '" aria-expanded="' + ariaExpanded + '" aria-controls="collapse-' + baseId + '">' +
-        escapeHtml(title) + ' (' + rows.length + ')' +
+        '<span class="dataset-table-accordion-title">' + escapeHtml(title) + '</span>' +
+        ' <span class="dataset-table-accordion-count" aria-label="' + rows.length + ' visible rows">(' + rows.length + ')</span>' +
         '</button>' +
         '</h2>' + // accordion-header
         '<div id="collapse-' + baseId + '" class="accordion-collapse collapse' + collapseShowClass + '" aria-labelledby="heading-' + baseId + '" data-bs-parent="#' + baseId + '">' +
@@ -413,6 +618,19 @@ function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = 
         '</div>'; // accordion
 }
 
+function updateDataTableAccordionCounts(container) {
+    $(container).find('.dataset-table-accordion').each(function() {
+        let accordion = $(this);
+        let visibleRowCount = accordion.find('tbody tr').filter(function() {
+            return !$(this).hasClass('dataset-filtered-out');
+        }).length;
+        let count = accordion.find('.dataset-table-accordion-count').first();
+
+        count.text('(' + visibleRowCount + ')');
+        count.attr('aria-label', visibleRowCount + ' visible rows');
+    });
+}
+
 function renderDataTableHeaders(baseId, headers) {
     if (!headers || headers.length === 0) return '';
 
@@ -433,11 +651,25 @@ function renderDataTableRows(baseId, rows) {
     let html = '';
 
     rows.forEach(function(row, rowIndex) {
-        if (!row || row.length === 0) return;
+        let rowData = getDataTableRowData(row);
 
-        html += '<tr id="' + baseId + '-row-' + rowIndex + '">';
+        if (!rowData || rowData.length === 0) return;
 
-        row.forEach(function(cell, cellIndex) {
+        let rowSource = getDataTableRowSource(row);
+        let rowPrimarySourceEndpointName = getPrimarySourceEndpointName(rowSource);
+        let rowSourceEndpointNames = getSourceEndpointDataAttribute(rowSource);
+        let rowHasSource = rowSource !== undefined && rowSource !== null;
+        let rowIsVisible = !rowHasSource || hasVisibleSourceEndpoint(rowSource);
+
+        html += '<tr id="' + baseId + '-row-' + rowIndex + '"' +
+            (rowHasSource ?
+                ' class="source-endpoint-tinted' + (rowIsVisible ? '' : ' dataset-filtered-out') + '"' +
+                ' data-source-endpoint-name="' + escapeHtml(rowSourceEndpointNames) + '"' +
+                renderSourceEndpointStyle(rowPrimarySourceEndpointName) :
+                '') +
+            '>';
+
+        rowData.forEach(function(cell, cellIndex) {
             html += '<td id="' + baseId + '-row-' + rowIndex + '-cell-' + cellIndex + '">';
             html += cell ?? '';
             html += '</td>';
@@ -447,6 +679,36 @@ function renderDataTableRows(baseId, rows) {
     });
 
     return html;
+}
+
+function applyDataTableSourceVisibility(container) {
+    $(container).find('tr[data-source-endpoint-name]').each(function() {
+        let row = $(this);
+        let sourceEndpointNames = row.attr('data-source-endpoint-name');
+        row.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
+    });
+
+    updateDataTableAccordionCounts(container);
+}
+
+function getDataTableRowData(row) {
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+        if (Array.isArray(row.data)) {
+            return row.data;
+        }
+
+        if (Array.isArray(row.values)) {
+            return row.values;
+        }
+    }
+
+    return row;
+}
+
+function getDataTableRowSource(row) {
+    return row && typeof row === 'object' && !Array.isArray(row) ?
+        row.source :
+        null;
 }
 
 function refreshProgress() {
@@ -597,22 +859,6 @@ function buildSafeProgressId(value) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '') || 'progress';
-}
-
-function getProgressGroupStatus(progressItems) {
-    if (!Array.isArray(progressItems) || progressItems.length === 0) {
-        return 'WAITING_TO_START';
-    }
-
-    if (progressItems.every(item => item.status === 'COMPLETED')) {
-        return 'COMPLETED';
-    }
-
-    if (progressItems.some(item => item.status === 'RUNNING')) {
-        return 'RUNNING';
-    }
-
-    return 'WAITING_TO_START';
 }
 
 function renderProgressBar(percentComplete, label, extraCssClass) {
@@ -862,28 +1108,42 @@ function renderModels(models) {
     }
 
     if (models && models.length > 0) {
-        if (typeof buildCardSelectorData === 'function') {
-            let items = [];
-            models.forEach(function(model) {
-                items.push({
-                    selector: buildCardSelectorData(model),
-                    card: buildCardData(model)
-                });
-            });
+        let items = [];
+        models.forEach(function(model) {
+            let card = buildCardData(model);
 
-            $('#modelsContainer').html(renderCardSelectorLayout(items));
-            applyDatasetFilter();
+            if (card.source === undefined || card.source === null) {
+                card.source = model.sourceEndpointName;
+            }
+
+            items.push({
+                selector: typeof buildCardSelectorData === 'function' ? buildCardSelectorData(model) : null,
+                card: card
+            });
+        });
+
+        let sourceEndpointNames = [];
+        items.forEach(function(item) {
+            getSourceEndpointNames(item.card.source).forEach(function(sourceEndpointName) {
+                if (!sourceEndpointNames.includes(sourceEndpointName)) {
+                    sourceEndpointNames.push(sourceEndpointName);
+                }
+            });
+        });
+
+        if (typeof buildCardSelectorData === 'function') {
+            $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
+            applySourceEndpointVisibility();
             scheduleCardSelectorListResize();
 
         } else {
             let cards = [];
-            let i = 1;
-            models.forEach(function(model) {
-                cards.push(renderCard('card_' + i, buildCardData(model)));
-                i ++;
+            items.forEach(function(item, index) {
+                cards.push(renderCard('card_' + (index + 1), item.card));
             });
 
-            $('#modelsContainer').html(cards.join('\n'));
+            $('#modelsContainer').html(renderSourceEndpointLegend(sourceEndpointNames) + cards.join('\n'));
+            applySourceEndpointVisibility();
         }
 
     } else {
@@ -903,6 +1163,18 @@ function renderModels(models) {
 $(document).on('input', '#datasetFilter', function() {
     datasetFilterQuery = $(this).val();
     applyDatasetFilter();
+});
+
+$(document).on('click', '#modelsContainer .source-endpoint-legend-item[data-source-endpoint-interactive="true"]', function() {
+    let sourceEndpointName = getSourceEndpointName($(this).attr('data-source-endpoint-name'));
+
+    if (hiddenSourceEndpointNames.has(sourceEndpointName)) {
+        hiddenSourceEndpointNames.delete(sourceEndpointName);
+    } else {
+        hiddenSourceEndpointNames.add(sourceEndpointName);
+    }
+
+    applySourceEndpointVisibility();
 });
 
 $(document).on('click', '#modelsContainer .card-selector-sort-button', function() {
