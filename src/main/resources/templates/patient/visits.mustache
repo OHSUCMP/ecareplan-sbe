@@ -50,6 +50,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.description;
+        card.source = model.sourceEndpointName;
         card.rows = [];
         if (model.serviceType || model.period) {
             card.rows.push([
@@ -87,7 +88,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

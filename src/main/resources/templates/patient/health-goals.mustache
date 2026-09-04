@@ -54,6 +54,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';
+        card.source = model.sourceEndpointName;
         card.rows = [];
         if (model.expressedBy || model.startDate) {
             card.rows.push([
@@ -74,7 +75,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

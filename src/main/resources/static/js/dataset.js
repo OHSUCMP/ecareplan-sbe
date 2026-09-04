@@ -45,6 +45,29 @@ function getSourceEndpointName(value) {
     return source === '' ? 'Unknown Source' : source;
 }
 
+function getSourceEndpointNames(source) {
+    let sources = Array.isArray(source) ? source : [source];
+
+    return [...new Set(
+        sources
+            .map(getSourceEndpointName)
+            .filter(sourceEndpointName => sourceEndpointName)
+    )];
+}
+
+function getPrimarySourceEndpointName(source) {
+    return getSourceEndpointNames(source)[0] ?? getSourceEndpointName(null);
+}
+
+function getSourceEndpointDataAttribute(source) {
+    return getSourceEndpointNames(source).join('|');
+}
+
+function hasVisibleSourceEndpoint(source) {
+    return getSourceEndpointNames(source)
+        .some(sourceEndpointName => !hiddenSourceEndpointNames.has(sourceEndpointName));
+}
+
 function getSourceEndpointNamesFromModels(models) {
     let sourceNames = [];
 
@@ -53,11 +76,21 @@ function getSourceEndpointNamesFromModels(models) {
     }
 
     models.forEach(function(model) {
-        let sourceName = getSourceEndpointName(model?.sourceEndpointName);
+        let sources = [];
 
-        if (!sourceNames.includes(sourceName)) {
-            sourceNames.push(sourceName);
+        if (model?.card?.source !== undefined) {
+            sources = getSourceEndpointNames(model.card.source);
+        } else if (model?.source !== undefined) {
+            sources = getSourceEndpointNames(model.source);
+        } else {
+            sources = getSourceEndpointNames(model?.sourceEndpointName);
         }
+
+        sources.forEach(function(sourceName) {
+            if (!sourceNames.includes(sourceName)) {
+                sourceNames.push(sourceName);
+            }
+        });
     });
 
     return sourceNames;
@@ -95,7 +128,8 @@ function renderSourceEndpointLegend(sourceEndpointNames) {
 
 function renderCardSelectors(id, cardSelector, card, selected) {
     let sortAttributes = '';
-    let sourceEndpointName = getSourceEndpointName(card?.sourceEndpointName);
+    let primarySourceEndpointName = getPrimarySourceEndpointName(card?.source);
+    let sourceEndpointNames = getSourceEndpointDataAttribute(card?.source);
 
     if (Array.isArray(cardSelector)) {
         cardSelector.forEach(function(selectorItem, index) {
@@ -111,8 +145,8 @@ function renderCardSelectors(id, cardSelector, card, selected) {
         (selected ? ' active' : '') + '"' +
         ' id="' + id + '-selector" data-card-target="' + id + '-panel"' +
         ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '"' +
-        ' data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
-        renderSourceEndpointStyle(sourceEndpointName) +
+        ' data-source-endpoint-name="' + escapeHtml(sourceEndpointNames) + '"' +
+        renderSourceEndpointStyle(primarySourceEndpointName) +
         sortAttributes + '>';
 
     if (Array.isArray(cardSelector)) {
@@ -292,13 +326,15 @@ function applyDatasetFilter() {
     selectors.each(function() {
         let selector = $(this);
         let panel = layout.find('#' + selector.attr('data-card-target'));
-        let sourceEndpointName = getSourceEndpointName(selector.attr('data-source-endpoint-name'));
-        let sourceIsVisible = !hiddenSourceEndpointNames.has(sourceEndpointName);
+        let sourceEndpointNames = selector.attr('data-source-endpoint-name');
+        let sourceIsVisible = hasVisibleSourceEndpoint(sourceEndpointNames.split('|'));
         let textMatches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
         let matches = sourceIsVisible && textMatches;
 
         selector.toggleClass('dataset-filtered-out', !matches);
         panel.toggleClass('dataset-filtered-out', !matches);
+        applyDataTableSourceVisibility(panel);
+
         if (matches) {
             matchingCount++;
 
@@ -338,8 +374,8 @@ function applySourceEndpointVisibility(container = $('#modelsContainer')) {
 
     container.find('.home-patient-card').each(function() {
         let card = $(this);
-        let sourceEndpointName = getSourceEndpointName(card.attr('data-source-endpoint-name'));
-        card.toggleClass('dataset-filtered-out', hiddenSourceEndpointNames.has(sourceEndpointName));
+        let sourceEndpointNames = card.attr('data-source-endpoint-name');
+        card.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
     });
 }
 
@@ -351,12 +387,13 @@ function resizeCardSelectorList() {
 }
 
 function renderCard(id, card) {
-    let sourceEndpointName = getSourceEndpointName(card?.sourceEndpointName);
+    let primarySourceEndpointName = getPrimarySourceEndpointName(card?.source);
+    let sourceEndpointNames = getSourceEndpointDataAttribute(card?.source);
 
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
-        '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
-        renderSourceEndpointStyle(sourceEndpointName) + '>' +
+        '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointNames) + '"' +
+        renderSourceEndpointStyle(primarySourceEndpointName) + '>' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center gap-3">' +
         '<h3 class="card-title mb-0">' + escapeHtml(card.title ?? '') + '</h3>' +
         (card.learnMoreUrl ?
@@ -495,11 +532,25 @@ function renderDataTableRows(baseId, rows) {
     let html = '';
 
     rows.forEach(function(row, rowIndex) {
-        if (!row || row.length === 0) return;
+        let rowData = getDataTableRowData(row);
 
-        html += '<tr id="' + baseId + '-row-' + rowIndex + '">';
+        if (!rowData || rowData.length === 0) return;
 
-        row.forEach(function(cell, cellIndex) {
+        let rowSource = getDataTableRowSource(row);
+        let rowPrimarySourceEndpointName = getPrimarySourceEndpointName(rowSource);
+        let rowSourceEndpointNames = getSourceEndpointDataAttribute(rowSource);
+        let rowHasSource = rowSource !== undefined && rowSource !== null;
+        let rowIsVisible = !rowHasSource || hasVisibleSourceEndpoint(rowSource);
+
+        html += '<tr id="' + baseId + '-row-' + rowIndex + '"' +
+            (rowHasSource ?
+                ' class="source-endpoint-tinted' + (rowIsVisible ? '' : ' dataset-filtered-out') + '"' +
+                ' data-source-endpoint-name="' + escapeHtml(rowSourceEndpointNames) + '"' +
+                renderSourceEndpointStyle(rowPrimarySourceEndpointName) :
+                '') +
+            '>';
+
+        rowData.forEach(function(cell, cellIndex) {
             html += '<td id="' + baseId + '-row-' + rowIndex + '-cell-' + cellIndex + '">';
             html += cell ?? '';
             html += '</td>';
@@ -509,6 +560,34 @@ function renderDataTableRows(baseId, rows) {
     });
 
     return html;
+}
+
+function applyDataTableSourceVisibility(container) {
+    $(container).find('tr[data-source-endpoint-name]').each(function() {
+        let row = $(this);
+        let sourceEndpointNames = row.attr('data-source-endpoint-name');
+        row.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
+    });
+}
+
+function getDataTableRowData(row) {
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+        if (Array.isArray(row.data)) {
+            return row.data;
+        }
+
+        if (Array.isArray(row.values)) {
+            return row.values;
+        }
+    }
+
+    return row;
+}
+
+function getDataTableRowSource(row) {
+    return row && typeof row === 'object' && !Array.isArray(row) ?
+        row.source :
+        null;
 }
 
 function refreshProgress() {
@@ -867,43 +946,41 @@ function renderModels(models) {
     }
 
     if (models && models.length > 0) {
-        let sourceEndpointNames = getSourceEndpointNamesFromModels(models);
+        let items = [];
+        models.forEach(function(model) {
+            let card = buildCardData(model);
+
+            if (card.source === undefined || card.source === null) {
+                card.source = model.sourceEndpointName;
+            }
+
+            items.push({
+                selector: typeof buildCardSelectorData === 'function' ? buildCardSelectorData(model) : null,
+                card: card
+            });
+        });
+
+        let sourceEndpointNames = [];
+        items.forEach(function(item) {
+            getSourceEndpointNames(item.card.source).forEach(function(sourceEndpointName) {
+                if (!sourceEndpointNames.includes(sourceEndpointName)) {
+                    sourceEndpointNames.push(sourceEndpointName);
+                }
+            });
+        });
 
         if (typeof buildCardSelectorData === 'function') {
-            let items = [];
-            models.forEach(function(model) {
-                let card = buildCardData(model);
-
-                if (card.sourceEndpointName === undefined || card.sourceEndpointName === null) {
-                    card.sourceEndpointName = model.sourceEndpointName;
-                }
-
-                items.push({
-                    selector: buildCardSelectorData(model),
-                    card: card
-                });
-            });
-
             $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
             applySourceEndpointVisibility();
             resizeCardSelectorList();
 
         } else {
-            let html = renderSourceEndpointLegend(sourceEndpointNames);
             let cards = [];
-            let i = 1;
-            models.forEach(function(model) {
-                let card = buildCardData(model);
-
-                if (card.sourceEndpointName === undefined || card.sourceEndpointName === null) {
-                    card.sourceEndpointName = model.sourceEndpointName;
-                }
-
-                cards.push(renderCard('card_' + i, card));
-                i ++;
+            items.forEach(function(item, index) {
+                cards.push(renderCard('card_' + (index + 1), item.card));
             });
 
-            $('#modelsContainer').html(html + cards.join('\n'));
+            $('#modelsContainer').html(renderSourceEndpointLegend(sourceEndpointNames) + cards.join('\n'));
             applySourceEndpointVisibility();
         }
 

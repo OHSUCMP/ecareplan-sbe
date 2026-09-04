@@ -49,6 +49,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.description;
+        card.source = model.sourceEndpointName;
         card.rows = [];
         if (model.name) {
             card.rows.push([{ label: 'Name', value: model.name }]);
@@ -69,7 +70,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 

@@ -91,6 +91,14 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.mostRecentData.description;
+
+        let sources = new Set();
+        sources.add(model.mostRecentData.sourceEndpointName);
+        (model.historicalData ?? []).forEach(function(data) {
+            sources.add(data.sourceEndpointName);
+        });
+        card.source = [...sources];
+
         card.chart = buildConsolidatedChartData(model);
 
         card.rows = [];
@@ -121,14 +129,16 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.mostRecentData.sourceEndpointName }]);
 
         if (model.historicalData && model.historicalData.length > 0) {
             card.rows.push({
                 title: 'Historical Data',
                 headers: [ 'Result', 'Effective Date' ],
                 rows: model.historicalData.map(function(data) {
-                    return [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ];
+                    return {
+                        source: data.sourceEndpointName,
+                        data: [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ]
+                    };
                 }),
                 beginExpanded: false
             });

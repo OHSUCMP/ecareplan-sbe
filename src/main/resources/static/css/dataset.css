@@ -683,6 +683,18 @@ display.progress > div {
     color: #244653;
 }
 
+.card-panel .table tbody tr.source-endpoint-tinted {
+    border-left: 0.35rem solid var(--source-endpoint-accent, #7698a1);
+    background-color: var(--source-endpoint-bg, #f8fbfc);
+}
+
+.card-panel .table tbody tr.source-endpoint-tinted > td {
+    border-color: var(--source-endpoint-border, #dbe8ee);
+    background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.54)),
+            var(--source-endpoint-bg, #f8fbfc);
+}
+
 .home-patient-card.source-endpoint-tinted {
     border-color: var(--source-endpoint-border, #dbe8ee);
     border-left: 0.45rem solid var(--source-endpoint-accent, #7698a1);

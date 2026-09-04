@@ -50,6 +50,7 @@
     function buildCardData(model) {
         let card = {};
         card.title = model.description ?? '(No Description)';
+        card.source = model.sourceEndpointName;
         card.rows = [];
         card.rows.push([{ label: 'Administered On', value: formatDate(model.effectiveDate) ?? '(Unknown)' }]);
         if (model.location) {
@@ -65,7 +66,6 @@
                 beginExpanded: true
             });
         }
-        card.rows.push([{ label: 'Source', value: model.sourceEndpointName }]);
         return card;
     }
 
