@@ -424,18 +424,37 @@ display.progress > div {
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.source-endpoint-tinted {
+    --source-endpoint-bg: #f8fbfc;
+    --source-endpoint-border: #dbe8ee;
+    --source-endpoint-accent: #7698a1;
+}
+
+.card-selector.source-endpoint-tinted {
+    border-left: 0.35rem solid var(--source-endpoint-accent, #7698a1);
+    background-color: var(--source-endpoint-bg, #ffffff);
+    border-top-color: var(--source-endpoint-border, #e3edf1);
+    border-bottom-color: var(--source-endpoint-border, #e3edf1);
+}
+
 .card-selector:first-child {
     border-top: 0;
 }
 
 .card-selector:hover {
-    background-color: #f8fbfc;
+    background-color: color-mix(in srgb, var(--source-endpoint-bg, #f8fbfc) 72%, #ffffff);
 }
 
 .card-selector.active {
-    border-color: #2e6e9e;
-    background: linear-gradient(135deg, #004466 0%, #2e6e9e 100%);
-    color: #ffffff;
+    border-color: var(--source-endpoint-accent, #2e6e9e);
+    border-left-color: var(--source-endpoint-accent, #2e6e9e);
+    background:
+            linear-gradient(90deg, color-mix(in srgb, var(--source-endpoint-accent, #2e6e9e) 20%, transparent), transparent 34%),
+            var(--source-endpoint-bg, #eef7fa);
+    color: #244653;
+    box-shadow:
+            inset 0 0 0 2px var(--source-endpoint-accent, #2e6e9e),
+            0 0.2rem 0.65rem rgba(0, 68, 102, 0.12);
 }
 
 .card-selector-fields > div {
@@ -454,6 +473,12 @@ display.progress > div {
     box-shadow: 0 0.35rem 1rem rgba(0, 68, 102, 0.10);
 }
 
+.card-panel .card.source-endpoint-tinted {
+    border-color: var(--source-endpoint-border, #dbe8ee);
+    border-left: 0.45rem solid var(--source-endpoint-accent, #7698a1);
+    background-color: var(--source-endpoint-bg, #ffffff);
+}
+
 .card-panel .card-header {
     border-bottom: 0;
     background:
@@ -469,6 +494,12 @@ display.progress > div {
 
 .card-panel .card-body {
     background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+}
+
+.card-panel .card.source-endpoint-tinted .card-body {
+    background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.58) 100%),
+            var(--source-endpoint-bg, #f8fbfc);
 }
 
 .dataset-card-row-cell {
@@ -569,6 +600,14 @@ display.progress > div {
 
 .card-panel .table tbody td {
     color: #244653;
+}
+
+.home-patient-card.source-endpoint-tinted {
+    border-color: var(--source-endpoint-border, #dbe8ee);
+    border-left: 0.45rem solid var(--source-endpoint-accent, #7698a1);
+    background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0.58) 100%),
+            var(--source-endpoint-bg, #ffffff);
 }
 
 /* Shared flags/chips */

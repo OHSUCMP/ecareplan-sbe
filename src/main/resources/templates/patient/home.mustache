@@ -136,7 +136,8 @@
             if (models && models.length > 0) {
                 let html = '<div class="home-patient-list">';
                 models.forEach(function(model) {
-                    html += '<article class="home-patient-card">';
+                    html += '<article class="home-patient-card source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(model.sourceEndpointName ?? '') + '"' +
+                            renderSourceEndpointStyle(model.sourceEndpointName) + '>';
                     html += '<div class="home-patient-card-name">' + model.name + '</div>';
                     html += '<div class="home-patient-card-meta"><span class="fa-solid fa-cake-candles me-2 color-primary" aria-hidden="true"></span>Age: ' + model.age + '</div>';
                     html += '<div class="home-patient-card-meta"><span class="fa-solid fa-user me-2 color-primary" aria-hidden="true"></span>Gender: ' + model.gender + '</div>';

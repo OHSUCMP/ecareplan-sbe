@@ -2,6 +2,42 @@ function getCardSelectorSortValue(value) {
     return $('<div>').html(value ?? '').text().trim().toLowerCase();
 }
 
+const sourceEndpointColorPalette = [
+    { background: '#eef7ff', border: '#9dccf0', accent: '#2f80c0' },
+    { background: '#f0fbf6', border: '#9fdcbd', accent: '#2e8b57' },
+    { background: '#fff7e8', border: '#f0c57a', accent: '#b7791f' },
+    { background: '#f7f0ff', border: '#c8a7ed', accent: '#805ad5' },
+    { background: '#fff0f5', border: '#eda8c5', accent: '#c0567a' },
+    { background: '#eefcfb', border: '#8fd8d3', accent: '#2c8f8a' },
+    { background: '#f8f9e8', border: '#d9dc8f', accent: '#7a7f22' },
+    { background: '#f3f4ff', border: '#aeb8f0', accent: '#4c5fc0' }
+];
+
+function getSourceEndpointColor(sourceEndpointName) {
+    let source = String(sourceEndpointName ?? '').trim();
+
+    if (source === '') {
+        return { background: '#f8fbfc', border: '#dbe8ee', accent: '#7698a1' };
+    }
+
+    let hash = 0;
+    for (let i = 0; i < source.length; i++) {
+        hash = ((hash << 5) - hash) + source.charCodeAt(i);
+        hash |= 0;
+    }
+
+    return sourceEndpointColorPalette[Math.abs(hash) % sourceEndpointColorPalette.length];
+}
+
+function renderSourceEndpointStyle(sourceEndpointName) {
+    let color = getSourceEndpointColor(sourceEndpointName);
+
+    return ' style="' +
+        '--source-endpoint-bg: ' + escapeHtml(color.background) + '; ' +
+        '--source-endpoint-border: ' + escapeHtml(color.border) + '; ' +
+        '--source-endpoint-accent: ' + escapeHtml(color.accent) + ';"';
+}
+
 function renderCardSelectors(id, cardSelector, card, selected) {
     let sortAttributes = '';
 
@@ -15,10 +51,12 @@ function renderCardSelectors(id, cardSelector, card, selected) {
         });
     }
 
-    let html = '<button type="button" class="list-group-item list-group-item-action card-selector' +
+    let html = '<button type="button" class="list-group-item list-group-item-action card-selector source-endpoint-tinted' +
         (selected ? ' active' : '') + '"' +
         ' id="' + id + '-selector" data-card-target="' + id + '-panel"' +
         ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '"' +
+        ' data-source-endpoint-name="' + escapeHtml(card?.sourceEndpointName ?? '') + '"' +
+        renderSourceEndpointStyle(card?.sourceEndpointName) +
         sortAttributes + '>';
 
     if (Array.isArray(cardSelector)) {
@@ -231,7 +269,8 @@ function resizeCardSelectorList() {
 function renderCard(id, card) {
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
-        '<div class="card h-100">' +
+        '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(card?.sourceEndpointName ?? '') + '"' +
+        renderSourceEndpointStyle(card?.sourceEndpointName) + '>' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center gap-3">' +
         '<h3 class="card-title mb-0">' + escapeHtml(card.title ?? '') + '</h3>' +
         (card.learnMoreUrl ?
@@ -745,9 +784,15 @@ function renderModels(models) {
         if (typeof buildCardSelectorData === 'function') {
             let items = [];
             models.forEach(function(model) {
+                let card = buildCardData(model);
+
+                if (card.sourceEndpointName === undefined || card.sourceEndpointName === null) {
+                    card.sourceEndpointName = model.sourceEndpointName;
+                }
+
                 items.push({
                     selector: buildCardSelectorData(model),
-                    card: buildCardData(model)
+                    card: card
                 });
             });
 
@@ -759,7 +804,13 @@ function renderModels(models) {
             let cards = [];
             let i = 1;
             models.forEach(function(model) {
-                cards.push(renderCard('card_' + i, buildCardData(model)));
+                let card = buildCardData(model);
+
+                if (card.sourceEndpointName === undefined || card.sourceEndpointName === null) {
+                    card.sourceEndpointName = model.sourceEndpointName;
+                }
+
+                cards.push(renderCard('card_' + i, card));
                 i ++;
             });
 
