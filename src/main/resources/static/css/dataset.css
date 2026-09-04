@@ -372,7 +372,9 @@ display.progress > div {
 .card-selector-list-container {
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
     overflow: hidden;
+    min-height: 15rem;
     border: 1px solid #dbe8ee;
     border-radius: 0.85rem;
     background-color: #ffffff;
@@ -380,6 +382,8 @@ display.progress > div {
 }
 
 .card-selector-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     padding-bottom: 0;
 }
