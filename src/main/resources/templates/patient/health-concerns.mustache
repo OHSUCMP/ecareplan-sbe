@@ -4,16 +4,7 @@
 <div id="dataSets" class="hidden">{{dataSets}}</div>
 
 <div class="container">
-    {{#systemStatusMessage}}
-        <div class="row align-items-center alert alert-teal" role="alert">
-            <div class="col-md-auto text-center">
-                <img src="/images/info-icon.png" alt="System Status" height="50px" />
-            </div>
-            <div class="col">
-                {{systemStatusMessage}}
-            </div>
-        </div>
-    {{/systemStatusMessage}}
+    {{>fragments/system-status-message}}
 
     <div id="progressContainer" class="hidden"></div>
 
