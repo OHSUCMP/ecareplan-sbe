@@ -91,7 +91,7 @@
                 headers: [ 'Authored Date', 'Score', 'Interpretation' ],
                 rows: model.responseSummaryList.map(function(data) {
                     return {
-                        source: data.sourceEndpontName,
+                        source: data.sourceEndpointName,
                         data: [ formatDate(data.authored), data.score, data.interpretation ]
                     };
                 }),
