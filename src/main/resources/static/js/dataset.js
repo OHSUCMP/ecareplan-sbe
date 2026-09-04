@@ -62,6 +62,17 @@ function renderCardSelectorHeaders(selector) {
     return html;
 }
 
+function renderDatasetFilter(query = '') {
+    return '<div class="dataset-filter">' +
+        '<label class="form-label" for="datasetFilter">Filter records</label>' +
+        '<input class="form-control" id="datasetFilter" type="search"' +
+        ' value="' + escapeHtml(query) + '"' +
+        ' placeholder="Type to filter these records" autocomplete="off"' +
+        ' aria-describedby="datasetFilterStatus">' +
+        '<div class="dataset-filter-status" id="datasetFilterStatus" role="status" aria-live="polite"></div>' +
+        '</div>';
+}
+
 function renderCardSelectorLayout(items) {
     let selectors = [];
     let cards = [];
@@ -76,7 +87,8 @@ function renderCardSelectorLayout(items) {
             '</div>');
     });
 
-    return '<div class="row g-4 card-selector-layout">' +
+    return renderDatasetFilter(datasetFilterQuery) +
+        '<div class="row g-4 card-selector-layout">' +
         '<div class="col-6 d-none d-md-block">' +
         '<div class="card-selector-list-container">' +
         renderCardSelectorHeaders(items[0]?.selector) +
@@ -91,6 +103,54 @@ function renderCardSelectorLayout(items) {
         cards.join('\n') +
         '</div>' +
         '</div>';
+}
+
+let datasetFilterQuery = '';
+
+function selectFirstVisibleCard(layout) {
+    let selector = layout.find('.card-selector:not(.dataset-filtered-out)').first();
+
+    layout.find('.card-selector').removeClass('active').attr('aria-selected', 'false');
+    layout.find('.card-panel').addClass('d-none').attr('aria-hidden', 'true');
+
+    if (selector.length === 0) {
+        return;
+    }
+
+    selector.addClass('active').attr('aria-selected', 'true');
+    layout.find('#' + selector.attr('data-card-target'))
+        .removeClass('d-none')
+        .removeAttr('aria-hidden');
+}
+
+function applyDatasetFilter() {
+    let container = $('#modelsContainer');
+    let layout = container.find('.card-selector-layout');
+    let normalizedQuery = datasetFilterQuery.trim().toLocaleLowerCase();
+    let selectors = layout.find('.card-selector');
+    let matchingCount = 0;
+
+    selectors.each(function() {
+        let selector = $(this);
+        let panel = layout.find('#' + selector.attr('data-card-target'));
+        let matches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
+
+        selector.toggleClass('dataset-filtered-out', !matches);
+        panel.toggleClass('dataset-filtered-out', !matches);
+        if (matches) {
+            matchingCount++;
+        }
+    });
+
+    let selectedSelector = layout.find('.card-selector.active');
+    if (selectedSelector.length === 0 || selectedSelector.hasClass('dataset-filtered-out')) {
+        selectFirstVisibleCard(layout);
+    }
+
+    let status = matchingCount === selectors.length && normalizedQuery === '' ?
+        selectors.length + ' records available.' :
+        'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
+    container.find('#datasetFilterStatus').text(status);
 }
 
 function resizeCardSelectorList() {
@@ -608,6 +668,11 @@ function renderNoModelsCompletedMessage() {
 }
 
 function renderModels(models) {
+    let currentFilter = $('#datasetFilter').val();
+    if (currentFilter !== undefined) {
+        datasetFilterQuery = currentFilter;
+    }
+
     if (models && models.length > 0) {
         if (typeof buildCardSelectorData === 'function') {
             let items = [];
@@ -619,6 +684,7 @@ function renderModels(models) {
             });
 
             $('#modelsContainer').html(renderCardSelectorLayout(items));
+            applyDatasetFilter();
             resizeCardSelectorList();
 
         } else {
@@ -644,6 +710,11 @@ function renderModels(models) {
         renderCharts();
     }
 }
+
+$(document).on('input', '#datasetFilter', function() {
+    datasetFilterQuery = $(this).val();
+    applyDatasetFilter();
+});
 
 $(document).on('click', '#modelsContainer .card-selector-sort-button', function() {
     let button = $(this);

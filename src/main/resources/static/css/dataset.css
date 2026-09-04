@@ -71,6 +71,101 @@ display.progress > div {
     box-shadow: 0 0.25rem 0.9rem rgba(0, 68, 102, 0.08);
 }
 
+/* Record filtering */
+.dataset-filter {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    padding: 1.15rem 1.25rem 1rem;
+    border: 1px solid rgba(46, 110, 158, 0.22);
+    border-left: 0.3rem solid #2e6e9e;
+    border-radius: 0.9rem;
+    background:
+            radial-gradient(circle at top right, rgba(179, 255, 240, 0.3), transparent 15rem),
+            linear-gradient(135deg, #ffffff 0%, #f4fafb 100%);
+    box-shadow:
+            0 0.4rem 1.2rem rgba(0, 68, 102, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.dataset-filter::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: -3.5rem;
+    right: -2.5rem;
+    width: 8rem;
+    height: 8rem;
+    border: 1rem solid rgba(46, 110, 158, 0.055);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.dataset-filter .form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.6rem;
+    color: #004466;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+}
+
+.dataset-filter .form-label::before {
+    content: "";
+    width: 0.65rem;
+    height: 0.65rem;
+    border: 0.16rem solid #2e6e9e;
+    border-radius: 50%;
+    box-shadow: 0.35rem 0.35rem 0 -0.22rem #2e6e9e;
+    transform: translateY(-0.1rem) rotate(-8deg);
+}
+
+.dataset-filter .form-control {
+    min-height: 3rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid #bfd3dc;
+    border-radius: 0.65rem;
+    background-color: rgba(255, 255, 255, 0.94);
+    color: #244653;
+    box-shadow:
+            inset 0 1px 2px rgba(0, 68, 102, 0.04),
+            0 0.15rem 0.4rem rgba(0, 68, 102, 0.05);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.dataset-filter .form-control::placeholder {
+    color: #7698a1;
+    opacity: 1;
+}
+
+.dataset-filter .form-control:hover {
+    border-color: #8eb0bd;
+    background-color: #ffffff;
+}
+
+.dataset-filter .form-control:focus {
+    border-color: #2e6e9e;
+    background-color: #ffffff;
+    box-shadow:
+            0 0 0 0.22rem rgba(46, 110, 158, 0.16),
+            0 0.3rem 0.8rem rgba(0, 68, 102, 0.09);
+}
+
+.dataset-filter-status {
+    min-height: 1.25rem;
+    margin-top: 0.55rem;
+    color: #526f79;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+#modelsContainer .dataset-filtered-out {
+    display: none !important;
+}
+
 /* Progress summary */
 #progressContainer {
     position: sticky;
@@ -485,6 +580,11 @@ span.flag {
     .container > h1 {
         padding: 1.15rem 1.25rem;
         font-size: 1.65rem;
+    }
+
+    .dataset-filter {
+        padding: 1rem;
+        border-radius: 0.75rem;
     }
 
     .card-selector-layout .card-panel.d-none {
