@@ -124,21 +124,6 @@
     font-size: 1.2rem;
 }
 
-.home-status-alert {
-    margin-bottom: 1.5rem;
-    border: 0;
-    border-left: 0.35rem solid #2e6e9e;
-    border-radius: 0.75rem;
-    background-color: #eef7fa;
-    color: #244653;
-    box-shadow: 0 0.35rem 1rem rgba(0, 68, 102, 0.08);
-}
-
-.home-status-alert .fa-solid {
-    color: #2e6e9e;
-    font-size: 1.4rem;
-}
-
 .home-patient-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

@@ -3,17 +3,7 @@
 <div id="sessionEstablished" class="hidden">{{sessionEstablished}}</div>
 
 <div class="container health-records-page">
-    {{#systemStatusMessage}}
-        <div class="alert health-records-status-alert d-flex align-items-start gap-3" role="alert">
-            <div class="pt-1" aria-hidden="true">
-                <span class="fa-solid fa-circle-info"></span>
-            </div>
-            <div>
-                <strong>System Status</strong>
-                <div>{{systemStatusMessage}}</div>
-            </div>
-        </div>
-    {{/systemStatusMessage}}
+    {{>fragments/system-status-message}}
 
     <section class="health-records-hero" aria-labelledby="health-records-title">
         <div class="health-records-hero-content">

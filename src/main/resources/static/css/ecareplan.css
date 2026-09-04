@@ -471,3 +471,38 @@ body.session-validation-pending header {
     visibility: visible;
     opacity: 1;
 }
+
+.system-status-alert {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border: 0;
+    border-left: 0.35rem solid #2e6e9e;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #eef7fa 0%, #f8fbfc 100%);
+    color: #244653;
+    box-shadow: 0 0.35rem 1rem rgba(0, 68, 102, 0.08);
+}
+
+.system-status-alert-icon {
+    flex: 0 0 auto;
+    padding-top: 0.1rem;
+    text-align: center;
+}
+
+.system-status-alert-icon img {
+    display: block;
+    width: auto;
+    height: 50px;
+}
+
+.system-status-alert-title {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: #004466;
+    font-weight: 800;
+}
+
+.system-status-alert-message {
+    color: #244653;
+    line-height: 1.45;
+}
