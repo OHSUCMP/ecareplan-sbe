@@ -740,22 +740,6 @@ function buildSafeProgressId(value) {
         .replace(/^-+|-+$/g, '') || 'progress';
 }
 
-function getProgressGroupStatus(progressItems) {
-    if (!Array.isArray(progressItems) || progressItems.length === 0) {
-        return 'WAITING_TO_START';
-    }
-
-    if (progressItems.every(item => item.status === 'COMPLETED')) {
-        return 'COMPLETED';
-    }
-
-    if (progressItems.some(item => item.status === 'RUNNING')) {
-        return 'RUNNING';
-    }
-
-    return 'WAITING_TO_START';
-}
-
 function renderProgressBar(percentComplete, label, extraCssClass) {
     let safePercentComplete = Math.max(0, Math.min(100, Number(percentComplete) || 0));
 
