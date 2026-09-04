@@ -1,6 +1,16 @@
+function updateLoginButtonState() {
+    let selectedEndpoint = $('#endpointSelect').find('option:selected').first();
+    $('#loginButton').prop('disabled', !selectedEndpoint.val());
+}
+
+function resetLaunchState() {
+    $('#endpointSelect').prop('disabled', false);
+    updateLoginButtonState();
+    $('html').css('cursor', 'default');
+}
+
 $(document).on('change', '#endpointSelect', function() {
-    let el = $(this).find('option:selected').first();
-    $('#loginButton').prop('disabled', !el.val());
+    updateLoginButtonState();
 });
 
 function showError(errorMessage) {
@@ -15,7 +25,12 @@ function clearError() {
 
 function doWait(waiting) {
     $('#endpointSelect').prop('disabled', waiting);
-    $('#loginButton').prop('disabled', waiting);
+    if (waiting) {
+        $('#loginButton').prop('disabled', true);
+    } else {
+        updateLoginButtonState();
+    }
+
     let cursor = waiting ? 'wait' : 'default';
     $('html').css('cursor', cursor);
 }
@@ -37,6 +52,7 @@ function reportLaunch(endpointId, _callback) {
 }
 
 $(document).on('click', '#loginButton', function() {
+    clearError();
     doWait(true);
 
     let el = $('#endpointSelect').find('option:selected').first();
@@ -55,4 +71,12 @@ $(document).on('click', '#loginButton', function() {
             "iss": iss
         });
     });
+});
+
+$(document).ready(function() {
+    resetLaunchState();
+});
+
+window.addEventListener('pageshow', function() {
+    resetLaunchState();
 });
