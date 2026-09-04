@@ -166,6 +166,83 @@ display.progress > div {
     display: none !important;
 }
 
+.source-endpoint-tinted {
+    --source-endpoint-bg: #f8fbfc;
+    --source-endpoint-border: #dbe8ee;
+    --source-endpoint-accent: #7698a1;
+}
+
+.source-endpoint-legend {
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #dbe8ee;
+    border-radius: 0.85rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbfc 100%);
+    box-shadow: 0 0.3rem 0.9rem rgba(0, 68, 102, 0.07);
+}
+
+.source-endpoint-legend-label {
+    margin-bottom: 0.65rem;
+    color: #004466;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.source-endpoint-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.source-endpoint-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--source-endpoint-border, #dbe8ee);
+    border-left: 0.35rem solid var(--source-endpoint-accent, #7698a1);
+    border-radius: 999px;
+    background-color: var(--source-endpoint-bg, #f8fbfc);
+    color: #244653;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.2;
+    box-shadow: 0 0.15rem 0.45rem rgba(0, 68, 102, 0.08);
+    transition: filter 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.source-endpoint-legend-item:hover,
+.source-endpoint-legend-item:focus {
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 68, 102, 0.14);
+    transform: translateY(-1px);
+}
+
+.source-endpoint-legend-item:focus-visible {
+    outline: 2px solid var(--source-endpoint-accent, #7698a1);
+    outline-offset: 2px;
+}
+
+.source-endpoint-legend-item.source-endpoint-hidden {
+    filter: grayscale(1);
+    opacity: 0.52;
+    text-decoration: line-through;
+}
+
+.source-endpoint-legend-swatch {
+    width: 0.8rem;
+    height: 0.8rem;
+    flex: 0 0 auto;
+    border: 1px solid var(--source-endpoint-border, #dbe8ee);
+    border-radius: 999px;
+    background-color: var(--source-endpoint-accent, #7698a1);
+}
+
+.source-endpoint-legend-text {
+    overflow-wrap: anywhere;
+}
+
 .dataset-filter-highlight {
     padding: 0.05rem 0.12rem;
     border-radius: 0.2rem;
@@ -424,12 +501,6 @@ display.progress > div {
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.source-endpoint-tinted {
-    --source-endpoint-bg: #f8fbfc;
-    --source-endpoint-border: #dbe8ee;
-    --source-endpoint-accent: #7698a1;
-}
-
 .card-selector.source-endpoint-tinted {
     border-left: 0.35rem solid var(--source-endpoint-accent, #7698a1);
     background-color: var(--source-endpoint-bg, #ffffff);
@@ -441,15 +512,17 @@ display.progress > div {
     border-top: 0;
 }
 
-.card-selector:hover {
-    background-color: color-mix(in srgb, var(--source-endpoint-bg, #f8fbfc) 72%, #ffffff);
+.card-selector.source-endpoint-tinted:hover {
+    background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.56)),
+            var(--source-endpoint-bg, #f8fbfc);
 }
 
-.card-selector.active {
+.card-selector.source-endpoint-tinted.active {
     border-color: var(--source-endpoint-accent, #2e6e9e);
     border-left-color: var(--source-endpoint-accent, #2e6e9e);
     background:
-            linear-gradient(90deg, color-mix(in srgb, var(--source-endpoint-accent, #2e6e9e) 20%, transparent), transparent 34%),
+            linear-gradient(90deg, color-mix(in srgb, var(--source-endpoint-accent, #2e6e9e) 24%, transparent), transparent 38%),
             var(--source-endpoint-bg, #eef7fa);
     color: #244653;
     box-shadow:
@@ -498,8 +571,16 @@ display.progress > div {
 
 .card-panel .card.source-endpoint-tinted .card-body {
     background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.58) 100%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.20) 100%),
             var(--source-endpoint-bg, #f8fbfc);
+}
+
+.card-panel .card.source-endpoint-tinted .dataset-card-row-value,
+.card-panel .card.source-endpoint-tinted .dataset-card-row-label,
+.card-panel .card.source-endpoint-tinted .accordion-button,
+.card-panel .card.source-endpoint-tinted .table thead th {
+    border-color: var(--source-endpoint-border, #dbe8ee);
+    background-color: rgba(255, 255, 255, 0.68);
 }
 
 .dataset-card-row-cell {
@@ -606,7 +687,7 @@ display.progress > div {
     border-color: var(--source-endpoint-border, #dbe8ee);
     border-left: 0.45rem solid var(--source-endpoint-accent, #7698a1);
     background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0.58) 100%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.18) 100%),
             var(--source-endpoint-bg, #ffffff);
 }
 

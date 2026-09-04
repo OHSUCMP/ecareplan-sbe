@@ -38,8 +38,64 @@ function renderSourceEndpointStyle(sourceEndpointName) {
         '--source-endpoint-accent: ' + escapeHtml(color.accent) + ';"';
 }
 
+let hiddenSourceEndpointNames = new Set();
+
+function getSourceEndpointName(value) {
+    let source = String(value ?? '').trim();
+    return source === '' ? 'Unknown Source' : source;
+}
+
+function getSourceEndpointNamesFromModels(models) {
+    let sourceNames = [];
+
+    if (!Array.isArray(models)) {
+        return sourceNames;
+    }
+
+    models.forEach(function(model) {
+        let sourceName = getSourceEndpointName(model?.sourceEndpointName);
+
+        if (!sourceNames.includes(sourceName)) {
+            sourceNames.push(sourceName);
+        }
+    });
+
+    return sourceNames;
+}
+
+function renderSourceEndpointLegend(sourceEndpointNames) {
+    if (!Array.isArray(sourceEndpointNames) || sourceEndpointNames.length === 0) {
+        return '';
+    }
+
+    let html = '<div class="source-endpoint-legend" aria-label="Filter by source">' +
+        '<div class="source-endpoint-legend-label">Sources</div>' +
+        '<div class="source-endpoint-legend-items">';
+
+    sourceEndpointNames.forEach(function(sourceEndpointName) {
+        let normalizedSourceName = getSourceEndpointName(sourceEndpointName);
+        let isHidden = hiddenSourceEndpointNames.has(normalizedSourceName);
+
+        html += '<button type="button" class="source-endpoint-legend-item source-endpoint-tinted' +
+            (isHidden ? ' source-endpoint-hidden' : '') + '"' +
+            ' data-source-endpoint-name="' + escapeHtml(normalizedSourceName) + '"' +
+            ' aria-pressed="' + (isHidden ? 'true' : 'false') + '"' +
+            ' title="' + (isHidden ? 'Show ' : 'Hide ') + escapeHtml(normalizedSourceName) + '"' +
+            renderSourceEndpointStyle(normalizedSourceName) + '>' +
+            '<span class="source-endpoint-legend-swatch" aria-hidden="true"></span>' +
+            '<span class="source-endpoint-legend-text">' + escapeHtml(normalizedSourceName) + '</span>' +
+            '</button>';
+    });
+
+    html += '</div>' +
+        '</div>';
+
+    return html;
+}
+
 function renderCardSelectors(id, cardSelector, card, selected) {
     let sortAttributes = '';
+    let sourceEndpointName = getSourceEndpointName(card?.sourceEndpointName);
 
     if (Array.isArray(cardSelector)) {
         cardSelector.forEach(function(selectorItem, index) {
@@ -55,8 +111,8 @@ function renderCardSelectors(id, cardSelector, card, selected) {
         (selected ? ' active' : '') + '"' +
         ' id="' + id + '-selector" data-card-target="' + id + '-panel"' +
         ' aria-controls="' + id + '-panel" aria-selected="' + (selected ? 'true' : 'false') + '"' +
-        ' data-source-endpoint-name="' + escapeHtml(card?.sourceEndpointName ?? '') + '"' +
-        renderSourceEndpointStyle(card?.sourceEndpointName) +
+        ' data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
+        renderSourceEndpointStyle(sourceEndpointName) +
         sortAttributes + '>';
 
     if (Array.isArray(cardSelector)) {
@@ -111,7 +167,7 @@ function renderDatasetFilter(query = '') {
         '</div>';
 }
 
-function renderCardSelectorLayout(items) {
+function renderCardSelectorLayout(items, sourceEndpointNames = []) {
     let selectors = [];
     let cards = [];
 
@@ -125,7 +181,8 @@ function renderCardSelectorLayout(items) {
             '</div>');
     });
 
-    return renderDatasetFilter(datasetFilterQuery) +
+    return renderSourceEndpointLegend(sourceEndpointNames) +
+        renderDatasetFilter(datasetFilterQuery) +
         '<div class="row g-4 card-selector-layout">' +
         '<div class="col-6 d-none d-md-block">' +
         '<div class="card-selector-list-container">' +
@@ -235,7 +292,10 @@ function applyDatasetFilter() {
     selectors.each(function() {
         let selector = $(this);
         let panel = layout.find('#' + selector.attr('data-card-target'));
-        let matches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
+        let sourceEndpointName = getSourceEndpointName(selector.attr('data-source-endpoint-name'));
+        let sourceIsVisible = !hiddenSourceEndpointNames.has(sourceEndpointName);
+        let textMatches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
+        let matches = sourceIsVisible && textMatches;
 
         selector.toggleClass('dataset-filtered-out', !matches);
         panel.toggleClass('dataset-filtered-out', !matches);
@@ -253,10 +313,34 @@ function applyDatasetFilter() {
         selectFirstVisibleCard(layout);
     }
 
-    let status = matchingCount === selectors.length && normalizedQuery === '' ?
+    let status = matchingCount === selectors.length && normalizedQuery === '' && hiddenSourceEndpointNames.size === 0 ?
         selectors.length + ' records available.' :
         'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
     container.find('#datasetFilterStatus').text(status);
+}
+
+function applySourceEndpointVisibility(container = $('#modelsContainer')) {
+    container.find('.source-endpoint-legend-item').each(function() {
+        let button = $(this);
+        let sourceEndpointName = getSourceEndpointName(button.attr('data-source-endpoint-name'));
+        let isHidden = hiddenSourceEndpointNames.has(sourceEndpointName);
+
+        button.toggleClass('source-endpoint-hidden', isHidden);
+        button.attr('aria-pressed', isHidden ? 'true' : 'false');
+        button.attr('title', (isHidden ? 'Show ' : 'Hide ') + sourceEndpointName);
+    });
+
+    let layout = container.find('.card-selector-layout');
+    if (layout.length > 0) {
+        applyDatasetFilter();
+        return;
+    }
+
+    container.find('.home-patient-card').each(function() {
+        let card = $(this);
+        let sourceEndpointName = getSourceEndpointName(card.attr('data-source-endpoint-name'));
+        card.toggleClass('dataset-filtered-out', hiddenSourceEndpointNames.has(sourceEndpointName));
+    });
 }
 
 function resizeCardSelectorList() {
@@ -267,10 +351,12 @@ function resizeCardSelectorList() {
 }
 
 function renderCard(id, card) {
+    let sourceEndpointName = getSourceEndpointName(card?.sourceEndpointName);
+
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
-        '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(card?.sourceEndpointName ?? '') + '"' +
-        renderSourceEndpointStyle(card?.sourceEndpointName) + '>' +
+        '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
+        renderSourceEndpointStyle(sourceEndpointName) + '>' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center gap-3">' +
         '<h3 class="card-title mb-0">' + escapeHtml(card.title ?? '') + '</h3>' +
         (card.learnMoreUrl ?
@@ -781,6 +867,8 @@ function renderModels(models) {
     }
 
     if (models && models.length > 0) {
+        let sourceEndpointNames = getSourceEndpointNamesFromModels(models);
+
         if (typeof buildCardSelectorData === 'function') {
             let items = [];
             models.forEach(function(model) {
@@ -796,11 +884,12 @@ function renderModels(models) {
                 });
             });
 
-            $('#modelsContainer').html(renderCardSelectorLayout(items));
-            applyDatasetFilter();
+            $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
+            applySourceEndpointVisibility();
             resizeCardSelectorList();
 
         } else {
+            let html = renderSourceEndpointLegend(sourceEndpointNames);
             let cards = [];
             let i = 1;
             models.forEach(function(model) {
@@ -814,7 +903,8 @@ function renderModels(models) {
                 i ++;
             });
 
-            $('#modelsContainer').html(cards.join('\n'));
+            $('#modelsContainer').html(html + cards.join('\n'));
+            applySourceEndpointVisibility();
         }
 
     } else {
@@ -833,6 +923,18 @@ function renderModels(models) {
 $(document).on('input', '#datasetFilter', function() {
     datasetFilterQuery = $(this).val();
     applyDatasetFilter();
+});
+
+$(document).on('click', '#modelsContainer .source-endpoint-legend-item', function() {
+    let sourceEndpointName = getSourceEndpointName($(this).attr('data-source-endpoint-name'));
+
+    if (hiddenSourceEndpointNames.has(sourceEndpointName)) {
+        hiddenSourceEndpointNames.delete(sourceEndpointName);
+    } else {
+        hiddenSourceEndpointNames.add(sourceEndpointName);
+    }
+
+    applySourceEndpointVisibility();
 });
 
 $(document).on('click', '#modelsContainer .card-selector-sort-button', function() {
