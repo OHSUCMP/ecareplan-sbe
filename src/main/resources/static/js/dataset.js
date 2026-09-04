@@ -370,6 +370,10 @@ function applyDatasetFilter() {
         'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
     container.find('#datasetFilterStatus').text(status);
 
+    if (typeof renderCharts === 'function') {
+        renderCharts();
+    }
+
     scheduleCardSelectorListResize();
 }
 
@@ -395,7 +399,12 @@ function applySourceEndpointVisibility(container = $('#modelsContainer')) {
         let sourceEndpointNames = card.attr('data-source-endpoint-name');
         card.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
     });
+
+    if (typeof renderCharts === 'function') {
+        renderCharts();
+    }
 }
+
 
 function resizeCardSelectorList() {
     const minimumListHeight = 240;
