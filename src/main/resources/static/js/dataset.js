@@ -10,11 +10,35 @@ function safeTextValue(value, fallback) {
     return value === undefined || value === null ? fallback : value;
 }
 
+function logDebug(message) {
+    if (window.console && typeof window.console.debug === 'function') {
+        console.debug(message);
+    }
+}
+
+function logInfo(message) {
+    if (window.console && typeof window.console.log === 'function') {
+        console.log(message);
+    }
+}
+
+function logWarn(message) {
+    if (window.console && typeof window.console.warn === 'function') {
+        console.warn(message);
+    }
+}
+
+function logError(message) {
+    if (window.console && typeof window.console.error === 'function') {
+        console.error(message);
+    }
+}
+
 function reportAndRenderModelsError(error, context) {
     if (typeof window.handleFrontEndException === 'function') {
         window.handleFrontEndException(error, context);
-    } else if (window.console && typeof window.console.error === 'function') {
-        console.error('Front-end rendering error:', error);
+    } else {
+        logError('Front-end rendering error: ' + error);
     }
 
     let container = $('#modelsContainer');
@@ -25,6 +49,84 @@ function reportAndRenderModelsError(error, context) {
             '</div>'
         );
     }
+}
+
+let serverRequestsEnabled = true;
+let datasetPageUnloading = false;
+let progressRefreshTimer = null;
+let eventSource = null;
+let eventSourceFallbackInterval = null;
+
+function isServerUnavailableResponse(jqXHR) {
+    return !jqXHR || jqXHR.status === 0;
+}
+
+function isRequestAborted(jqXHR, textStatus) {
+    return textStatus === 'abort' || (jqXHR && jqXHR.readyState === 0 && jqXHR.status === 0);
+}
+
+function isUnauthorizedResponse(jqXHR) {
+    return jqXHR && (jqXHR.status === 401 || jqXHR.status === 403);
+}
+
+function handleDatasetUnauthorized() {
+    stopDatasetServerActivity();
+
+    if (typeof redirectToUnauthorized === 'function') {
+        redirectToUnauthorized();
+        return;
+    }
+
+    window.location.href = '/unauthorized';
+}
+
+function getAjaxFailureMessage(jqXHR, textStatus, errorThrown, fallbackMessage) {
+    if (jqXHR && jqXHR.responseText) {
+        return jqXHR.responseText;
+    }
+
+    if (errorThrown) {
+        return String(errorThrown);
+    }
+
+    if (textStatus) {
+        return fallbackMessage + ' (' + textStatus + ')';
+    }
+
+    return fallbackMessage;
+}
+
+function stopDatasetServerActivity() {
+    serverRequestsEnabled = false;
+
+    if (progressRefreshTimer !== null) {
+        clearTimeout(progressRefreshTimer);
+        progressRefreshTimer = null;
+    }
+
+    if (eventSourceFallbackInterval !== null) {
+        clearInterval(eventSourceFallbackInterval);
+        eventSourceFallbackInterval = null;
+    }
+
+    if (eventSource !== null) {
+        eventSource.close();
+        eventSource = null;
+    }
+}
+
+function resumeDatasetServerActivity() {
+    serverRequestsEnabled = true;
+    datasetPageUnloading = false;
+}
+
+function handleDatasetServerUnavailable(context) {
+    stopDatasetServerActivity();
+    logWarn('Stopping dataset server requests because the server is unavailable: ' + context);
+}
+
+function shouldContinueDatasetServerRequests() {
+    return serverRequestsEnabled && !datasetPageUnloading;
 }
 
 const sourceEndpointColorPalette = [
@@ -115,7 +217,9 @@ function getSourceEndpointDataAttribute(source) {
 
 function hasVisibleSourceEndpoint(source) {
     return getSourceEndpointNames(source)
-        .some(sourceEndpointName => !hiddenSourceEndpointNames.has(sourceEndpointName));
+        .some(function(sourceEndpointName) {
+            return !hiddenSourceEndpointNames.has(sourceEndpointName);
+        });
 }
 
 function getSourceEndpointNamesFromModels(models) {
@@ -146,7 +250,9 @@ function getSourceEndpointNamesFromModels(models) {
     return sourceNames;
 }
 
-function renderSourceEndpointLegend(sourceEndpointNames, interactive = true) {
+function renderSourceEndpointLegend(sourceEndpointNames, interactive) {
+    interactive = interactive !== false;
+
     if (!Array.isArray(sourceEndpointNames) || sourceEndpointNames.length === 0) {
         return '';
     }
@@ -266,12 +372,15 @@ function renderDatasetFilter(query) {
 }
 
 function renderCardSelectorLayout(items, sourceEndpointNames) {
+    items = Array.isArray(items) ? items : [];
     sourceEndpointNames = Array.isArray(sourceEndpointNames) ? sourceEndpointNames : [];
 
     let selectors = [];
     let cards = [];
 
     items.forEach(function(item, index) {
+        item = item || {};
+
         let id = 'card_' + (index + 1);
         selectors.push(renderCardSelectors(id, item.selector, item.card, index === 0));
         cards.push('<div class="card-panel' + (index === 0 ? '' : ' d-none') + '"' +
@@ -334,12 +443,12 @@ function highlightDatasetFilterText(element, query) {
         return;
     }
 
-    let normalizedQuery = query.toLocaleLowerCase();
+    let normalizedQuery = query.toLowerCase();
 
     $(element).contents().each(function() {
         if (this.nodeType === Node.TEXT_NODE) {
             let text = this.nodeValue;
-            let normalizedText = text.toLocaleLowerCase();
+            let normalizedText = text.toLowerCase();
             let matchIndex = normalizedText.indexOf(normalizedQuery);
 
             if (matchIndex === -1) {
@@ -489,7 +598,7 @@ function resizeCardSelectorList() {
         scroll.css('height', '');
         scroll.css('min-height', '');
 
-        if (window.matchMedia('(max-width: 767.98px)').matches) {
+        if (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767.98px)').matches) {
             scroll[0].scrollTop = previousScrollTop;
             return;
         }
@@ -772,7 +881,15 @@ function getDataTableRowSource(row) {
 }
 
 function refreshProgress() {
+    if (!shouldContinueDatasetServerRequests()) {
+        return;
+    }
+
     getCurrentProgress(function(progressData) {
+        if (!shouldContinueDatasetServerRequests()) {
+            return;
+        }
+
         if (progressData) {
             let el = $('#progressContainer');
             let progressDetailsExpanded = $('#progressDetails').hasClass('show');
@@ -781,7 +898,7 @@ function refreshProgress() {
             $(el).removeClass('hidden');
 
             if (isAnyProgressRunning(progressData)) {
-                setTimeout(refreshProgress, 5000);
+                progressRefreshTimer = setTimeout(refreshProgress, 5000);
 
             } else if (isAllProgressComplete(progressData)) {
                 logCompletedProgressErrors(progressData);
@@ -794,19 +911,42 @@ function refreshProgress() {
                     modelsContainer.html(renderNoModelsCompletedMessage());
                 }
 
-                setTimeout(clearProgress, 30000);
+                progressRefreshTimer = setTimeout(clearProgress, 30000);
             }
         }
     });
 }
 
 function getCurrentProgress(_callback) {
+    if (!shouldContinueDatasetServerRequests()) {
+        return;
+    }
+
     $.ajax({
         method: "POST",
         url: getBasePath() + '/progress'
     }).done(function(progressData) {
-        if (_callback) {
+        if (!_callback || !shouldContinueDatasetServerRequests()) {
+            return;
+        }
+
+        try {
             _callback(progressData);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + '/progress callback');
+        }
+    }).fail(function(jqXHR, textStatus) {
+        if (isRequestAborted(jqXHR, textStatus)) {
+            return;
+        }
+
+        if (isServerUnavailableResponse(jqXHR)) {
+            handleDatasetServerUnavailable(getBasePath() + '/progress');
+            return;
+        }
+
+        if (isUnauthorizedResponse(jqXHR)) {
+            handleDatasetUnauthorized();
         }
     });
 }
@@ -814,13 +954,17 @@ function getCurrentProgress(_callback) {
 function isAnyProgressRunning(progressData) {
     const runningStatuses = new Set(['WAITING_TO_START', 'RUNNING']);
     return Array.isArray(progressData)
-        && progressData.some(item => runningStatuses.has(item.status));
+        && progressData.some(function(item) {
+            return item && runningStatuses.has(item.status);
+        });
 }
 
 function isAllProgressComplete(progressData) {
     return Array.isArray(progressData)
         && progressData.length > 0
-        && progressData.every(item => item.status === 'COMPLETED');
+        && progressData.every(function(item) {
+            return item && item.status === 'COMPLETED';
+        });
 }
 
 function logCompletedProgressErrors(progressData) {
@@ -1019,10 +1163,15 @@ function renderProgressItem(item, parentId, itemIndex) {
     return html;
 }
 
-function renderEndpointProgressGroup(endpointName, progressItems, endpointExpanded = false) {
+function renderEndpointProgressGroup(endpointName, progressItems, endpointExpanded) {
+    progressItems = Array.isArray(progressItems) ? progressItems : [];
+    endpointExpanded = endpointExpanded === true;
+
     let endpointId = 'progress-endpoint-' + buildSafeProgressId(endpointName);
     let endpointPercentComplete = getProgressSummaryPercentComplete(progressItems);
-    let endpointHasErrors = progressItems.some(item => item.errors && item.errors.length > 0);
+    let endpointHasErrors = progressItems.some(function(item) {
+        return item && item.errors && item.errors.length > 0;
+    });
     let endpointLabel = endpointName + ': ' + endpointPercentComplete + '% Complete' +
         (endpointHasErrors ? ' - Some items have errors' : '');
 
@@ -1044,7 +1193,7 @@ function renderEndpointProgressGroup(endpointName, progressItems, endpointExpand
         '<div class="accordion-body endpoint-progress-details">';
 
     progressItems.forEach(function(item, itemIndex) {
-        html += renderProgressItem(item, endpointId, itemIndex);
+        html += renderProgressItem(item || {}, endpointId, itemIndex);
     });
 
     html += '</div>' +
@@ -1069,14 +1218,18 @@ $(document).on('hidden.bs.collapse', '.progress-errors-accordion .accordion-coll
     }
 });
 
-function renderProgressData(progressData, detailsExpanded = false) {
+function renderProgressData(progressData, detailsExpanded) {
+    detailsExpanded = detailsExpanded === true;
+
     if (!Array.isArray(progressData) || progressData.length === 0) {
         return '';
     }
 
     let endpointGroups = groupProgressByEndpoint(progressData);
     let summaryPercentComplete = getProgressSummaryPercentComplete(progressData);
-    let hasErrors = progressData.some(item => item.errors && item.errors.length > 0);
+    let hasErrors = progressData.some(function(item) {
+        return item && item.errors && item.errors.length > 0;
+    });
     let summaryLabel = 'Overall Progress: ' + summaryPercentComplete + '% Complete' +
         (hasErrors ? ' - Some items have errors' : '');
     let collapseClass = detailsExpanded ? ' show' : '';
@@ -1125,9 +1278,6 @@ function getDataSets() {
     });
 }
 
-let eventSource = null;
-let eventSourceFallbackInterval = null;
-
 function parseSseEventData(event, eventName) {
     try {
         return JSON.parse(event.data || '{}');
@@ -1139,17 +1289,11 @@ function parseSseEventData(event, eventName) {
     }
 }
 
-function startModelRefreshFallback(_callback) {
-    if (eventSourceFallbackInterval !== null) {
+function initializeSSE(_callback) {
+    if (!shouldContinueDatasetServerRequests()) {
         return;
     }
 
-    eventSourceFallbackInterval = setInterval(function() {
-        getUpdatedModels(_callback);
-    }, 5000);
-}
-
-function initializeSSE(_callback) {
     if (eventSource !== null) {
         eventSource.close();
     }
@@ -1160,85 +1304,148 @@ function initializeSSE(_callback) {
     }
 
     if (typeof EventSource !== 'function') {
-        startModelRefreshFallback(_callback);
+        logWarn('EventSource is not available; live dataset updates are disabled.');
         return;
     }
 
     eventSource = new EventSource(getBasePath() + '/sse');
 
     eventSource.addEventListener("dataset-update", function(event) {
-        let eventData = parseSseEventData(event, 'dataset-update');
-        if (!eventData) {
-            return;
-        }
+        try {
+            if (!shouldContinueDatasetServerRequests()) {
+                return;
+            }
 
-        if (getDataSets().indexOf(eventData.dataSet) !== -1) {
-            console.log("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint);
-            getUpdatedModels(_callback);
+            let eventData = parseSseEventData(event, 'dataset-update');
+            if (!eventData) {
+                return;
+            }
+
+            if (getDataSets().indexOf(eventData.dataSet) !== -1) {
+                logInfo("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint);
+                getUpdatedModels(_callback);
+            }
+        } catch (error) {
+            reportAndRenderModelsError(error, 'SSE dataset-update handler');
         }
     });
 
     eventSource.addEventListener("endpoint-population-started", function(event) {
-        let eventData = parseSseEventData(event, 'endpoint-population-started');
-        if (!eventData) {
-            return;
-        }
+        try {
+            let eventData = parseSseEventData(event, 'endpoint-population-started');
+            if (!eventData) {
+                return;
+            }
 
-        console.log("endpoint-population-started: endpoint=" + eventData.endpoint);
+            logInfo("endpoint-population-started: endpoint=" + eventData.endpoint);
+        } catch (error) {
+            reportAndRenderModelsError(error, 'SSE endpoint-population-started handler');
+        }
     });
 
     eventSource.addEventListener("endpoint-population-complete", function(event) {
-        let eventData = parseSseEventData(event, 'endpoint-population-complete');
-        if (!eventData) {
-            return;
-        }
+        try {
+            let eventData = parseSseEventData(event, 'endpoint-population-complete');
+            if (!eventData) {
+                return;
+            }
 
-        console.log("endpoint-population-complete: endpoint=" + eventData.endpoint);
+            logInfo("endpoint-population-complete: endpoint=" + eventData.endpoint);
+        } catch (error) {
+            reportAndRenderModelsError(error, 'SSE endpoint-population-complete handler');
+        }
     });
 
     eventSource.addEventListener("all-complete", function(event) {
-        console.log("all-complete");
-        $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
+        try {
+            logInfo("all-complete");
+            $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
+        } catch (error) {
+            reportAndRenderModelsError(error, 'SSE all-complete handler');
+        }
     });
 
     eventSource.onerror = function() {
+        logDebug('SSE connection closed or failed; live dataset updates are disabled for this page.');
+
         if (eventSource !== null) {
             eventSource.close();
             eventSource = null;
         }
-
-        startModelRefreshFallback(_callback);
     };
 }
 
 window.addEventListener("pagehide", function() {
-    if (eventSource !== null) {
-        eventSource.close();
-        eventSource = null;
+    datasetPageUnloading = true;
+    stopDatasetServerActivity();
+});
+
+window.addEventListener("pageshow", function(event) {
+    if (!event.persisted) {
+        return;
     }
 
-    if (eventSourceFallbackInterval !== null) {
-        clearInterval(eventSourceFallbackInterval);
-        eventSourceFallbackInterval = null;
+    resumeDatasetServerActivity();
+
+    if (!exists('#sessionEstablished') || $('#sessionEstablished').text() !== 'true') {
+        return;
+    }
+
+    try {
+        getUpdatedModels(renderModels);
+        initializeSSE(renderModels);
+    } catch (error) {
+        reportAndRenderModelsError(error, 'dataset pageshow');
     }
 });
 
 function getUpdatedModels(_callback) {
+    if (!shouldContinueDatasetServerRequests()) {
+        return;
+    }
+
     $.ajax({
         method: "POST",
         url: getBasePath() + '/models'
     }).done(function(models) {
+        if (!shouldContinueDatasetServerRequests()) {
+            return;
+        }
+
+        if (typeof _callback !== 'function') {
+            reportAndRenderModelsError(new Error('Model callback is not a function'), getBasePath() + '/models callback');
+            return;
+        }
+
         try {
             _callback(models);
         } catch (error) {
             reportAndRenderModelsError(error, getBasePath() + '/models render callback');
         }
-    }).fail(function(jqXHR) {
-        let message = jqXHR && jqXHR.responseText ? jqXHR.responseText : 'Unable to load records.';
-
-        if (typeof window.handleFrontEndException === 'function') {
-            window.handleFrontEndException(new Error(message), getBasePath() + '/models');
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+        if (isRequestAborted(jqXHR, textStatus)) {
+            return;
         }
+
+        if (isServerUnavailableResponse(jqXHR)) {
+            handleDatasetServerUnavailable(getBasePath() + '/models');
+            return;
+        }
+
+        if (isUnauthorizedResponse(jqXHR)) {
+            handleDatasetUnauthorized();
+            return;
+        }
+
+        let message = getAjaxFailureMessage(jqXHR, textStatus, errorThrown, 'Unable to load records.');
+
+        logError(
+            'Unable to load models from ' + getBasePath() + '/models' +
+            ' status=' + (jqXHR ? jqXHR.status : 'unknown') +
+            ' textStatus=' + textStatus +
+            ' errorThrown=' + errorThrown +
+            ' message=' + message
+        );
 
         $('#modelsContainer').html(
             '<div class="alert alert-danger" role="alert">' +
@@ -1261,9 +1468,11 @@ function renderModels(models) {
             datasetFilterQuery = currentFilter;
         }
 
-        if (models && models.length > 0) {
+        if (Array.isArray(models) && models.length > 0) {
             let items = [];
             models.forEach(function(model) {
+                model = model || {};
+
                 let card = buildCardData(model) || {};
 
                 if (card.source === undefined || card.source === null) {
@@ -1383,36 +1592,54 @@ $(document).on('click', '#modelsContainer .card-selector-sort-button', function(
 });
 
 $(document).on('click', '#modelsContainer .card-selector', function() {
-    let selector = $(this);
-    let targetId = selector.attr('data-card-target');
-    let container = $('#modelsContainer');
+    try {
+        let selector = $(this);
+        let targetId = selector.attr('data-card-target');
+        let container = $('#modelsContainer');
 
-    container.find('.card-selector').removeClass('active').attr('aria-selected', 'false');
-    selector.addClass('active').attr('aria-selected', 'true');
-    container.find('.card-panel').addClass('d-none').attr('aria-hidden', 'true');
-    container.find('#' + targetId).removeClass('d-none').removeAttr('aria-hidden');
+        container.find('.card-selector').removeClass('active').attr('aria-selected', 'false');
+        selector.addClass('active').attr('aria-selected', 'true');
+        container.find('.card-panel').addClass('d-none').attr('aria-hidden', 'true');
+        container.find('#' + targetId).removeClass('d-none').removeAttr('aria-hidden');
 
-    scheduleCardSelectorListResize();
+        scheduleCardSelectorListResize();
+    } catch (error) {
+        reportAndRenderModelsError(error, 'card selector click');
+    }
 });
 
-$(window).on('resize', scheduleCardSelectorListResize);
+$(window).on('resize', function() {
+    try {
+        scheduleCardSelectorListResize();
+    } catch (error) {
+        reportAndRenderModelsError(error, 'window resize');
+    }
+});
 
 $(document).ready(function() {
-    if (!exists('#sessionEstablished')) {
-        return;
-    }
-    if ($('#sessionEstablished').text() !== 'true') {
-        return;
-    }
-
-    getCurrentProgress(function(progressData) {
-        if (progressData) {
-            if ( ! isAllProgressComplete(progressData) ) {
-                let el = $('#progressContainer');
-                $(el).html(renderProgressData(progressData));
-                $(el).removeClass('hidden');
-                setTimeout(refreshProgress, 5000);
-            }
+    try {
+        if (!exists('#sessionEstablished')) {
+            return;
         }
-    });
+        if ($('#sessionEstablished').text() !== 'true') {
+            return;
+        }
+
+        getCurrentProgress(function(progressData) {
+            if (!shouldContinueDatasetServerRequests()) {
+                return;
+            }
+
+            if (progressData) {
+                if ( ! isAllProgressComplete(progressData) ) {
+                    let el = $('#progressContainer');
+                    $(el).html(renderProgressData(progressData));
+                    $(el).removeClass('hidden');
+                    progressRefreshTimer = setTimeout(refreshProgress, 5000);
+                }
+            }
+        });
+    } catch (error) {
+        reportAndRenderModelsError(error, 'dataset document ready');
+    }
 });
