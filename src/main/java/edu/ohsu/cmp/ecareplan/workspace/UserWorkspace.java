@@ -358,6 +358,10 @@ public class UserWorkspace {
         return user.getId();
     }
 
+    public User getUser() {
+        return user;
+    }
+
     public void populate() {
         clearAllCompletedProgress();
         for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {

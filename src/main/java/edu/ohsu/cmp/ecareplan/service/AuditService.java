@@ -23,7 +23,7 @@ public class AuditService {
 
     public void doAudit(String sessionId, AuditSeverity severity, String action) {
         if (userWorkspaceService.exists(sessionId)) {
-            Long userId = userWorkspaceService.get(sessionId).getUserId();
+            Long userId = userWorkspaceService.get(sessionId).getUser().getId();
             doAudit(userId, severity, action, null);
 
         } else {
@@ -34,7 +34,7 @@ public class AuditService {
 
     public void doAudit(String sessionId, AuditSeverity severity, String action, String details) {
         if (userWorkspaceService.exists(sessionId)) {
-            Long userId = userWorkspaceService.get(sessionId).getUserId();
+            Long userId = userWorkspaceService.get(sessionId).getUser().getId();
             doAudit(userId, severity, action, details);
 
         } else {
