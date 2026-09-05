@@ -9,14 +9,16 @@ import java.util.concurrent.Future;
 
 public class EndpointReadProgressModel extends BaseProgressModel implements IProgress {
     private final Endpoint endpoint;
+    private final Boolean loadingFromSDS;
     private final Map<DataSet<?>, ProgressStatus> dataSetStatusMap;
     private final Map<DataSet<?>, List<String>> dataSetErrorsMap;
     private transient Future<Void> future;
 
-    public EndpointReadProgressModel(Endpoint endpoint) {
+    public EndpointReadProgressModel(Endpoint endpoint, Boolean loadingFromSDS) {
         super(endpoint.getName());
 
         this.endpoint = endpoint;
+        this.loadingFromSDS = loadingFromSDS;
         dataSetStatusMap = new LinkedHashMap<>();
         for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
             dataSetStatusMap.put(dataSet, ProgressStatus.WAITING_TO_START);
@@ -38,8 +40,17 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     }
 
     @Override
+    public String getEndpointName() {
+        return loadingFromSDS ?
+                endpointName + " (SDS)" :
+                endpointName;
+    }
+
+    @Override
     public String getLabel() {
-        return endpoint.getName();
+        return loadingFromSDS ?
+                endpoint.getName() + " (SDS)" :
+                endpoint.getName();
     }
 
     @Override
@@ -109,6 +120,6 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     }
 
     public DataSetReadProgressModel getDataSetReadProgressModel(DataSet<?> dataSet) {
-        return new DataSetReadProgressModel(dataSet, endpoint, getStatus(dataSet), getErrors(dataSet), lastUpdated);
+        return new DataSetReadProgressModel(dataSet, endpoint, loadingFromSDS, getStatus(dataSet), getErrors(dataSet), lastUpdated);
     }
 }

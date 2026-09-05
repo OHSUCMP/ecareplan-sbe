@@ -11,19 +11,29 @@ import java.util.List;
 public class DataSetReadProgressModel extends BaseProgressModel implements IProgress {
     private final DataSet<?> dataSet;
     private final Endpoint endpoint;
+    private final Boolean loadingFromSDS;
     private final ProgressStatus status;
     private final List<String> errors;
 
-    public DataSetReadProgressModel(DataSet<?> dataSet, Endpoint endpoint, ProgressStatus status, List<String> errors, Date lastUpdated) {
+    public DataSetReadProgressModel(DataSet<?> dataSet, Endpoint endpoint, Boolean loadingFromSDS, ProgressStatus status,
+                                    List<String> errors, Date lastUpdated) {
         super(endpoint.getName());
 
         this.dataSet = dataSet;
         this.endpoint = endpoint;
+        this.loadingFromSDS = loadingFromSDS;
         this.status = status;
         this.errors = errors != null ?
                 new ArrayList<>(errors) :
                 new ArrayList<>();
         this.lastUpdated = lastUpdated;
+    }
+
+    @Override
+    public String getEndpointName() {
+        return loadingFromSDS ?
+                endpointName + " (SDS)" :
+                endpointName;
     }
 
     @Override

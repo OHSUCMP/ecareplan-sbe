@@ -21,6 +21,7 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
 
     private String sourceEndpointName;
     private String sourceEndpointIss;
+    private Boolean sourcedFromSDS = false;
 
     @JsonIgnore
     private Provenance provenance;
@@ -87,6 +88,14 @@ public abstract class BaseDataSetModel<T extends IDomainResource> {
 
     public void setSourceEndpointIss(String sourceEndpointIss) {
         this.sourceEndpointIss = sourceEndpointIss;
+    }
+
+    public Boolean isSourcedFromSDS() {
+        return sourcedFromSDS;
+    }
+
+    public void setSourcedFromSDS(Boolean sourcedFromSDS) {
+        this.sourcedFromSDS = sourcedFromSDS;
     }
 
     protected Set<String> getDistinctConceptNamesFromCodeableConcept(List<CodeableConcept> ccList) {

@@ -123,18 +123,28 @@
             return;
         }
 
-        let renderPatientModels = function(models) {
+        let renderSummaryModels = function(models) {
             if (models && models.length > 0) {
                 let html = renderSourceEndpointLegend(getSourceEndpointNamesFromModels(models), false) +
-                        '<div class="home-patient-list">';
+                        '<div class="home-summary-list">';
                 models.forEach(function(model) {
                     let sourceEndpointName = getSourceEndpointName(model.sourceEndpointName);
 
-                    html += '<article class="home-patient-card source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
+                    html += '<article class="home-summary-card source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
                             renderSourceEndpointStyle(sourceEndpointName) + '>';
-                    html += '<div class="home-patient-card-name">' + escapeHtml(model.name) + '</div>';
-                    html += '<div class="home-patient-card-meta"><span class="fa-solid fa-cake-candles me-2 color-primary" aria-hidden="true"></span>Age: ' + escapeHtml(model.age) + '</div>';
-                    html += '<div class="home-patient-card-meta"><span class="fa-solid fa-user me-2 color-primary" aria-hidden="true"></span>Gender: ' + escapeHtml(model.gender) + '</div>';
+                    html += '<h3 class="home-summary-card-name">' + escapeHtml(model.patientModel.name) + '</h3>';
+                    html += '<div class="home-summary-card-meta"><span class="fa-solid fa-cake-candles me-2 color-primary" aria-hidden="true"></span>Age: ' + escapeHtml(model.patientModel.age) + '</div>';
+                    html += '<div class="home-summary-card-meta"><span class="fa-solid fa-user me-2 color-primary" aria-hidden="true"></span>Gender: ' + escapeHtml(model.patientModel.gender) + '</div>';
+
+                    if (model.sourcedFromSDS) {
+                        let lastSyncDate = formatDate(model.sdsLastSyncCompleted, 'MMMM d, yyyy');
+                        html += '<div class="home-summary-card-meta border-top pt-2 mt-3">' +
+                                '<span class="fa-solid fa-database me-2 color-primary" aria-hidden="true"></span>' +
+                                '<strong>Retrieved from SDS</strong></div>';
+                        html += '<div class="home-summary-card-meta small">Last synced: ' +
+                                escapeHtml(lastSyncDate || 'Date unavailable') + '</div>';
+                    }
+
                     html += '</article>';
                 });
                 html += '</div>';
@@ -150,8 +160,8 @@
         }
 
         // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderPatientModels);
-        initializeSSE(renderPatientModels);
+        getUpdatedModels(renderSummaryModels);
+        initializeSSE(renderSummaryModels);
     });
 </script>
 

@@ -6,10 +6,11 @@ import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
-import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
+import edu.ohsu.cmp.ecareplan.model.view.SummaryModel;
 import edu.ohsu.cmp.ecareplan.service.EndpointService;
+import edu.ohsu.cmp.ecareplan.service.view.SummaryService;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -35,6 +36,9 @@ public class PatientHomeController extends BasePatientController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     // this is the home page for the MyCarePlanner patient-focused app
+
+    @Autowired
+    private SummaryService summaryService;
 
     @Autowired
     private EndpointService endpointService;
@@ -134,9 +138,9 @@ public class PatientHomeController extends BasePatientController {
     }
 
     @PostMapping("models")
-    public ResponseEntity<List<PatientModel>> getModels(HttpSession session) {
+    public ResponseEntity<List<SummaryModel>> getModels(HttpSession session) {
         return userWorkspaceService.exists(session.getId()) ?
-                ResponseEntity.ok(userWorkspaceService.get(session.getId()).getAllDataSetModels(DataSet.PATIENT)) :
+                ResponseEntity.ok(summaryService.getSummaryModels(session.getId())) :
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 

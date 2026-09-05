@@ -328,7 +328,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<PatientModel> buildPatients(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Patient from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Patient from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -344,6 +344,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 
         patientModel.setSourceEndpointName(e.getName());
         patientModel.setSourceEndpointIss(e.getIss());
+        patientModel.setSourcedFromSDS(true);
 
         return List.of(patientModel);
     }
@@ -351,7 +352,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<CarePlanModel> buildCarePlans(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Plans from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Care Plans from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -370,6 +371,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (CarePlanModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -378,7 +380,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<CareTeamModel> buildCareTeams(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Teams from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Care Teams from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -397,6 +399,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (CareTeamModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -405,7 +408,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ClinicalNoteModel> buildClinicalNotes(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Clinical Notes from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Clinical Notes from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -424,6 +427,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (ClinicalNoteModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -432,7 +436,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ConditionModel> buildConditions(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Conditions from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Conditions from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -451,6 +455,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (ConditionModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -459,7 +464,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<DiagnosticReportModel> buildDiagnosticReports(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Diagnostic Reports from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Diagnostic Reports from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -478,6 +483,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (DiagnosticReportModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -486,7 +492,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Encounters from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Encounters from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -505,6 +511,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (EncounterModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -513,7 +520,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<GoalModel> buildGoals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Goals from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Goals from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -532,6 +539,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (GoalModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -540,7 +548,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ImmunizationModel> buildImmunizations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Immunizations from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Immunizations from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -559,6 +567,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (ImmunizationModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -567,7 +576,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Lab Results from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Lab Results from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -586,6 +595,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (LabResultModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -594,7 +604,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<MedicationModel> buildMedications(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Medications from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Medications from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -617,6 +627,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (MedicationModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -625,7 +636,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ProcedureModel> buildProcedures(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Procedures from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Procedures from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -644,6 +655,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (ProcedureModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -652,7 +664,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<QuestionnaireResponseModel> buildQuestionnaireResponses(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Questionnaire Responses from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Questionnaire Responses from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -671,6 +683,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (QuestionnaireResponseModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -679,7 +692,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ServiceRequestModel> buildServiceRequests(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Service Requests from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Service Requests from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -698,6 +711,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (ServiceRequestModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -706,7 +720,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<SocialHistoryModel> buildSocialHistories(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Social Histories from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Social Histories from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -725,6 +739,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (SocialHistoryModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -733,7 +748,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<SurveyObservationModel> buildSurveyObservations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Survey Observations from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Survey Observations from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -752,6 +767,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (SurveyObservationModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;
@@ -760,7 +776,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     @Override
     public List<VitalsModel> buildVitals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Vitals from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Vitals from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         IGenericClient client = buildClient(sessionId);
 
@@ -779,6 +795,7 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         for (VitalsModel item : list) {
             item.setSourceEndpointName(e.getName());
             item.setSourceEndpointIss(e.getIss());
+            item.setSourcedFromSDS(true);
         }
 
         return list;

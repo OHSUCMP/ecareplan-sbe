@@ -129,7 +129,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<PatientModel> buildPatients(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Patient for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Patient for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
 
@@ -149,7 +149,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<CarePlanModel> buildCarePlans(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Plans for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Care Plans for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<CarePlanModel> list = new ArrayList<>();
@@ -172,7 +172,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<CareTeamModel> buildCareTeams(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Teams for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Care Teams for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<CareTeamModel> list = new ArrayList<>();
@@ -195,7 +195,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ClinicalNoteModel> buildClinicalNotes(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Clinical Notes for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Clinical Notes for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<ClinicalNoteModel> list = new ArrayList<>();
@@ -247,7 +247,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ConditionModel> buildConditions(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Conditions for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Conditions for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<ConditionModel> list = new ArrayList<>();
@@ -270,7 +270,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<DiagnosticReportModel> buildDiagnosticReports(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Diagnostic Reports for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Diagnostic Reports for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<DiagnosticReportModel> list = new ArrayList<>();
@@ -293,7 +293,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Encounters for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Encounters for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<EncounterModel> list = new ArrayList<>();
@@ -316,7 +316,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<GoalModel> buildGoals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Goals for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Goals for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<GoalModel> list = new ArrayList<>();
@@ -339,7 +339,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ImmunizationModel> buildImmunizations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Immunizations for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Immunizations for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<ImmunizationModel> list = new ArrayList<>();
@@ -362,7 +362,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Lab Results for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Lab Results for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<LabResultModel> list = new ArrayList<>();
@@ -385,7 +385,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<MedicationModel> buildMedications(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Medications for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Medications for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<MedicationModel> list = new ArrayList<>();
@@ -446,7 +446,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ProcedureModel> buildProcedures(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Procedures for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Procedures for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<ProcedureModel> list = new ArrayList<>();
@@ -469,7 +469,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<QuestionnaireResponseModel> buildQuestionnaireResponses(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Questionnaire Responses for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Questionnaire Responses for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<QuestionnaireResponseModel> list = new ArrayList<>();
@@ -492,7 +492,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<ServiceRequestModel> buildServiceRequests(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Service Requests for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Service Requests for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<ServiceRequestModel> list = new ArrayList<>();
@@ -515,7 +515,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<SocialHistoryModel> buildSocialHistories(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Social Histories for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Social Histories for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<SocialHistoryModel> list = new ArrayList<>();
@@ -538,7 +538,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<SurveyObservationModel> buildSurveyObservations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Survey Observations for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Survey Observations for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<SurveyObservationModel> list = new ArrayList<>();
@@ -561,7 +561,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     @Override
     public List<VitalsModel> buildVitals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
         UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Vitals for session={}, user={}, endpoint={}", sessionId, workspace.getUserId(), e.getIss());
+        logger.info("building Vitals for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
         FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
         ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
         List<VitalsModel> list = new ArrayList<>();
