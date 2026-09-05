@@ -20,16 +20,15 @@ public class FrontEndExceptionHandlingController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger(FrontEndExceptionHandlingController.class);
 
     @PostMapping(value = "audit", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> handleFrontEndException(HttpSession session,
-                                                          HttpServletRequest request,
+    public ResponseEntity<Void> handleFrontEndException(HttpServletRequest request,
                                                           @RequestBody FrontEndException fee) {
 
-        if (userWorkspaceService.exists(session.getId())) {
+        HttpSession session = request.getSession(false);
+        if (session != null && userWorkspaceService.exists(session.getId())) {
             String userAgent = request.getHeader("User-Agent");
 
-            logger.error("received {} rendering {} for session {} : agent={}, message={} (enable DEBUG logging for stack trace)",
-                    fee.getType(), fee.getPageUrl(), session.getId(), userAgent, fee.getMessage());
-            logger.debug("stack trace: {}", fee.getStackTrace());
+            logger.error("received {} rendering {} for session {} : agent={}, message={} at {}",
+                    fee.getType(), fee.getPageUrl(), session.getId(), userAgent, fee.getMessage(), fee.getStackTrace());
 
             auditService.doAudit(session.getId(), AuditSeverity.UI_ERROR, "rendering " + fee.getPageUrl(),
                     "type=" + fee.getType() +
