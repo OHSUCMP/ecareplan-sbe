@@ -8,6 +8,9 @@ import java.util.Date;
 @Entity
 @Table(name = "audit_data")
 public class AuditData {
+    private static final int MAX_EVENT_LENGTH = 100;
+    private static final int MAX_DETAILS_LENGTH = 1000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,10 +36,18 @@ public class AuditData {
     public AuditData(Long userId, AuditSeverity severity, String event, String details) {
         this.userId = userId;
         this.severity = severity;
-        this.event = event;
-        this.details = details;
+        this.event = truncate(event, MAX_EVENT_LENGTH);
+        this.details = truncate(details, MAX_DETAILS_LENGTH);
         this.created = new Date();
     }
+
+    private String truncate(String s, int max_length) {
+        if (s == null || s.length() <= max_length) {
+            return s;
+        }
+        return s.substring(0, max_length);
+    }
+
 
     @Override
     public String toString() {
