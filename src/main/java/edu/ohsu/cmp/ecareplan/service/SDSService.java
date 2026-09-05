@@ -12,6 +12,7 @@ import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.progress.ConsolidatedShareProgressModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.model.progress.ShareProgressModel;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Service
 public class SDSService extends BaseService implements IDataSetBuilder {
@@ -97,9 +99,19 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     public List<IProgress> getCurrentProgress(String sessionId) {
-        return sessionIdProgressMap.containsKey(sessionId) ?
-                new ArrayList<>(sessionIdProgressMap.get(sessionId).values()) :
-                null;
+        if (sessionIdProgressMap.containsKey(sessionId)) {
+            Map<String, List<ShareProgressModel>> map = sessionIdProgressMap.get(sessionId).values().stream()
+                    .collect(Collectors.groupingBy(ShareProgressModel::getEndpointName));
+
+            List<IProgress> list = new ArrayList<>();
+            for (List<ShareProgressModel> endpointProgressList : map.values()) {
+                list.add(new ConsolidatedShareProgressModel(endpointProgressList));
+            }
+
+            return list;
+        }
+
+        return null;
     }
 
     public List<IProgress> getCurrentProgress(String sessionId, DataSet<?> dataSet) {
