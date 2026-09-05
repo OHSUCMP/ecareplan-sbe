@@ -124,14 +124,14 @@
     font-size: 1.2rem;
 }
 
-.home-patient-list {
+.home-summary-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
 }
 
-.home-patient-card {
+.home-summary-card {
     height: 100%;
     padding: 1rem;
     border: 1px solid #e3edf1;
@@ -139,14 +139,14 @@
     background-color: #ffffff;
 }
 
-.home-patient-card-name {
+.home-summary-card-name {
     margin-bottom: 0.35rem;
     color: #004466;
     font-size: 1.1rem;
     font-weight: 700;
 }
 
-.home-patient-card-meta {
+.home-summary-card-meta {
     margin-bottom: 0.25rem;
     color: #4b5863;
 }

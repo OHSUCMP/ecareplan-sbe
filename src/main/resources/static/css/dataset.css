@@ -784,7 +784,7 @@ display.progress > div {
             var(--source-endpoint-bg, #f8fbfc);
 }
 
-.home-patient-card.source-endpoint-tinted {
+.home-summary-card.source-endpoint-tinted {
     border-color: var(--source-endpoint-border, #dbe8ee);
     border-left: 0.45rem solid var(--source-endpoint-accent, #7698a1);
     background:
