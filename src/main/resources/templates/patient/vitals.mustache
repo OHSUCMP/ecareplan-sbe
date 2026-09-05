@@ -26,66 +26,84 @@
     }
 
     function buildCardSelectorData(model) {
+        let mostRecentData = model && model.mostRecentData ? model.mostRecentData : {};
+
         return [{
             label: 'Description',
-            value: model.mostRecentData.description,
+            value: mostRecentData.description || '(No Description)',
             bootstrapWidth: 8
         }, {
             label: 'Effective Date',
-            value: formatDate(model.mostRecentData.effectiveDate),
-            valueForCompare: model.mostRecentData.effectiveDate,
+            value: formatDate(mostRecentData.effectiveDate),
+            valueForCompare: mostRecentData.effectiveDate,
             bootstrapWidth: 4
         }];
     }
 
     function buildCardData(model) {
-        let card = {};
-        card.title = model.mostRecentData.description;
+        let mostRecentData = model && model.mostRecentData ? model.mostRecentData : {};
+        let historicalData = model && Array.isArray(model.historicalData) ? model.historicalData : [];
+        let performers = Array.isArray(mostRecentData.performers) ? mostRecentData.performers : [];
+        let notes = Array.isArray(mostRecentData.notes) ? mostRecentData.notes : [];
 
-        let sources = new Set();
-        sources.add(model.mostRecentData.sourceEndpointName);
-        (model.historicalData ?? []).forEach(function(data) {
-            sources.add(data.sourceEndpointName);
+        let card = {};
+        card.title = mostRecentData.description || '(No Description)';
+
+        let sources = [];
+        if (mostRecentData.sourceEndpointName) {
+            sources.push(mostRecentData.sourceEndpointName);
+        }
+
+        historicalData.forEach(function(data) {
+            if (data && data.sourceEndpointName && sources.indexOf(data.sourceEndpointName) === -1) {
+                sources.push(data.sourceEndpointName);
+            }
         });
-        card.source = [...sources];
+        card.source = sources;
 
         card.chart = buildConsolidatedChartData(model);
 
         card.rows = [];
         card.rows.push([
-            { label: 'Result', value: model.mostRecentData.resultText ?? '(No Result)' },
-            { label: 'Effective Date', value: formatDate(model.mostRecentData.effectiveDate) ?? '(No Date)' }
+            { label: 'Result', value: mostRecentData.resultText || '(No Result)' },
+            { label: 'Effective Date', value: formatDate(mostRecentData.effectiveDate) || '(No Date)' }
         ]);
 
-        if (model.mostRecentData.performers && model.mostRecentData.performers.length > 0) {
+        if (performers.length > 0) {
             card.rows.push({
                 title: 'Performers',
                 headers: [ 'Performed by' ],
-                rows: model.mostRecentData.performers.map(function(performer) {
-                    return [ performer ];
-                }),
-                beginExpanded: true
-            });
-        }
-        if (model.mostRecentData.notes && model.mostRecentData.notes.length > 0) {
-            card.rows.push({
-                title: 'Notes',
-                headers: [ 'Note' ],
-                rows: model.mostRecentData.notes.map(function(note) {
-                    return [ note ];
+                rows: performers.map(function(performer) {
+                    return [ performer || '' ];
                 }),
                 beginExpanded: true
             });
         }
 
-        if (model.historicalData && model.historicalData.length > 0) {
+        if (notes.length > 0) {
+            card.rows.push({
+                title: 'Notes',
+                headers: [ 'Note' ],
+                rows: notes.map(function(note) {
+                    return [ note || '' ];
+                }),
+                beginExpanded: true
+            });
+        }
+
+        if (historicalData.length > 0) {
             card.rows.push({
                 title: 'Historical Data',
                 headers: [ 'Result', 'Effective Date' ],
-                rows: model.historicalData.map(function(data) {
+                rows: historicalData.map(function(data) {
+                    data = data || {};
+
                     return {
                         source: data.sourceEndpointName,
-                        data: [ data.resultText ?? '(No Result)', formatDate(data.effectiveDate) ?? '(No Date)' ]
+                        data: [
+                            data.resultText || '(No Result)',
+                            formatDate(data.effectiveDate) || '(No Date)'
+                        ]
                     };
                 }),
                 beginExpanded: false
@@ -96,13 +114,16 @@
     }
 
     $(document).ready(function() {
-        if ($('#sessionEstablished').text() !== 'true') {
-            return;
-        }
+        try {
+            if ($('#sessionEstablished').text() !== 'true') {
+                return;
+            }
 
-        // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderModels);
-        initializeSSE(renderModels);
+            getUpdatedModels(renderModels);
+            initializeSSE(renderModels);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + ' document ready');
+        }
     });
 </script>
 

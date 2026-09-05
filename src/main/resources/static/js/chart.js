@@ -30,7 +30,7 @@ function renderCardChartContainer(baseId, chartData) {
     if (!chartHasData(chartData)) return '';
 
     return '<div class="chart-container mb-3">' +
-        '<canvas class="chart" id="' + baseId + '-chart" data-chart-id="' + baseId + '" aria-label="' + (chartData.title ?? 'Chart') + '"></canvas>' +
+        '<canvas class="chart" id="' + baseId + '-chart" data-chart-id="' + baseId + '" aria-label="' + escapeHtml(chartData.title || 'Chart') + '"></canvas>' +
         '<script type="application/json" id="' + baseId + '-chart-data">' +
         JSON.stringify(chartData) +
         '</script>' +
@@ -74,14 +74,20 @@ function createLineChart(options, data) {
 
     // Remove Chart.js' default horizontal padding so the first and last data
     // points sit at the edges of the plotting area.
-    const xValues = (chartData.datasets || [])
-        .flatMap((dataset) => dataset.data || [])
-        .map((point) => typeof point === 'object' ? Number(point.x) : NaN)
-        .filter((value) => Number.isFinite(value));
+    const xValues = [];
+    (chartData.datasets || []).forEach(function(dataset) {
+        (dataset.data || []).forEach(function(point) {
+            let value = point && typeof point === 'object' ? Number(point.x) : NaN;
+            if (Number.isFinite(value)) {
+                xValues.push(value);
+            }
+        });
+    });
+
     if (xValues.length > 0) {
         const xScale = Object.assign({}, chartOptions.scales && chartOptions.scales.x);
-        const minX = Math.min(...xValues);
-        const maxX = Math.max(...xValues);
+        const minX = Math.min.apply(Math, xValues);
+        const maxX = Math.max.apply(Math, xValues);
 
         if (minX === maxX) {
             const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
@@ -114,7 +120,7 @@ function createLineChart(options, data) {
 
 function formatChartDate(timestamp) {
     const date = new Date(Number(timestamp));
-    if (Number.isNaN(date.getTime())) {
+    if (isNaN(date.getTime())) {
         return '';
     }
 
@@ -124,34 +130,45 @@ function formatChartDate(timestamp) {
 
 function renderCharts() {
     $('.chart').each(function() {
-        const canvas = this;
-        const chartId = $(canvas).attr('data-chart-id');
-        const chartDataElement = $('#' + chartId + '-chart-data')[0];
+        try {
+            const canvas = this;
+            const chartId = $(canvas).attr('data-chart-id');
+            const chartDataElement = $('#' + chartId + '-chart-data')[0];
 
-        if (!chartDataElement) return;
+            if (!chartDataElement) return;
 
-        const existingChart = typeof Chart !== 'undefined' && typeof Chart.getChart === 'function'
-            ? Chart.getChart(canvas)
-            : null;
-        if (existingChart) {
-            existingChart.destroy();
+            const existingChart = typeof Chart !== 'undefined' && typeof Chart.getChart === 'function'
+                ? Chart.getChart(canvas)
+                : null;
+            if (existingChart) {
+                existingChart.destroy();
+            }
+
+            const chart = JSON.parse(chartDataElement.textContent || '{}');
+            const chartData = getChartData(chart);
+
+            const hasVisibleData = chartData.datasets && chartData.datasets.some(function(dataset) {
+                return dataset.data && dataset.data.length > 0;
+            });
+
+            $(canvas).closest('.chart-container').toggleClass('d-none', !hasVisibleData);
+
+            if (!hasVisibleData) return;
+
+            createLineChart(
+                Object.assign(getChartOptions(chart), { canvas: canvas }),
+                chartData
+            );
+
+        } catch (error) {
+            if (typeof window.handleFrontEndException === 'function') {
+                window.handleFrontEndException(error, 'renderCharts');
+            } else if (window.console && typeof window.console.error === 'function') {
+                console.error('Error rendering chart:', error);
+            }
+
+            $(this).closest('.chart-container').addClass('d-none');
         }
-
-        const chart = JSON.parse(chartDataElement.textContent || '{}');
-        const chartData = getChartData(chart);
-
-        const hasVisibleData = chartData.datasets && chartData.datasets.some(function(dataset) {
-            return dataset.data && dataset.data.length > 0;
-        });
-
-        $(canvas).closest('.chart-container').toggleClass('d-none', !hasVisibleData);
-
-        if (!hasVisibleData) return;
-
-        createLineChart(
-            Object.assign(getChartOptions(chart), { canvas: canvas }),
-            chartData
-        );
     });
 }
 
@@ -168,9 +185,10 @@ function chartPointHasVisibleSource(point) {
 }
 
 function normalizeChartPoints(points) {
-    return (points || [])
+    return (Array.isArray(points) ? points : [])
         .filter(chartPointHasVisibleSource)
         .map(function(point) {
+            point = point || {};
             return {
                 source: point.source,
                 x: new Date(point.x).getTime(),
@@ -190,8 +208,9 @@ function getChartData(chart) {
         return {
             datasets: chart.lines
                 .map(function(line, index) {
+                    line = line || {};
                     return {
-                        label: line.label ?? '',
+                        label: line.label || '',
                         data: normalizeChartPoints(line.data),
                         borderColor: LINE_CHART_COLORS[index % LINE_CHART_COLORS.length],
                         backgroundColor: LINE_CHART_COLORS[index % LINE_CHART_COLORS.length],
@@ -203,7 +222,6 @@ function getChartData(chart) {
                 })
         };
     }
-
 
     const points = normalizeChartPoints(chart && chart.data ? chart.data : []);
 
@@ -243,7 +261,7 @@ function getChartOptions(chart) {
             tooltip: {
                 callbacks: {
                     title: function(items) {
-                        return items.length > 0
+                        return items && items.length > 0 && items[0].parsed
                             ? formatChartDate(items[0].parsed.x)
                             : '';
                     }
@@ -282,7 +300,7 @@ function getChartOptions(chart) {
 function buildConsolidatedChartData(model) {
     if (!model || !model.mostRecentData) return null;
 
-    const records = [ model.mostRecentData ].concat(model.historicalData || []);
+    const records = [ model.mostRecentData ].concat(Array.isArray(model.historicalData) ? model.historicalData : []);
     const linesByConceptName = new Map();
 
     records.forEach(function(record) {
@@ -322,10 +340,10 @@ function buildConsolidatedChartData(model) {
     if (lines.length === 0) return null;
 
     return {
-        title: model.mostRecentData.description + ' Over Time',
+        title: (model.mostRecentData.description || 'Vitals') + ' Over Time',
         labels: {
             x: 'Date',
-            y: model.mostRecentData.resultUnits ?? ''
+            y: model.mostRecentData.resultUnits || ''
         },
         lines: lines
     };

@@ -26,9 +26,11 @@
     }
 
     function buildCardSelectorData(model) {
+        model = model || {};
+
         return [{
             label: 'Description',
-            value: model.description,
+            value: model.description || '(No Description)',
             bootstrapWidth: 5
         }, {
             label: 'Start Date',
@@ -37,46 +39,55 @@
             bootstrapWidth: 4
         }, {
             label: 'Status',
-            value: model.consolidatedStatus,
+            value: model.consolidatedStatus || '',
             bootstrapWidth: 3
         }];
     }
 
     function buildCardData(model) {
+        model = model || {};
+
         let card = {};
-        card.title = model.description ?? '(No Description)';
+        card.title = model.description || '(No Description)';
         card.source = model.sourceEndpointName;
         card.rows = [];
+
         if (model.expressedBy || model.startDate) {
             card.rows.push([
-                { label: 'Expressed By', value: model.expressedBy },
+                { label: 'Expressed By', value: model.expressedBy || '' },
                 { label: 'Start Date', value: formatDate(model.startDate) }
             ]);
         }
         if (model.consolidatedStatus) {
             card.rows.push([{ label: 'Status', value: model.consolidatedStatus }]);
         }
-        if (model.notes && model.notes.length > 0) {
+
+        let notes = Array.isArray(model.notes) ? model.notes : [];
+        if (notes.length > 0) {
             card.rows.push({
                 title: 'Notes',
                 headers: [ 'Note' ],
-                rows: model.notes.map(function(note) {
-                    return [ note ];
+                rows: notes.map(function(note) {
+                    return [ note || '' ];
                 }),
                 beginExpanded: true
             });
         }
+
         return card;
     }
 
     $(document).ready(function() {
-        if ($('#sessionEstablished').text() !== 'true') {
-            return;
-        }
+        try {
+            if ($('#sessionEstablished').text() !== 'true') {
+                return;
+            }
 
-        // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderModels);
-        initializeSSE(renderModels);
+            getUpdatedModels(renderModels);
+            initializeSSE(renderModels);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + ' document ready');
+        }
     });
 </script>
 

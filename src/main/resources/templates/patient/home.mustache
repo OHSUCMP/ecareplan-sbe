@@ -124,40 +124,45 @@
         }
 
         let renderSummaryModels = function(models) {
-            if (models && models.length > 0) {
-                let html = renderSourceEndpointLegend(getSourceEndpointNamesFromModels(models), false) +
-                        '<div class="home-summary-list">';
-                models.forEach(function(model) {
-                    let sourceEndpointName = getSourceEndpointName(model.sourceEndpointName);
+            try {
+                if (models && models.length > 0) {
+                    let html = renderSourceEndpointLegend(getSourceEndpointNamesFromModels(models), false) +
+                            '<div class="home-summary-list">';
+                    models.forEach(function(model) {
+                        let patientModel = model && model.patientModel ? model.patientModel : {};
+                        let sourceEndpointName = getSourceEndpointName(model ? model.sourceEndpointName : null);
 
-                    html += '<article class="home-summary-card source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
-                            renderSourceEndpointStyle(sourceEndpointName) + '>';
-                    html += '<h3 class="home-summary-card-name">' + escapeHtml(model.patientModel.name) + '</h3>';
-                    html += '<div class="home-summary-card-meta"><span class="fa-solid fa-cake-candles me-2 color-primary" aria-hidden="true"></span>Age: ' + escapeHtml(model.patientModel.age) + '</div>';
-                    html += '<div class="home-summary-card-meta"><span class="fa-solid fa-user me-2 color-primary" aria-hidden="true"></span>Gender: ' + escapeHtml(model.patientModel.gender) + '</div>';
+                        html += '<article class="home-summary-card source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointName) + '"' +
+                                renderSourceEndpointStyle(sourceEndpointName) + '>';
+                        html += '<h3 class="home-summary-card-name">' + escapeHtml(patientModel.name || '(Name unavailable)') + '</h3>';
+                        html += '<div class="home-summary-card-meta"><span class="fa-solid fa-cake-candles me-2 color-primary" aria-hidden="true"></span>Age: ' + escapeHtml(patientModel.age || 'Unavailable') + '</div>';
+                        html += '<div class="home-summary-card-meta"><span class="fa-solid fa-user me-2 color-primary" aria-hidden="true"></span>Gender: ' + escapeHtml(patientModel.gender || 'Unavailable') + '</div>';
 
-                    if (model.sourcedFromSDS) {
-                        let lastSyncDate = formatDate(model.sdsLastSyncCompleted, 'MMMM d, yyyy');
-                        html += '<div class="home-summary-card-meta border-top pt-2 mt-3">' +
-                                '<span class="fa-solid fa-database me-2 color-primary" aria-hidden="true"></span>' +
-                                '<strong>Retrieved from SDS</strong></div>';
-                        html += '<div class="home-summary-card-meta small">Last synced: ' +
-                                escapeHtml(lastSyncDate || 'Date unavailable') + '</div>';
-                    }
+                        if (model && model.sourcedFromSDS) {
+                            let lastSyncDate = formatDate(model.sdsLastSyncCompleted, 'MMMM d, yyyy');
+                            html += '<div class="home-summary-card-meta border-top pt-2 mt-3">' +
+                                    '<span class="fa-solid fa-database me-2 color-primary" aria-hidden="true"></span>' +
+                                    '<strong>Retrieved from SDS</strong></div>';
+                            html += '<div class="home-summary-card-meta small">Last synced: ' +
+                                    escapeHtml(lastSyncDate || 'Date unavailable') + '</div>';
+                        }
 
-                    html += '</article>';
-                });
-                html += '</div>';
-                $('#modelsContainer').html(html);
-            } else {
-                $('#modelsContainer').html(
-                        '<div class="home-loading-state">' +
-                        '<span class="fa-solid fa-circle-info color-primary" aria-hidden="true"></span>' +
-                        '<span>No patient records are currently available. You may need to connect a health record provider.</span>' +
-                        '</div>'
-                );
+                        html += '</article>';
+                    });
+                    html += '</div>';
+                    $('#modelsContainer').html(html);
+                } else {
+                    $('#modelsContainer').html(
+                            '<div class="home-loading-state">' +
+                            '<span class="fa-solid fa-circle-info color-primary" aria-hidden="true"></span>' +
+                            '<span>No patient records are currently available. You may need to connect a health record provider.</span>' +
+                            '</div>'
+                    );
+                }
+            } catch (error) {
+                reportAndRenderModelsError(error, 'home summary renderSummaryModels');
             }
-        }
+        };
 
         // on page load, get the list of models before SSE triggers
         getUpdatedModels(renderSummaryModels);

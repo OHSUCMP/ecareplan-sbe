@@ -26,23 +26,30 @@
     }
 
     function buildCardSelectorData(model) {
+        model = model || {};
+
+        let effectiveDate = model.onsetDate || model.recordedDate;
+
         return [{
             label: 'Name',
-            value: model.name,
+            value: model.name || '(No Name)',
             bootstrapWidth: 7
         }, {
             label: 'Effective Date',
-            value: formatDate(model.onsetDate || model.recordedDate),
-            valueForCompare: model.onsetDate || model.recordedDate,
+            value: formatDate(effectiveDate),
+            valueForCompare: effectiveDate,
             bootstrapWidth: 5
         }];
     }
 
     function buildCardData(model) {
+        model = model || {};
+
         let card = {};
-        card.title = model.name;
+        card.title = model.name || '(No Name)';
         card.source = model.sourceEndpointName;
         card.rows = [];
+
         if (model.asserter) {
             card.rows.push([{ label: 'Asserted By', value: model.asserter }]);
         }
@@ -55,27 +62,33 @@
         if (model.onsetDate) {
             card.rows.push([{ label: 'Onset Date', value: formatDate(model.onsetDate) }]);
         }
-        if (model.notes && model.notes.length > 0) {
+
+        let notes = Array.isArray(model.notes) ? model.notes : [];
+        if (notes.length > 0) {
             card.rows.push({
                 title: 'Notes',
                 headers: [ 'Note' ],
-                rows: model.notes.map(function(note) {
-                    return [ note ];
+                rows: notes.map(function(note) {
+                    return [ note || '' ];
                 }),
                 beginExpanded: true
             });
         }
+
         return card;
     }
 
     $(document).ready(function() {
-        if ($('#sessionEstablished').text() !== 'true') {
-            return;
-        }
+        try {
+            if ($('#sessionEstablished').text() !== 'true') {
+                return;
+            }
 
-        // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderModels);
-        initializeSSE(renderModels);
+            getUpdatedModels(renderModels);
+            initializeSSE(renderModels);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + ' document ready');
+        }
     });
 </script>
 

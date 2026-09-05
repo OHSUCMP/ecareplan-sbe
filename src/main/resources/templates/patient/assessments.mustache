@@ -26,9 +26,11 @@
     }
 
     function buildCardSelectorData(model) {
+        model = model || {};
+
         return [{
             label: 'Name',
-            value: model.label,
+            value: model.label || '(No Name)',
             bootstrapWidth: 8
         }, {
             label: 'Authored Date',
@@ -39,20 +41,28 @@
     }
 
     function buildCardData(model) {
+        model = model || {};
+
         let card = {};
-        card.title = model.label;
+        card.title = model.label || '(No Name)';
         card.learnMoreUrl = model.learnMoreUrl;
 
-        let sources = new Set();
-        (model.responseSummaryList ?? []).forEach(function(data) {
-            sources.add(data.sourceEndpointName);
-        })
-        card.source = [...sources];
+        let sources = [];
+        let responseSummaryList = Array.isArray(model.responseSummaryList) ? model.responseSummaryList : [];
 
-        if (model.responseSummaryList && model.responseSummaryList.length >= 2) {
+        responseSummaryList.forEach(function(data) {
+            if (data && data.sourceEndpointName && sources.indexOf(data.sourceEndpointName) === -1) {
+                sources.push(data.sourceEndpointName);
+            }
+        });
+        card.source = sources;
+
+        if (responseSummaryList.length >= 2) {
             let chartData = [];
 
-            model.responseSummaryList.forEach(function(response) {
+            responseSummaryList.forEach(function(response) {
+                response = response || {};
+
                 let x = response.authored;
                 let y = Number(response.score);
 
@@ -77,14 +87,20 @@
         }
 
         card.rows = [];
-        if (model.responseSummaryList && model.responseSummaryList.length > 0) {
+        if (responseSummaryList.length > 0) {
             card.rows.push({
                 title: 'Historical Data',
                 headers: [ 'Authored Date', 'Score', 'Interpretation' ],
-                rows: model.responseSummaryList.map(function(data) {
+                rows: responseSummaryList.map(function(data) {
+                    data = data || {};
+
                     return {
                         source: data.sourceEndpointName,
-                        data: [ formatDate(data.authored), data.score, data.interpretation ]
+                        data: [
+                            formatDate(data.authored),
+                            data.score === undefined || data.score === null ? '' : data.score,
+                            data.interpretation || ''
+                        ]
                     };
                 }),
                 beginExpanded: true
@@ -95,12 +111,16 @@
     }
 
     $(document).ready(function() {
-        if ($('#sessionEstablished').text() !== 'true') {
-            return;
-        }
+        try {
+            if ($('#sessionEstablished').text() !== 'true') {
+                return;
+            }
 
-        getUpdatedModels(renderModels);
-        initializeSSE(renderModels);
+            getUpdatedModels(renderModels);
+            initializeSSE(renderModels);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + ' document ready');
+        }
     });
 </script>
 
