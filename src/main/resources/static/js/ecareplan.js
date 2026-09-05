@@ -5,7 +5,11 @@
     let reportingFrontEndException = false;
 
     function getFrontEndExceptionPageUrl() {
-        return window.location ? window.location.href : '';
+        if (!window.location) {
+            return '';
+        }
+
+        return window.location.pathname + window.location.search + window.location.hash;
     }
 
     function getContextPathForFrontEndExceptionHandler() {
