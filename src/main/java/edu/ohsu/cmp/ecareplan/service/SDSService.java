@@ -3,6 +3,7 @@ package edu.ohsu.cmp.ecareplan.service;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -262,6 +263,10 @@ public class SDSService extends BaseService implements IDataSetBuilder {
                                 // Connection refused
                                 throw fcce;
 
+                            } catch (ResourceNotFoundException rnfe) {
+                                // HTTP 404 Not Found - generally thrown if the SDS can't introspect
+                                throw rnfe;
+
                             } catch (Exception e) {
                                 logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
                                         id, endpoint.getName(), sessionId, e.getMessage());
@@ -288,6 +293,9 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 
                         if (e instanceof FhirClientConnectionException fcce) {
                             throw fcce;
+
+                        } else if (e instanceof ResourceNotFoundException rnfe) {
+                            throw rnfe;
                         }
 
                     } finally {
