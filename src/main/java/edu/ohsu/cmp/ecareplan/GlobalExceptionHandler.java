@@ -28,12 +28,11 @@ public class GlobalExceptionHandler {
     public Object handleException(HttpSession session, HttpServletRequest request, HttpServletResponse response, Exception e) {
         if (e instanceof SessionMissingException || e instanceof AsyncRequestNotUsableException ||
                 e instanceof HttpMessageNotWritableException || e instanceof AsyncRequestTimeoutException) {
-            logger.debug("trapped " + e.getClass().getName() + " at " + request.getRequestURI() +
-                    " for session " + session.getId());
+            logger.debug("trapped {} at {} for session {}", e.getClass().getSimpleName(), request.getRequestURI(), session.getId());
 
         } else {
-            logger.error("trapped " + e.getClass().getName() + " at " + request.getRequestURI() +
-                    " for session " + session.getId() + " - " + e.getMessage() + " (enable DEBUG logging for stack trace)");
+            logger.error("trapped {} at {} for session {} - {} (enable DEBUG logging for stack trace)",
+                    e.getClass().getSimpleName(), request.getRequestURI(), session.getId(), e.getMessage());
             logger.debug("stack trace: ", e);
 
             auditService.doAudit(session.getId(), AuditSeverity.ERROR, "application exception", "encountered " +
@@ -44,7 +43,7 @@ public class GlobalExceptionHandler {
             return "error";
 
         } else {
-            return new ResponseEntity<String>("the system encountered an internal error.  see logs for details.",
+            return new ResponseEntity<>("the system encountered an internal error.  see logs for details.",
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
