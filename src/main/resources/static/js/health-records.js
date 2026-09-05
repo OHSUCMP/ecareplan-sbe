@@ -10,11 +10,17 @@ function resetLaunchState() {
 }
 
 $(document).on('change', '#endpointSelect', function() {
-    updateLoginButtonState();
+    try {
+        updateLoginButtonState();
+    } catch (error) {
+        if (typeof window.handleFrontEndException === 'function') {
+            window.handleFrontEndException(error, 'health-records endpoint change');
+        }
+    }
 });
 
 function showError(errorMessage) {
-    $('#errorMessage').text(errorMessage);
+    $('#errorMessage').text(errorMessage || 'An unexpected error occurred.');
     $('#messageContainer').removeClass('hidden');
 }
 
@@ -43,40 +49,85 @@ function reportLaunch(endpointId, _callback) {
             endpointId: endpointId
         }
     }).done(function(data, textStatus, jqXHR) {
-        _callback();
+        try {
+            _callback();
+        } catch (error) {
+            if (typeof window.handleFrontEndException === 'function') {
+                window.handleFrontEndException(error, 'health-records reportLaunch callback');
+            }
+
+            showError('Unable to start login for the selected health record provider.');
+            doWait(false);
+        }
     }).fail(function(jqXHR) {
-        console.error("caught error reporting launch: '" + jqXHR.responseText + "' (status=" + jqXHR.status + ")");
-        showError(jqXHR.responseText);
+        let message = jqXHR && jqXHR.responseText ? jqXHR.responseText : 'Unable to prepare login.';
+
+        if (window.console && typeof window.console.error === 'function') {
+            console.error("caught error reporting launch: '" + message + "' (status=" + (jqXHR ? jqXHR.status : 'unknown') + ")");
+        }
+
+        showError(message);
         doWait(false);
     });
 }
 
 $(document).on('click', '#loginButton', function() {
-    clearError();
-    doWait(true);
+    try {
+        clearError();
+        doWait(true);
 
-    let el = $('#endpointSelect').find('option:selected').first();
-    let endpointId = el.val();
+        let el = $('#endpointSelect').find('option:selected').first();
+        let endpointId = el.val();
 
-    reportLaunch(endpointId, function() {
-        let clientId = el.data('client-id');
-        let scope = el.data('scope');
-        let redirectUri = el.data('redirect-uri');
-        let iss = el.data('iss');
+        if (!endpointId) {
+            showError('Please select a health record provider.');
+            doWait(false);
+            return;
+        }
 
-        FHIR.oauth2.authorize({
-            "client_id": clientId,
-            "scope": scope,
-            "redirect_uri": redirectUri,
-            "iss": iss
+        reportLaunch(endpointId, function() {
+            let clientId = el.data('client-id');
+            let scope = el.data('scope');
+            let redirectUri = el.data('redirect-uri');
+            let iss = el.data('iss');
+
+            if (!window.FHIR || !FHIR.oauth2 || typeof FHIR.oauth2.authorize !== 'function') {
+                throw new Error('FHIR OAuth client is not available.');
+            }
+
+            FHIR.oauth2.authorize({
+                "client_id": clientId,
+                "scope": scope,
+                "redirect_uri": redirectUri,
+                "iss": iss
+            });
         });
-    });
+    } catch (error) {
+        if (typeof window.handleFrontEndException === 'function') {
+            window.handleFrontEndException(error, 'health-records login click');
+        }
+
+        showError('Unable to start login for the selected health record provider.');
+        doWait(false);
+    }
 });
 
 $(document).ready(function() {
-    resetLaunchState();
+    try {
+        resetLaunchState();
+    } catch (error) {
+        if (typeof window.handleFrontEndException === 'function') {
+            window.handleFrontEndException(error, 'health-records document ready');
+        }
+    }
 });
 
 window.addEventListener('pageshow', function() {
-    resetLaunchState();
+    try {
+        resetLaunchState();
+    } catch (error) {
+        if (typeof window.handleFrontEndException === 'function') {
+            window.handleFrontEndException(error, 'health-records pageshow');
+        }
+    }
 });

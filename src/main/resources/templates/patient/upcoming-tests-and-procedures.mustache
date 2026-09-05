@@ -26,9 +26,11 @@
     }
 
     function buildCardSelectorData(model) {
+        model = model || {};
+
         return [{
             label: 'Description',
-            value: model.description ?? '(No Description)',
+            value: model.description || '(No Description)',
             bootstrapWidth: 8
         }, {
             label: 'Ordered On',
@@ -39,47 +41,57 @@
     }
 
     function buildCardData(model) {
+        model = model || {};
+
         let card = {};
-        card.title = model.description ?? '(No Description)';
+        let reasons = Array.isArray(model.reasons) ? model.reasons : [];
+        let notes = Array.isArray(model.notes) ? model.notes : [];
+
+        card.title = model.description || '(No Description)';
         card.source = model.sourceEndpointName;
         card.rows = [];
+
         if (model.requester) {
             card.rows.push([{ label: 'Requested By', value: model.requester }]);
         }
         if (model.authoredOn) {
             card.rows.push([{ label: 'Ordered On', value: formatDate(model.authoredOn) }]);
         }
-        if (model.reasons && model.reasons.length > 0) {
+        if (reasons.length > 0) {
             card.rows.push({
                 title: 'Reasons',
                 headers: [ 'Reason' ],
-                rows: model.reasons.map(function(reason) {
-                    return [ reason ];
+                rows: reasons.map(function(reason) {
+                    return [ reason || '' ];
                 }),
                 beginExpanded: true
             });
         }
-        if (model.notes && model.notes.length > 0) {
+        if (notes.length > 0) {
             card.rows.push({
                 title: 'Notes',
                 headers: [ 'Note' ],
-                rows: model.notes.map(function(note) {
-                    return [ note ];
+                rows: notes.map(function(note) {
+                    return [ note || '' ];
                 }),
                 beginExpanded: true
             });
         }
+
         return card;
     }
 
     $(document).ready(function() {
-        if ($('#sessionEstablished').text() !== 'true') {
-            return;
-        }
+        try {
+            if ($('#sessionEstablished').text() !== 'true') {
+                return;
+            }
 
-        // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderModels);
-        initializeSSE(renderModels);
+            getUpdatedModels(renderModels);
+            initializeSSE(renderModels);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + ' document ready');
+        }
     });
 </script>
 

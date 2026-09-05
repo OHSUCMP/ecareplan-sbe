@@ -1,5 +1,30 @@
 function getCardSelectorSortValue(value) {
-    return $('<div>').html(value ?? '').text().trim().toLowerCase();
+    return $('<div>').html(value === undefined || value === null ? '' : value).text().trim().toLowerCase();
+}
+
+function hasArrayValues(value) {
+    return Array.isArray(value) && value.length > 0;
+}
+
+function safeTextValue(value, fallback) {
+    return value === undefined || value === null ? fallback : value;
+}
+
+function reportAndRenderModelsError(error, context) {
+    if (typeof window.handleFrontEndException === 'function') {
+        window.handleFrontEndException(error, context);
+    } else if (window.console && typeof window.console.error === 'function') {
+        console.error('Front-end rendering error:', error);
+    }
+
+    let container = $('#modelsContainer');
+    if (container.length > 0) {
+        container.html(
+            '<div class="alert alert-danger" role="alert">' +
+            'Unable to display records for this section. Please refresh the page or try again later.' +
+            '</div>'
+        );
+    }
 }
 
 const sourceEndpointColorPalette = [
@@ -24,7 +49,7 @@ const sourceEndpointColorPalette = [
 const defaultSourceEndpointColor = { background: '#f8fbfc', border: '#dbe8ee', accent: '#7698a1' };
 
 function getSourceEndpointColorPaletteIndex(sourceEndpointName) {
-    let source = String(sourceEndpointName ?? '').trim().toLocaleLowerCase();
+    let source = String(safeTextValue(sourceEndpointName, '')).trim().toLowerCase();
 
     let hash = 2166136261;
     for (let i = 0; i < source.length; i++) {
@@ -36,7 +61,7 @@ function getSourceEndpointColorPaletteIndex(sourceEndpointName) {
 }
 
 function getSourceEndpointColor(sourceEndpointName) {
-    let source = String(sourceEndpointName ?? '').trim();
+    let source = String(safeTextValue(sourceEndpointName, '')).trim();
 
     if (source === '') {
         return defaultSourceEndpointColor;
@@ -57,22 +82,31 @@ function renderSourceEndpointStyle(sourceEndpointName) {
 let hiddenSourceEndpointNames = new Set();
 
 function getSourceEndpointName(value) {
-    let source = String(value ?? '').trim();
+    let source = String(safeTextValue(value, '')).trim();
     return source === '' ? 'Unknown Source' : source;
 }
 
 function getSourceEndpointNames(source) {
     let sources = Array.isArray(source) ? source : [source];
+    let uniqueSources = [];
 
-    return [...new Set(
-        sources
-            .map(getSourceEndpointName)
-            .filter(sourceEndpointName => sourceEndpointName)
-    )];
+    sources
+        .map(getSourceEndpointName)
+        .filter(function(sourceEndpointName) {
+            return sourceEndpointName;
+        })
+        .forEach(function(sourceEndpointName) {
+            if (uniqueSources.indexOf(sourceEndpointName) === -1) {
+                uniqueSources.push(sourceEndpointName);
+            }
+        });
+
+    return uniqueSources;
 }
 
 function getPrimarySourceEndpointName(source) {
-    return getSourceEndpointNames(source)[0] ?? getSourceEndpointName(null);
+    let sourceNames = getSourceEndpointNames(source);
+    return safeTextValue(sourceNames[0], getSourceEndpointName(null));
 }
 
 function getSourceEndpointDataAttribute(source) {
@@ -94,16 +128,16 @@ function getSourceEndpointNamesFromModels(models) {
     models.forEach(function(model) {
         let sources = [];
 
-        if (model?.card?.source !== undefined) {
+        if (model && model.card && model.card.source !== undefined) {
             sources = getSourceEndpointNames(model.card.source);
-        } else if (model?.source !== undefined) {
+        } else if (model && model.source !== undefined) {
             sources = getSourceEndpointNames(model.source);
         } else {
-            sources = getSourceEndpointNames(model?.sourceEndpointName);
+            sources = getSourceEndpointNames(model ? model.sourceEndpointName : undefined);
         }
 
         sources.forEach(function(sourceName) {
-            if (!sourceNames.includes(sourceName)) {
+            if (sourceNames.indexOf(sourceName) === -1) {
                 sourceNames.push(sourceName);
             }
         });
@@ -156,8 +190,8 @@ function renderSourceEndpointLegend(sourceEndpointNames, interactive = true) {
 
 function renderCardSelectors(id, cardSelector, card, selected) {
     let sortAttributes = '';
-    let primarySourceEndpointName = getPrimarySourceEndpointName(card?.source);
-    let sourceEndpointNames = getSourceEndpointDataAttribute(card?.source);
+    let primarySourceEndpointName = getPrimarySourceEndpointName(card ? card.source : undefined);
+    let sourceEndpointNames = getSourceEndpointDataAttribute(card ? card.source : undefined);
 
     if (Array.isArray(cardSelector)) {
         cardSelector.forEach(function(selectorItem, index) {
@@ -181,12 +215,12 @@ function renderCardSelectors(id, cardSelector, card, selected) {
         html += '<div class="row g-4 row-cols-sm-' + cardSelector.length + ' g-4 card-selector-fields">';
         cardSelector.forEach(function(selectorItem) {
             html += '<div class="col-sm-' + selectorItem.bootstrapWidth + ' card-selector-field">' +
-                (selectorItem.value ?? '') +
+                safeTextValue(selectorItem.value, '') +
                 '</div>';
         });
         html += '</div>';
     } else {
-        html += cardSelector ?? '';
+        html += safeTextValue(cardSelector, '');
     }
 
     html += '</button>';
@@ -205,7 +239,7 @@ function renderCardSelectorHeaders(selector) {
         html += '<div class="col-sm-' + selectorItem.bootstrapWidth + ' card-selector-field">' +
             '<button type="button" class="card-selector-sort-button" data-sort-index="' + index + '" aria-sort="none">' +
             '<span class="card-selector-sort-label">' +
-            '<span class="card-selector-sort-text">' + escapeHtml(selectorItem.label ?? '') + '</span>' +
+            '<span class="card-selector-sort-text">' + escapeHtml(safeTextValue(selectorItem.label, '')) + '</span>' +
             '</span>' +
             '<span class="card-selector-sort-indicator" aria-hidden="true"></span>' +
             '</button>' +
@@ -218,7 +252,9 @@ function renderCardSelectorHeaders(selector) {
     return html;
 }
 
-function renderDatasetFilter(query = '') {
+function renderDatasetFilter(query) {
+    query = safeTextValue(query, '');
+
     return '<div class="dataset-filter">' +
         '<label class="form-label" for="datasetFilter">Filter records</label>' +
         '<input class="form-control" id="datasetFilter" type="search"' +
@@ -229,7 +265,9 @@ function renderDatasetFilter(query = '') {
         '</div>';
 }
 
-function renderCardSelectorLayout(items, sourceEndpointNames = []) {
+function renderCardSelectorLayout(items, sourceEndpointNames) {
+    sourceEndpointNames = Array.isArray(sourceEndpointNames) ? sourceEndpointNames : [];
+
     let selectors = [];
     let cards = [];
 
@@ -248,7 +286,7 @@ function renderCardSelectorLayout(items, sourceEndpointNames = []) {
         '<div class="row g-4 card-selector-layout">' +
         '<div class="col-6 d-none d-md-block">' +
         '<div class="card-selector-list-container">' +
-        renderCardSelectorHeaders(items[0]?.selector) +
+        renderCardSelectorHeaders(items.length > 0 ? items[0].selector : null) +
         '<div class="card-selector-scroll">' +
         '<div class="list-group card-selector-items" role="tablist" aria-label="Available records">' +
         selectors.join('\n') +
@@ -342,78 +380,90 @@ function highlightDatasetFilterText(element, query) {
 }
 
 function applyDatasetFilter() {
-    let container = $('#modelsContainer');
-    let layout = container.find('.card-selector-layout');
-    let normalizedQuery = datasetFilterQuery.trim().toLocaleLowerCase();
-    let query = datasetFilterQuery.trim();
-    let selectors = layout.find('.card-selector');
-    let matchingCount = 0;
+    try {
+        let container = $('#modelsContainer');
+        let layout = container.find('.card-selector-layout');
+        let normalizedQuery = datasetFilterQuery.trim().toLowerCase();
+        let query = datasetFilterQuery.trim();
+        let selectors = layout.find('.card-selector');
+        let matchingCount = 0;
 
-    clearDatasetFilterHighlights(container);
+        clearDatasetFilterHighlights(container);
 
-    selectors.each(function() {
-        let selector = $(this);
-        let panel = layout.find('#' + selector.attr('data-card-target'));
-        let sourceEndpointNames = selector.attr('data-source-endpoint-name');
-        let sourceIsVisible = hasVisibleSourceEndpoint(sourceEndpointNames.split('|'));
-        let textMatches = normalizedQuery === '' || panel.text().toLocaleLowerCase().includes(normalizedQuery);
-        let matches = sourceIsVisible && textMatches;
+        selectors.each(function() {
+            let selector = $(this);
+            let panel = layout.find('#' + selector.attr('data-card-target'));
+            let sourceEndpointNames = safeTextValue(selector.attr('data-source-endpoint-name'), '');
+            let sourceIsVisible = hasVisibleSourceEndpoint(sourceEndpointNames.split('|'));
+            let textMatches = normalizedQuery === '' || panel.text().toLowerCase().indexOf(normalizedQuery) !== -1;
+            let matches = sourceIsVisible && textMatches;
 
-        selector.toggleClass('dataset-filtered-out', !matches);
-        panel.toggleClass('dataset-filtered-out', !matches);
-        applyDataTableSourceVisibility(panel);
+            selector.toggleClass('dataset-filtered-out', !matches);
+            panel.toggleClass('dataset-filtered-out', !matches);
+            applyDataTableSourceVisibility(panel);
 
-        if (matches) {
-            matchingCount++;
+            if (matches) {
+                matchingCount++;
 
-            if (query !== '') {
-                highlightDatasetFilterText(panel, query);
+                if (query !== '') {
+                    highlightDatasetFilterText(panel, query);
+                }
             }
+        });
+
+        let selectedSelector = layout.find('.card-selector.active');
+        if (selectedSelector.length === 0 || selectedSelector.hasClass('dataset-filtered-out')) {
+            selectFirstVisibleCard(layout);
         }
-    });
 
-    let selectedSelector = layout.find('.card-selector.active');
-    if (selectedSelector.length === 0 || selectedSelector.hasClass('dataset-filtered-out')) {
-        selectFirstVisibleCard(layout);
+        let status = matchingCount === selectors.length && normalizedQuery === '' && hiddenSourceEndpointNames.size === 0 ?
+            selectors.length + ' records available.' :
+            'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
+        container.find('#datasetFilterStatus').text(status);
+
+        if (typeof renderCharts === 'function') {
+            renderCharts();
+        }
+
+        scheduleCardSelectorListResize();
+
+    } catch (error) {
+        reportAndRenderModelsError(error, 'applyDatasetFilter');
     }
-
-    let status = matchingCount === selectors.length && normalizedQuery === '' && hiddenSourceEndpointNames.size === 0 ?
-        selectors.length + ' records available.' :
-        'Showing ' + matchingCount + ' of ' + selectors.length + ' records.';
-    container.find('#datasetFilterStatus').text(status);
-
-    if (typeof renderCharts === 'function') {
-        renderCharts();
-    }
-
-    scheduleCardSelectorListResize();
 }
 
-function applySourceEndpointVisibility(container = $('#modelsContainer')) {
-    container.find('.source-endpoint-legend-item[data-source-endpoint-interactive="true"]').each(function() {
-        let button = $(this);
-        let sourceEndpointName = getSourceEndpointName(button.attr('data-source-endpoint-name'));
-        let isHidden = hiddenSourceEndpointNames.has(sourceEndpointName);
+function applySourceEndpointVisibility(container) {
+    container = container || $('#modelsContainer');
 
-        button.toggleClass('source-endpoint-hidden', isHidden);
-        button.attr('aria-pressed', isHidden ? 'true' : 'false');
-        button.attr('title', (isHidden ? 'Show ' : 'Hide ') + sourceEndpointName);
-    });
+    try {
+        container.find('.source-endpoint-legend-item[data-source-endpoint-interactive="true"]').each(function() {
+            let button = $(this);
+            let sourceEndpointName = getSourceEndpointName(button.attr('data-source-endpoint-name'));
+            let isHidden = hiddenSourceEndpointNames.has(sourceEndpointName);
 
-    let layout = container.find('.card-selector-layout');
-    if (layout.length > 0) {
-        applyDatasetFilter();
-        return;
-    }
+            button.toggleClass('source-endpoint-hidden', isHidden);
+            button.attr('aria-pressed', isHidden ? 'true' : 'false');
+            button.attr('title', (isHidden ? 'Show ' : 'Hide ') + sourceEndpointName);
+        });
 
-    container.find('.home-patient-card').each(function() {
-        let card = $(this);
-        let sourceEndpointNames = card.attr('data-source-endpoint-name');
-        card.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
-    });
+        let layout = container.find('.card-selector-layout');
+        if (layout.length > 0) {
+            applyDatasetFilter();
+            return;
+        }
 
-    if (typeof renderCharts === 'function') {
-        renderCharts();
+        container.find('.home-summary-card, .home-patient-card').each(function() {
+            let card = $(this);
+            let sourceEndpointNames = safeTextValue(card.attr('data-source-endpoint-name'), '');
+            card.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
+        });
+
+        if (typeof renderCharts === 'function') {
+            renderCharts();
+        }
+
+    } catch (error) {
+        reportAndRenderModelsError(error, 'applySourceEndpointVisibility');
     }
 }
 
@@ -480,10 +530,16 @@ function resizeCardSelectorList() {
 }
 
 function scheduleCardSelectorListResize() {
-    requestAnimationFrame(function() {
+    let nextFrame = typeof window.requestAnimationFrame === 'function' ?
+        window.requestAnimationFrame :
+        function(callback) {
+            window.setTimeout(callback, 0);
+        };
+
+    nextFrame(function() {
         resizeCardSelectorList();
 
-        requestAnimationFrame(function() {
+        nextFrame(function() {
             resizeCardSelectorList();
         });
     });
@@ -492,15 +548,17 @@ function scheduleCardSelectorListResize() {
 }
 
 function renderCard(id, card) {
-    let primarySourceEndpointName = getPrimarySourceEndpointName(card?.source);
-    let sourceEndpointNames = getSourceEndpointDataAttribute(card?.source);
+    card = card || {};
+
+    let primarySourceEndpointName = getPrimarySourceEndpointName(card.source);
+    let sourceEndpointNames = getSourceEndpointDataAttribute(card.source);
 
     return '<div class="row row-cols-1 g-4">' +
         '<div class="col">' +
         '<div class="card h-100 source-endpoint-tinted" data-source-endpoint-name="' + escapeHtml(sourceEndpointNames) + '"' +
         renderSourceEndpointStyle(primarySourceEndpointName) + '>' +
         '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center gap-3">' +
-        '<h3 class="card-title mb-0">' + escapeHtml(card.title ?? '') + '</h3>' +
+        '<h3 class="card-title mb-0">' + escapeHtml(safeTextValue(card.title, '')) + '</h3>' +
         (card.learnMoreUrl ?
             '<a class="dataset-learn-more" href="' + escapeHtml(card.learnMoreUrl) + '" target="_blank" rel="noopener noreferrer">Learn More</a>' :
             '') +
@@ -522,7 +580,7 @@ function isAccordionRow(row) {
 }
 
 function renderCardRows(baseId, rows) {
-    if (!rows || rows.length === 0) return '';
+    if (!Array.isArray(rows) || rows.length === 0) return '';
 
     let html = '<div class="row g-2 mb-3">';
 
@@ -533,7 +591,7 @@ function renderCardRows(baseId, rows) {
             html += '<div class="col-sm-12" id="' + baseId + '-row-' + rowIndex + '">' +
                 renderDataTableAccordion(
                     baseId + '-row-' + rowIndex + '-accordion',
-                    row.title ?? 'Details',
+                    safeTextValue(row.title, 'Details'),
                     row.headers,
                     row.rows,
                     row.beginExpanded === true
@@ -573,18 +631,20 @@ function isLabeledCardCell(cell) {
 function renderCardRowCell(cell) {
     if (isLabeledCardCell(cell)) {
         return '<div class="dataset-card-row-cell h-100">' +
-            '<div class="dataset-card-row-label">' + escapeHtml(cell.label ?? '') + '</div>' +
-            '<div class="dataset-card-row-value p-3 h-100">' + (cell.value ?? '') + '</div>' +
+            '<div class="dataset-card-row-label">' + escapeHtml(safeTextValue(cell.label, '')) + '</div>' +
+            '<div class="dataset-card-row-value p-3 h-100">' + safeTextValue(cell.value, '') + '</div>' +
             '</div>';
     }
 
     return '<div class="dataset-card-row-value p-3 h-100">' +
-        (cell ?? '') +
+        safeTextValue(cell, '') +
         '</div>';
 }
 
-function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded = false) {
-    if (!rows || rows.length === 0) return '';
+function renderDataTableAccordion(baseId, title, headers, rows, beginExpanded) {
+    beginExpanded = beginExpanded === true;
+
+    if (!Array.isArray(rows) || rows.length === 0) return '';
 
     let buttonCollapsedClass = beginExpanded ? '' : ' collapsed';
     let collapseShowClass = beginExpanded ? ' show' : '';
@@ -632,13 +692,13 @@ function updateDataTableAccordionCounts(container) {
 }
 
 function renderDataTableHeaders(baseId, headers) {
-    if (!headers || headers.length === 0) return '';
+    if (!Array.isArray(headers) || headers.length === 0) return '';
 
     let html = '';
 
     headers.forEach(function(header, index) {
         html += '<th scope="col" class="text-nowrap" id="' + baseId + '-header-' + index + '">';
-        html += header ?? '';
+        html += safeTextValue(header, '');
         html += '</th>';
     });
 
@@ -646,14 +706,14 @@ function renderDataTableHeaders(baseId, headers) {
 }
 
 function renderDataTableRows(baseId, rows) {
-    if (!rows || rows.length === 0) return '';
+    if (!Array.isArray(rows) || rows.length === 0) return '';
 
     let html = '';
 
     rows.forEach(function(row, rowIndex) {
         let rowData = getDataTableRowData(row);
 
-        if (!rowData || rowData.length === 0) return;
+        if (!Array.isArray(rowData) || rowData.length === 0) return;
 
         let rowSource = getDataTableRowSource(row);
         let rowPrimarySourceEndpointName = getPrimarySourceEndpointName(rowSource);
@@ -671,7 +731,7 @@ function renderDataTableRows(baseId, rows) {
 
         rowData.forEach(function(cell, cellIndex) {
             html += '<td id="' + baseId + '-row-' + rowIndex + '-cell-' + cellIndex + '">';
-            html += cell ?? '';
+            html += safeTextValue(cell, '');
             html += '</td>';
         });
 
@@ -684,7 +744,7 @@ function renderDataTableRows(baseId, rows) {
 function applyDataTableSourceVisibility(container) {
     $(container).find('tr[data-source-endpoint-name]').each(function() {
         let row = $(this);
-        let sourceEndpointNames = row.attr('data-source-endpoint-name');
+        let sourceEndpointNames = safeTextValue(row.attr('data-source-endpoint-name'), '');
         row.toggleClass('dataset-filtered-out', !hasVisibleSourceEndpoint(sourceEndpointNames.split('|')));
     });
 
@@ -768,28 +828,44 @@ function logCompletedProgressErrors(progressData) {
         return;
     }
 
-    let progressWithErrors = progressData.filter(item => item.errors && item.errors.length > 0);
+    let progressWithErrors = progressData.filter(function(item) {
+        return item.errors && item.errors.length > 0;
+    });
     if (progressWithErrors.length === 0) {
         return;
     }
 
-    console.group('Progress completed with errors');
+    if (window.console && typeof console.group === 'function') {
+        console.group('Progress completed with errors');
+    } else if (window.console && typeof console.log === 'function') {
+        console.log('Progress completed with errors');
+    }
 
     progressWithErrors.forEach(function(item) {
-        console.group(item.label ?? 'Progress Item');
+        if (window.console && typeof console.group === 'function') {
+            console.group(safeTextValue(item.label, 'Progress Item'));
+        } else if (window.console && typeof console.log === 'function') {
+            console.log(safeTextValue(item.label, 'Progress Item'));
+        }
 
-        if (item.message) {
+        if (item.message && window.console && typeof console.log === 'function') {
             console.log(item.message);
         }
 
         item.errors.forEach(function(error) {
-            console.error(error);
+            if (window.console && typeof console.error === 'function') {
+                console.error(error);
+            }
         });
 
-        console.groupEnd();
+        if (window.console && typeof console.groupEnd === 'function') {
+            console.groupEnd();
+        }
     });
 
-    console.groupEnd();
+    if (window.console && typeof console.groupEnd === 'function') {
+        console.groupEnd();
+    }
 }
 
 function clearProgress() {
@@ -826,12 +902,12 @@ function getProgressSummaryPercentComplete(progressData) {
 }
 
 function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+    return String(safeTextValue(value, ''))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function groupProgressByEndpoint(progressData) {
@@ -855,7 +931,7 @@ function groupProgressByEndpoint(progressData) {
 }
 
 function buildSafeProgressId(value) {
-    return String(value ?? 'progress')
+    return String(safeTextValue(value, 'progress'))
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '') || 'progress';
@@ -864,7 +940,7 @@ function buildSafeProgressId(value) {
 function renderProgressBar(percentComplete, label, extraCssClass) {
     let safePercentComplete = Math.max(0, Math.min(100, Number(percentComplete) || 0));
 
-    return '<div class="progress progress-display ' + (extraCssClass ?? '') + '">' +
+    return '<div class="progress progress-display ' + safeTextValue(extraCssClass, '') + '">' +
         '<div class="progress-bar" role="progressbar" style="width: ' + safePercentComplete + '%;"' +
         ' aria-valuenow="' + safePercentComplete + '" aria-valuemin="0" aria-valuemax="100"></div>' +
         '<div class="progress-label">' + escapeHtml(label) + '</div>' +
@@ -925,7 +1001,7 @@ function renderProgressErrorsAccordion(item, parentId, itemIndex) {
 
 function renderProgressItem(item, parentId, itemIndex) {
     let itemPercentComplete = getProgressItemPercentComplete(item);
-    let itemLabel = (item.label ?? 'Progress Item') + ': ' + itemPercentComplete + '% Complete';
+    let itemLabel = safeTextValue(item.label, 'Progress Item') + ': ' + itemPercentComplete + '% Complete';
 
     if (item.message) {
         itemLabel += ' - ' + item.message;
@@ -1043,33 +1119,80 @@ function renderProgressData(progressData, detailsExpanded = false) {
 }
 
 function getDataSets() {
-    return $('#dataSets').html().split(',').map(s => s.trim());
+    let dataSetsHtml = $('#dataSets').html() || '';
+    return dataSetsHtml.split(',').map(function(s) {
+        return s.trim();
+    });
 }
 
 let eventSource = null;
+let eventSourceFallbackInterval = null;
+
+function parseSseEventData(event, eventName) {
+    try {
+        return JSON.parse(event.data || '{}');
+    } catch (error) {
+        if (typeof window.handleFrontEndException === 'function') {
+            window.handleFrontEndException(error, 'SSE event: ' + eventName);
+        }
+        return null;
+    }
+}
+
+function startModelRefreshFallback(_callback) {
+    if (eventSourceFallbackInterval !== null) {
+        return;
+    }
+
+    eventSourceFallbackInterval = setInterval(function() {
+        getUpdatedModels(_callback);
+    }, 5000);
+}
 
 function initializeSSE(_callback) {
     if (eventSource !== null) {
         eventSource.close();
     }
 
+    if (eventSourceFallbackInterval !== null) {
+        clearInterval(eventSourceFallbackInterval);
+        eventSourceFallbackInterval = null;
+    }
+
+    if (typeof EventSource !== 'function') {
+        startModelRefreshFallback(_callback);
+        return;
+    }
+
     eventSource = new EventSource(getBasePath() + '/sse');
 
     eventSource.addEventListener("dataset-update", function(event) {
-        const eventData = JSON.parse(event.data);
-        if (getDataSets().includes(eventData.dataSet)) {
+        let eventData = parseSseEventData(event, 'dataset-update');
+        if (!eventData) {
+            return;
+        }
+
+        if (getDataSets().indexOf(eventData.dataSet) !== -1) {
             console.log("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint);
             getUpdatedModels(_callback);
         }
     });
 
     eventSource.addEventListener("endpoint-population-started", function(event) {
-        const eventData = JSON.parse(event.data);
+        let eventData = parseSseEventData(event, 'endpoint-population-started');
+        if (!eventData) {
+            return;
+        }
+
         console.log("endpoint-population-started: endpoint=" + eventData.endpoint);
     });
 
     eventSource.addEventListener("endpoint-population-complete", function(event) {
-        const eventData = JSON.parse(event.data);
+        let eventData = parseSseEventData(event, 'endpoint-population-complete');
+        if (!eventData) {
+            return;
+        }
+
         console.log("endpoint-population-complete: endpoint=" + eventData.endpoint);
     });
 
@@ -1077,12 +1200,26 @@ function initializeSSE(_callback) {
         console.log("all-complete");
         $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
     });
+
+    eventSource.onerror = function() {
+        if (eventSource !== null) {
+            eventSource.close();
+            eventSource = null;
+        }
+
+        startModelRefreshFallback(_callback);
+    };
 }
 
 window.addEventListener("pagehide", function() {
     if (eventSource !== null) {
         eventSource.close();
         eventSource = null;
+    }
+
+    if (eventSourceFallbackInterval !== null) {
+        clearInterval(eventSourceFallbackInterval);
+        eventSourceFallbackInterval = null;
     }
 });
 
@@ -1091,7 +1228,23 @@ function getUpdatedModels(_callback) {
         method: "POST",
         url: getBasePath() + '/models'
     }).done(function(models) {
-        _callback(models);
+        try {
+            _callback(models);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + '/models render callback');
+        }
+    }).fail(function(jqXHR) {
+        let message = jqXHR && jqXHR.responseText ? jqXHR.responseText : 'Unable to load records.';
+
+        if (typeof window.handleFrontEndException === 'function') {
+            window.handleFrontEndException(new Error(message), getBasePath() + '/models');
+        }
+
+        $('#modelsContainer').html(
+            '<div class="alert alert-danger" role="alert">' +
+            'Unable to load records for this section. Please refresh the page or try again later.' +
+            '</div>'
+        );
     });
 }
 
@@ -1102,112 +1255,131 @@ function renderNoModelsCompletedMessage() {
 }
 
 function renderModels(models) {
-    let currentFilter = $('#datasetFilter').val();
-    if (currentFilter !== undefined) {
-        datasetFilterQuery = currentFilter;
-    }
-
-    if (models && models.length > 0) {
-        let items = [];
-        models.forEach(function(model) {
-            let card = buildCardData(model);
-
-            if (card.source === undefined || card.source === null) {
-                card.source = model.sourceEndpointName;
-            }
-
-            items.push({
-                selector: typeof buildCardSelectorData === 'function' ? buildCardSelectorData(model) : null,
-                card: card
-            });
-        });
-
-        let sourceEndpointNames = [];
-        items.forEach(function(item) {
-            getSourceEndpointNames(item.card.source).forEach(function(sourceEndpointName) {
-                if (!sourceEndpointNames.includes(sourceEndpointName)) {
-                    sourceEndpointNames.push(sourceEndpointName);
-                }
-            });
-        });
-
-        if (typeof buildCardSelectorData === 'function') {
-            $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
-            applySourceEndpointVisibility();
-            scheduleCardSelectorListResize();
-
-        } else {
-            let cards = [];
-            items.forEach(function(item, index) {
-                cards.push(renderCard('card_' + (index + 1), item.card));
-            });
-
-            $('#modelsContainer').html(renderSourceEndpointLegend(sourceEndpointNames) + cards.join('\n'));
-            applySourceEndpointVisibility();
+    try {
+        let currentFilter = $('#datasetFilter').val();
+        if (currentFilter !== undefined) {
+            datasetFilterQuery = currentFilter;
         }
 
-    } else {
-        getCurrentProgress(function(progressData) {
-            if (isAllProgressComplete(progressData)) {
-                $('#modelsContainer').html(renderNoModelsCompletedMessage());
-            }
-        });
-    }
+        if (models && models.length > 0) {
+            let items = [];
+            models.forEach(function(model) {
+                let card = buildCardData(model) || {};
 
-    if (typeof renderCharts === 'function') {
-        renderCharts();
-        scheduleCardSelectorListResize();
+                if (card.source === undefined || card.source === null) {
+                    card.source = model.sourceEndpointName;
+                }
+
+                items.push({
+                    selector: typeof buildCardSelectorData === 'function' ? buildCardSelectorData(model) : null,
+                    card: card
+                });
+            });
+
+            let sourceEndpointNames = [];
+            items.forEach(function(item) {
+                getSourceEndpointNames(item.card.source).forEach(function(sourceEndpointName) {
+                    if (sourceEndpointNames.indexOf(sourceEndpointName) === -1) {
+                        sourceEndpointNames.push(sourceEndpointName);
+                    }
+                });
+            });
+
+            if (typeof buildCardSelectorData === 'function') {
+                $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
+                applySourceEndpointVisibility();
+                scheduleCardSelectorListResize();
+
+            } else {
+                let cards = [];
+                items.forEach(function(item, index) {
+                    cards.push(renderCard('card_' + (index + 1), item.card));
+                });
+
+                $('#modelsContainer').html(renderSourceEndpointLegend(sourceEndpointNames) + cards.join('\n'));
+                applySourceEndpointVisibility();
+            }
+
+        } else {
+            getCurrentProgress(function(progressData) {
+                if (isAllProgressComplete(progressData)) {
+                    $('#modelsContainer').html(renderNoModelsCompletedMessage());
+                }
+            });
+        }
+
+        if (typeof renderCharts === 'function') {
+            renderCharts();
+            scheduleCardSelectorListResize();
+        }
+
+    } catch (error) {
+        reportAndRenderModelsError(error, 'renderModels');
     }
 }
 
 $(document).on('input', '#datasetFilter', function() {
-    datasetFilterQuery = $(this).val();
-    applyDatasetFilter();
+    try {
+        datasetFilterQuery = $(this).val();
+        applyDatasetFilter();
+    } catch (error) {
+        reportAndRenderModelsError(error, 'dataset filter input');
+    }
 });
 
 $(document).on('click', '#modelsContainer .source-endpoint-legend-item[data-source-endpoint-interactive="true"]', function() {
-    let sourceEndpointName = getSourceEndpointName($(this).attr('data-source-endpoint-name'));
+    try {
+        let sourceEndpointName = getSourceEndpointName($(this).attr('data-source-endpoint-name'));
 
-    if (hiddenSourceEndpointNames.has(sourceEndpointName)) {
-        hiddenSourceEndpointNames.delete(sourceEndpointName);
-    } else {
-        hiddenSourceEndpointNames.add(sourceEndpointName);
+        if (hiddenSourceEndpointNames.has(sourceEndpointName)) {
+            hiddenSourceEndpointNames.delete(sourceEndpointName);
+        } else {
+            hiddenSourceEndpointNames.add(sourceEndpointName);
+        }
+
+        applySourceEndpointVisibility();
+
+    } catch (error) {
+        reportAndRenderModelsError(error, 'source endpoint legend click');
     }
-
-    applySourceEndpointVisibility();
 });
 
 $(document).on('click', '#modelsContainer .card-selector-sort-button', function() {
-    let button = $(this);
-    let sortIndex = button.attr('data-sort-index');
-    let layout = button.closest('.card-selector-layout');
-    let list = layout.find('.card-selector-items');
-    let currentDirection = button.attr('data-sort-direction');
-    let nextDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+    try {
+        let button = $(this);
+        let sortIndex = button.attr('data-sort-index');
+        let layout = button.closest('.card-selector-layout');
+        let list = layout.find('.card-selector-items');
+        let currentDirection = button.attr('data-sort-direction');
+        let nextDirection = currentDirection === 'asc' ? 'desc' : 'asc';
 
-    layout.find('.card-selector-sort-button')
-        .removeAttr('data-sort-direction')
-        .attr('aria-sort', 'none')
-        .find('.card-selector-sort-indicator')
-        .text('');
+        layout.find('.card-selector-sort-button')
+            .removeAttr('data-sort-direction')
+            .attr('aria-sort', 'none')
+            .find('.card-selector-sort-indicator')
+            .text('');
 
-    button.attr('data-sort-direction', nextDirection)
-        .attr('aria-sort', nextDirection === 'asc' ? 'ascending' : 'descending')
-        .find('.card-selector-sort-indicator')
-        .text(nextDirection === 'asc' ? ' ▲' : ' ▼');
+        button.attr('data-sort-direction', nextDirection)
+            .attr('aria-sort', nextDirection === 'asc' ? 'ascending' : 'descending')
+            .find('.card-selector-sort-indicator')
+            .text(nextDirection === 'asc' ? ' ▲' : ' ▼');
 
-    let sortedSelectors = list.children('.card-selector').get().sort(function(a, b) {
-        let aValue = $(a).attr('data-sort-value-' + sortIndex) ?? '';
-        let bValue = $(b).attr('data-sort-value-' + sortIndex) ?? '';
-        let comparison = aValue.localeCompare(bValue, undefined, {
-            numeric: true,
-            sensitivity: 'base'
+        let sortedSelectors = list.children('.card-selector').get().sort(function(a, b) {
+            let aValue = safeTextValue($(a).attr('data-sort-value-' + sortIndex), '');
+            let bValue = safeTextValue($(b).attr('data-sort-value-' + sortIndex), '');
+            let comparison = aValue.localeCompare(bValue, undefined, {
+                numeric: true,
+                sensitivity: 'base'
+            });
+
+            return nextDirection === 'asc' ? comparison : -comparison;
         });
 
-        return nextDirection === 'asc' ? comparison : -comparison;
-    });
+        list.append(sortedSelectors);
 
-    list.append(sortedSelectors);
+    } catch (error) {
+        reportAndRenderModelsError(error, 'card selector sort click');
+    }
 });
 
 $(document).on('click', '#modelsContainer .card-selector', function() {

@@ -26,13 +26,17 @@
     }
 
     function buildCardSelectorData(model) {
+        model = model || {};
+
+        let flags = Array.isArray(model.flags) ? model.flags : [];
+
         return [{
             label: 'Name',
-            value: model.conceptName,
+            value: model.conceptName || '(No Name)',
             bootstrapWidth: 5
         }, {
             label: 'Flag',
-            value: (model.flags && model.flags.length > 0 ? renderFlags(model.flags) : ''),
+            value: flags.length > 0 ? renderFlags(flags) : '',
             bootstrapWidth: 4
         }, {
             label: 'Ordered On',
@@ -43,66 +47,83 @@
     }
 
     function buildCardData(model) {
+        model = model || {};
+
         let card = {};
-        card.title = model.conceptName;
+        let flags = Array.isArray(model.flags) ? model.flags : [];
+        let reasons = Array.isArray(model.reasons) ? model.reasons : [];
+        let notes = Array.isArray(model.notes) ? model.notes : [];
+
+        card.title = model.conceptName || '(No Name)';
         card.source = model.sourceEndpointName;
         card.rows = [];
-        if (model.flags && model.flags.length > 0) {
-            card.rows.push([{ label: 'Flags', value: renderFlags(model.flags) }]);
+
+        if (flags.length > 0) {
+            card.rows.push([{ label: 'Flags', value: renderFlags(flags) }]);
         }
         if (model.category || model.status) {
             card.rows.push([
-                { label: 'Category', value: model.category },
-                { label: 'Status', value: model.status }
+                { label: 'Category', value: model.category || '' },
+                { label: 'Status', value: model.status || '' }
             ]);
         }
         if (model.authoredOn || model.requester) {
             card.rows.push([
                 { label: 'Ordered On', value: formatDate(model.authoredOn) },
-                { label: 'Requested By', value: model.requester }
+                { label: 'Requested By', value: model.requester || '' }
             ]);
         }
         if (model.dosageInstruction) {
             card.rows.push([{ label: 'Dosage Instruction', value: model.dosageInstruction }]);
         }
-        if (model.reasons && model.reasons.length > 0) {
+        if (reasons.length > 0) {
             card.rows.push({
                 title: 'Reasons',
                 headers: [ 'Reason' ],
-                rows: model.reasons.map(function(reason) {
-                    return [ reason ];
+                rows: reasons.map(function(reason) {
+                    return [ reason || '' ];
                 }),
                 beginExpanded: true
             });
         }
-        if (model.notes && model.notes.length > 0) {
+        if (notes.length > 0) {
             card.rows.push({
                 title: 'Notes',
                 headers: [ 'Note' ],
-                rows: model.notes.map(function(note) {
-                    return [ note ];
+                rows: notes.map(function(note) {
+                    return [ note || '' ];
                 }),
                 beginExpanded: true
             });
         }
+
         return card;
     }
 
     function renderFlags(flags) {
-        if (!flags || flags.length === 0) return '';
+        if (!Array.isArray(flags) || flags.length === 0) return '';
+
         return flags.map(function(flag) {
-            return '<span class="flag" style="background-color: ' + flag.backgroundColor + '; color: ' + flag.textColor + ';">' + flag.label + '</span>';
+            flag = flag || {};
+
+            return '<span class="flag" style="background-color: ' + escapeHtml(flag.backgroundColor || '#ffffff') +
+                    '; color: ' + escapeHtml(flag.textColor || '#000000') + ';">' +
+                    escapeHtml(flag.label || '') +
+                    '</span>';
         }).join(' ');
     }
 
     $(document).ready(function() {
-        if ($('#sessionEstablished').text() !== 'true') {
-            return;
-        }
+        try {
+            if ($('#sessionEstablished').text() !== 'true') {
+                return;
+            }
 
-        // on page load, get the list of models before SSE triggers
-        getUpdatedModels(renderModels);
-        initializeSSE(renderModels);
+            getUpdatedModels(renderModels);
+            initializeSSE(renderModels);
+        } catch (error) {
+            reportAndRenderModelsError(error, getBasePath() + ' document ready');
+        }
     });
 </script>
 
