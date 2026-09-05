@@ -1,0 +1,74 @@
+.landing-page {
+    background: radial-gradient(ellipse at top right, #e2f2f0, transparent 45rem), #f7fafc;
+    color: #203746;
+    line-height: 1.6;
+}
+
+.landing-header {
+    border-bottom: 1px solid #dce7eb;
+    background: #fff;
+}
+
+.landing-logo {
+    width: auto;
+    max-width: 45%;
+    max-height: 64px;
+    object-fit: contain;
+}
+
+.landing-welcome {
+    max-width: 720px;
+}
+
+.landing-description {
+    color: #526674;
+}
+
+.landing-application {
+    border: 1px solid #dce7eb;
+    border-top: 3px solid #177e80;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 28px rgb(0 68 102 / 5%);
+}
+
+.landing-icon {
+    width: 3.75rem;
+    height: 3.75rem;
+    background: #eaf5f4;
+    color: #176d70;
+}
+
+.landing-launch {
+    --bs-btn-bg: #004466;
+    --bs-btn-border-color: #004466;
+    --bs-btn-hover-bg: #126080;
+    --bs-btn-hover-border-color: #126080;
+    --bs-btn-active-bg: #003852;
+    --bs-btn-active-border-color: #003852;
+    font-weight: 600;
+}
+
+.landing-page a:focus-visible {
+    outline: 3px solid #177e80;
+    outline-offset: 4px;
+}
+
+.landing-skip-link {
+    padding: 1rem;
+    background: #fff;
+    color: #004466;
+}
+
+.landing-footer {
+    border-top: 1px solid #dce7eb;
+    background: #fff;
+}
+
+.landing-footer a {
+    color: #004466;
+    text-underline-offset: 0.2em;
+}
+
+.landing-footer a:hover {
+    color: #176d70;
+}

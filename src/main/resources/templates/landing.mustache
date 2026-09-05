@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>eCarePlan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{>fragments/assets}}
+    {{>fragments/css}}
+
+    <link rel="stylesheet" type="text/css" href="{{req.contextPath}}/css/landing.css" />
+</head>
+
+<body class="landing-page d-flex flex-column min-vh-100">
+<a class="visually-hidden-focusable landing-skip-link" href="#main-content">Skip to main content</a>
+
+<header class="landing-header py-4" aria-label="eCarePlan">
+    <div class="container d-flex align-items-center gap-3">
+        <img class="landing-logo img-fluid" src="{{req.contextPath}}/images/logo.png" alt="eCarePlan logo">
+        <span class="h3 fw-bold color-primary mb-0">eCarePlan</span>
+    </div>
+</header>
+
+<main id="main-content" class="container flex-grow-1 py-5" tabindex="-1" aria-labelledby="page-title">
+    <section class="landing-welcome mb-5" aria-labelledby="page-title">
+        <h1 id="page-title" class="display-5 fw-bold color-primary">Your care, connected</h1>
+        <p class="lead landing-description mb-0">Tools to help you stay informed, organized, and involved in your care.</p>
+    </section>
+
+    <section aria-labelledby="applications-title" aria-describedby="applications-description">
+        <h2 id="applications-title" class="h4 fw-bold">Applications</h2>
+        <p id="applications-description" class="landing-description mb-4">Choose an application to get started.</p>
+        <ul class="row g-4 list-unstyled mb-0" aria-label="Available applications">
+            <li class="col-12 col-lg-8">
+                <article class="card landing-application h-100" aria-labelledby="planner-title">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex flex-column flex-sm-row align-items-start gap-4">
+                            <span class="landing-icon d-inline-flex align-items-center justify-content-center rounded-3 flex-shrink-0" aria-hidden="true">
+                                <i class="fa-solid fa-clipboard-check fa-2x"></i>
+                            </span>
+                            <div>
+                                <h3 id="planner-title" class="h4 fw-bold color-primary">MyCarePlanner</h3>
+                                <p class="landing-description mb-4">Explore your health record from any number of providers, all in one convenient place.</p>
+                                <a class="btn btn-primary landing-launch px-4 py-3" href="{{req.contextPath}}/patient" aria-label="Open MyCarePlanner" aria-describedby="planner-sign-in-description">
+                                    Open MyCarePlanner <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
+                                </a>
+                                <p id="planner-sign-in-description" class="small landing-description mt-3 mb-0">If you're not signed in, you'll be asked to sign in first.</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </li>
+        </ul>
+    </section>
+</main>
+
+<footer class="landing-footer py-4 mt-4">
+    <section class="container" aria-labelledby="more-info-title">
+        <h2 id="more-info-title" class="h5 fw-bold">Find more info</h2>
+        <p class="landing-description mb-2">Learn more about eCarePlan, explore the source code, and follow the project's development on GitHub.</p>
+        <a href="https://github.com/OHSUCMP/ecareplan-sbe" target="_blank" aria-label="View the eCarePlan project on GitHub">
+            View the eCarePlan project on GitHub <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
+        </a>
+    </section>
+</footer>
+</body>
+
+</html>
