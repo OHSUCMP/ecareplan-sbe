@@ -39,6 +39,11 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
     }
 
     @Override
+    public String getEndpointName() {
+        return endpointName;
+    }
+
+    @Override
     public String getLabel() {
         return "SDS";
     }

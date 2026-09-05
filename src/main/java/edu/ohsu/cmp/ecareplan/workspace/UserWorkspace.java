@@ -466,7 +466,7 @@ public class UserWorkspace {
             }
         };
 
-        EndpointReadProgressModel progressModel = new EndpointReadProgressModel(endpoint);
+        EndpointReadProgressModel progressModel = new EndpointReadProgressModel(endpoint, ! loadFromEndpoint);
         endpointReadProgressMap.put(endpoint.getId(), progressModel);
         Future<Void> future = executorService.submit(callable);
         progressModel.setFuture(future);
