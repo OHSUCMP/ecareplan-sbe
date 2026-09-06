@@ -34,7 +34,7 @@ public class BasePatientController extends BaseController {
         super.setCommonViewComponents(sessionId, model);
     }
 
-    protected <T extends Consolidatable<S>, S extends Comparable<S>> List<Consolidated<T>> consolidate(List<T> sourceList) {
+    protected <T extends Consolidatable> List<Consolidated<T>> consolidate(List<T> sourceList) {
         if (sourceList == null) return null;
 
         Map<String, List<T>> map = new LinkedHashMap<>();
@@ -63,10 +63,10 @@ public class BasePatientController extends BaseController {
                         return o1.getConsolidationSortBy().compareTo(o2.getConsolidationSortBy());
                     }
                 }).toList().reversed();
-                list.add(new Consolidated<>(sorted.getFirst(), sorted.subList(1, sorted.size())));
+                list.add(new Consolidated<>(sorted));
 
             } else {
-                list.add(new Consolidated<>(values.getFirst(), null));
+                list.add(new Consolidated<>(values));
             }
         }
 

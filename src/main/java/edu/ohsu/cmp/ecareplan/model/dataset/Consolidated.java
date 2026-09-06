@@ -2,20 +2,20 @@ package edu.ohsu.cmp.ecareplan.model.dataset;
 
 import java.util.List;
 
-public class Consolidated<T extends Consolidatable<?>> {
-    private final T mostRecentData;
-    private final List<T> historicalData;
+public class Consolidated<T extends Consolidatable> {
+    private final List<T> list;
 
-    public Consolidated(T mostRecentData, List<T> historicalData) {
-        this.mostRecentData = mostRecentData;
-        this.historicalData = historicalData;
+    public Consolidated(List<T> list) {
+        this.list = list;
     }
 
     public T getMostRecentData() {
-        return mostRecentData;
+        return list.getFirst();
     }
 
     public List<T> getHistoricalData() {
-        return historicalData;
+        return list.size() > 1 ?
+                list.subList(1, list.size()) :
+                null;
     }
 }

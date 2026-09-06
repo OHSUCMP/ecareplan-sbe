@@ -4,7 +4,7 @@ import org.hl7.fhir.r4.model.Observation;
 
 import java.util.Date;
 
-public class LabResultModel extends ObservationModel implements Consolidatable<Date> {
+public class LabResultModel extends ObservationModel implements Consolidatable {
     private final String commonName;
 
     public LabResultModel(Observation observation, String commonName) {

@@ -7,7 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-public interface IVitalsModel extends Consolidatable<Date> {
+public interface IVitalsModel extends Consolidatable {
     String getId();
     String getConceptName();
     String getDescription();
