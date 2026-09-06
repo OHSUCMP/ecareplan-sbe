@@ -1,0 +1,29 @@
+.source-endpoint-tinted {
+    --source-endpoint-bg: #f8fbfc;
+    --source-endpoint-border: #dbe8ee;
+    --source-endpoint-accent: #7698a1;
+}
+
+.endpoint-provider-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--source-endpoint-border, #e3edf1);
+    border-left: 0.35rem solid var(--source-endpoint-accent, #2e6e9e);
+    border-radius: 0.85rem;
+    background-color: var(--source-endpoint-bg, #ffffff);
+}
+
+.endpoint-provider-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--source-endpoint-border, #dbe8ee);
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.72);
+    color: var(--source-endpoint-accent, #004466);
+}

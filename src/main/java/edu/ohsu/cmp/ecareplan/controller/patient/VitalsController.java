@@ -37,8 +37,8 @@ public class VitalsController extends BasePatientController {
             setCommonViewComponents(sessionId, model);
 
             model.addAttribute("pageWebjars", new String[] { "chart.js/dist/chart.umd.min.js" });
-            model.addAttribute("pageScripts", new String[] { "dataset.js", "chart.js" });
-            model.addAttribute("pageStyles", new String[] { "dataset.css", "chart.css" });
+            model.addAttribute("pageScripts", new String[] { "endpoint.js", "dataset.js", "chart.js" });
+            model.addAttribute("pageStyles", new String[] { "endpoint.css", "dataset.css", "chart.css" });
 
             model.addAttribute("dataSets", DataSet.VITALS);
 
