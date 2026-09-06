@@ -111,8 +111,8 @@ public class PatientHomeController extends BasePatientController {
         if (sessionService.exists(sessionId)) {
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "dataset.js" });
-            model.addAttribute("pageStyles", new String[] { "dataset.css", "patient/home.css" });
+            model.addAttribute("pageScripts", new String[] { "endpoint.js", "dataset.js" });
+            model.addAttribute("pageStyles", new String[] { "endpoint.css", "dataset.css", "patient/home.css" });
 
             model.addAttribute("dataSets", DataSet.PATIENT);
 

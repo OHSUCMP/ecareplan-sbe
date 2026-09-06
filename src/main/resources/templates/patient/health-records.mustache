@@ -37,11 +37,11 @@
 
                     <div class="health-records-provider-list">
                         {{#activeEndpointModels}}
-                            <article class="health-records-provider-card">
-                                <div class="health-records-provider-icon" aria-hidden="true">
+                            <article class="endpoint-provider-card" data-endpoint-name="{{name}}">
+                                <div class="endpoint-provider-icon" aria-hidden="true">
                                     <span class="fa-solid fa-hospital"></span>
                                 </div>
-                                <div>
+                                <div class="health-records-provider-content">
                                     <h3 class="health-records-provider-name">{{name}}</h3>
                                     <p class="health-records-provider-detail">Connected health record provider</p>
                                 </div>

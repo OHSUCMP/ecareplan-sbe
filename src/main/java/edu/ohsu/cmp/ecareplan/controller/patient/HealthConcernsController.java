@@ -30,8 +30,8 @@ public class HealthConcernsController extends BasePatientController {
         if (sessionService.exists(sessionId)) {
             setCommonViewComponents(sessionId, model);
 
-            model.addAttribute("pageScripts", new String[] { "dataset.js" });
-            model.addAttribute("pageStyles", new String[] { "dataset.css" });
+            model.addAttribute("pageScripts", new String[] { "endpoint.js", "dataset.js" });
+            model.addAttribute("pageStyles", new String[] { "endpoint.css", "dataset.css" });
 
             model.addAttribute("dataSets", DataSet.CONDITIONS);
 

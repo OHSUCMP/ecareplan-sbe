@@ -248,3 +248,40 @@ function formatDate(date, format = 'MMM d, yyyy') {
         return values[token];
     });
 }
+
+function safeTextValue(value, fallback) {
+    return value === undefined || value === null ? fallback : value;
+}
+
+function logDebug(message) {
+    if (window.console && typeof window.console.debug === 'function') {
+        console.debug(message);
+    }
+}
+
+function logInfo(message) {
+    if (window.console && typeof window.console.log === 'function') {
+        console.log(message);
+    }
+}
+
+function logWarn(message) {
+    if (window.console && typeof window.console.warn === 'function') {
+        console.warn(message);
+    }
+}
+
+function logError(message) {
+    if (window.console && typeof window.console.error === 'function') {
+        console.error(message);
+    }
+}
+
+function escapeHtml(value) {
+    return String(safeTextValue(value, ''))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
