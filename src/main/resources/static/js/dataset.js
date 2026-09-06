@@ -98,6 +98,53 @@ function shouldContinueDatasetServerRequests() {
 }
 
 let hiddenSourceEndpointNames = new Set();
+let sourceGroupedModels = new Map();
+
+function getAllDataBySourceEndpointName(model) {
+    let groups = model && model.allDataBySourceEndpointName;
+    return groups && typeof groups === 'object' && !Array.isArray(groups) ? groups : {};
+}
+
+function getVisibleSourceRecords(model, dateProperty) {
+    let groups = getAllDataBySourceEndpointName(model);
+    let records = [];
+
+    Object.keys(groups).forEach(function(source) {
+        let sourceName = getSourceEndpointName(source);
+        if (hiddenSourceEndpointNames.has(sourceName) || !Array.isArray(groups[source])) {
+            return;
+        }
+
+        groups[source].forEach(function(record) {
+            if (!record || typeof record !== 'object' || Array.isArray(record)) {
+                return;
+            }
+
+            // Copy records so filtering never changes the server data used to restore sources.
+            let copy = Object.assign({}, record, { sourceEndpointName: sourceName });
+            let date = copy[dateProperty];
+            // Normalize Java offsets to ISO 8601 for consistent parsing across browsers.
+            if (typeof date === 'string') {
+                date = date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+                copy[dateProperty] = date;
+            }
+            let timestamp = typeof date === 'number' || (typeof date === 'string' && date.trim() !== '') ?
+                new Date(date).getTime() : NaN;
+            records.push({
+                record: copy,
+                timestamp: Number.isFinite(timestamp) ? timestamp : -Infinity,
+                index: records.length
+            });
+        });
+    });
+
+    return records.sort(function(a, b) {
+        // Keep undated records last and explicitly preserve ties, independent of sort stability.
+        return a.timestamp === b.timestamp ? a.index - b.index : (a.timestamp > b.timestamp ? -1 : 1);
+    }).map(function(entry) {
+        return entry.record;
+    });
+}
 
 function hasVisibleSourceEndpoint(source) {
     return getSourceEndpointNames(source)
@@ -387,7 +434,7 @@ function applyDatasetFilter() {
             let selector = $(this);
             let panel = layout.find('#' + selector.attr('data-card-target'));
             let sourceEndpointNames = safeTextValue(selector.attr('data-source-endpoint-name'), '');
-            let sourceIsVisible = hasVisibleSourceEndpoint(sourceEndpointNames.split('|'));
+            let sourceIsVisible = sourceEndpointNames !== '' && hasVisibleSourceEndpoint(sourceEndpointNames.split('|'));
             let textMatches = normalizedQuery === '' || panel.text().toLowerCase().indexOf(normalizedQuery) !== -1;
             let matches = sourceIsVisible && textMatches;
 
@@ -1336,6 +1383,38 @@ function renderNoModelsCompletedMessage() {
         '</div>';
 }
 
+function destroyCardCharts(container) {
+    if (typeof Chart === 'undefined' || typeof Chart.getChart !== 'function') {
+        return;
+    }
+    container.find('canvas.chart').each(function() {
+        let chart = Chart.getChart(this);
+        if (chart) {
+            chart.destroy();
+        }
+    });
+}
+
+function rebuildSourceGroupedCards() {
+    let container = $('#modelsContainer');
+    sourceGroupedModels.forEach(function(model, id) {
+        let selector = container.find('#' + id + '-selector');
+        let panel = container.find('#' + id + '-panel');
+        let card = buildCardData(model) || {};
+        let selectorData = buildCardSelectorData(model);
+
+        selector.replaceWith(renderCardSelectors(id, selectorData, card, selector.hasClass('active')));
+        destroyCardCharts(panel);
+        panel.html(renderCard(id, card));
+    });
+
+    let layout = container.find('.card-selector-layout');
+    let sortButton = layout.find('.card-selector-sort-button[data-sort-direction]');
+    if (sortButton.length > 0) {
+        sortCardSelectors(layout, sortButton.attr('data-sort-index'), sortButton.attr('data-sort-direction'));
+    }
+}
+
 function renderModels(models) {
     try {
         let currentFilter = $('#datasetFilter').val();
@@ -1345,8 +1424,13 @@ function renderModels(models) {
 
         if (Array.isArray(models) && models.length > 0) {
             let items = [];
-            models.forEach(function(model) {
+            sourceGroupedModels.clear();
+            models.forEach(function(model, index) {
                 model = model || {};
+
+                if (model.allDataBySourceEndpointName && typeof buildCardSelectorData === 'function') {
+                    sourceGroupedModels.set('card_' + (index + 1), model);
+                }
 
                 let card = buildCardData(model) || {};
 
@@ -1356,19 +1440,23 @@ function renderModels(models) {
 
                 items.push({
                     selector: typeof buildCardSelectorData === 'function' ? buildCardSelectorData(model) : null,
-                    card: card
+                    card: card,
+                    // The legend must retain disabled sources so they can be enabled again.
+                    sources: model.allDataBySourceEndpointName ?
+                        Object.keys(getAllDataBySourceEndpointName(model)) : card.source
                 });
             });
 
             let sourceEndpointNames = [];
             items.forEach(function(item) {
-                getSourceEndpointNames(item.card.source).forEach(function(sourceEndpointName) {
+                getSourceEndpointNames(item.sources).forEach(function(sourceEndpointName) {
                     if (sourceEndpointNames.indexOf(sourceEndpointName) === -1) {
                         sourceEndpointNames.push(sourceEndpointName);
                     }
                 });
             });
 
+            destroyCardCharts($('#modelsContainer'));
             if (typeof buildCardSelectorData === 'function') {
                 $('#modelsContainer').html(renderCardSelectorLayout(items, sourceEndpointNames));
                 applySourceEndpointVisibility();
@@ -1391,12 +1479,6 @@ function renderModels(models) {
                 }
             });
         }
-
-        if (typeof renderCharts === 'function') {
-            renderCharts();
-            scheduleCardSelectorListResize();
-        }
-
     } catch (error) {
         reportAndRenderModelsError(error, 'renderModels');
     }
@@ -1421,6 +1503,7 @@ $(document).on('click', '#modelsContainer .source-endpoint-legend-item[data-sour
             hiddenSourceEndpointNames.add(sourceEndpointName);
         }
 
+        rebuildSourceGroupedCards();
         applySourceEndpointVisibility();
 
     } catch (error) {
@@ -1428,12 +1511,26 @@ $(document).on('click', '#modelsContainer .source-endpoint-legend-item[data-sour
     }
 });
 
+function sortCardSelectors(layout, sortIndex, direction) {
+    let list = layout.find('.card-selector-items');
+    let sortedSelectors = list.children('.card-selector').get().sort(function(a, b) {
+        let aValue = safeTextValue($(a).attr('data-sort-value-' + sortIndex), '');
+        let bValue = safeTextValue($(b).attr('data-sort-value-' + sortIndex), '');
+        let comparison = aValue.localeCompare(bValue, undefined, {
+            numeric: true,
+            sensitivity: 'base'
+        });
+
+        return direction === 'asc' ? comparison : -comparison;
+    });
+    list.append(sortedSelectors);
+}
+
 $(document).on('click', '#modelsContainer .card-selector-sort-button', function() {
     try {
         let button = $(this);
         let sortIndex = button.attr('data-sort-index');
         let layout = button.closest('.card-selector-layout');
-        let list = layout.find('.card-selector-items');
         let currentDirection = button.attr('data-sort-direction');
         let nextDirection = currentDirection === 'asc' ? 'desc' : 'asc';
 
@@ -1448,18 +1545,7 @@ $(document).on('click', '#modelsContainer .card-selector-sort-button', function(
             .find('.card-selector-sort-indicator')
             .text(nextDirection === 'asc' ? ' ▲' : ' ▼');
 
-        let sortedSelectors = list.children('.card-selector').get().sort(function(a, b) {
-            let aValue = safeTextValue($(a).attr('data-sort-value-' + sortIndex), '');
-            let bValue = safeTextValue($(b).attr('data-sort-value-' + sortIndex), '');
-            let comparison = aValue.localeCompare(bValue, undefined, {
-                numeric: true,
-                sensitivity: 'base'
-            });
-
-            return nextDirection === 'asc' ? comparison : -comparison;
-        });
-
-        list.append(sortedSelectors);
+        sortCardSelectors(layout, sortIndex, nextDirection);
 
     } catch (error) {
         reportAndRenderModelsError(error, 'card selector sort click');

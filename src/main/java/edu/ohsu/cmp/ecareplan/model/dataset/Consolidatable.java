@@ -1,6 +1,9 @@
 package edu.ohsu.cmp.ecareplan.model.dataset;
 
-public interface Consolidatable<S extends Comparable<S>> {
+import java.util.Date;
+
+public interface Consolidatable {
     String getConsolidationGroupBy();
-    S getConsolidationSortBy();
+    Date getConsolidationSortBy();
+    String getSourceEndpointName();
 }

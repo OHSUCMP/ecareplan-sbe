@@ -26,7 +26,7 @@
     }
 
     function buildCardSelectorData(model) {
-        let mostRecentData = model && model.mostRecentData ? model.mostRecentData : {};
+        let mostRecentData = getVisibleSourceRecords(model, 'effectiveDate')[0] || {};
 
         return [{
             label: 'Description',
@@ -41,27 +41,20 @@
     }
 
     function buildCardData(model) {
-        let mostRecentData = model && model.mostRecentData ? model.mostRecentData : {};
-        let historicalData = model && Array.isArray(model.historicalData) ? model.historicalData : [];
+        let records = getVisibleSourceRecords(model, 'effectiveDate');
+        let mostRecentData = records[0] || {};
+        let historicalData = records.slice(1);
         let performers = Array.isArray(mostRecentData.performers) ? mostRecentData.performers : [];
         let notes = Array.isArray(mostRecentData.notes) ? mostRecentData.notes : [];
 
         let card = {};
         card.title = mostRecentData.description || '(No Description)';
 
-        let sources = [];
-        if (mostRecentData.sourceEndpointName) {
-            sources.push(mostRecentData.sourceEndpointName);
-        }
+        card.source = getSourceEndpointNames(records.map(function(record) {
+            return record.sourceEndpointName;
+        }));
 
-        historicalData.forEach(function(data) {
-            if (data && data.sourceEndpointName && sources.indexOf(data.sourceEndpointName) === -1) {
-                sources.push(data.sourceEndpointName);
-            }
-        });
-        card.source = sources;
-
-        card.chart = buildConsolidatedChartData(model);
+        card.chart = buildConsolidatedChartData(records);
 
         card.rows = [];
         card.rows.push([
