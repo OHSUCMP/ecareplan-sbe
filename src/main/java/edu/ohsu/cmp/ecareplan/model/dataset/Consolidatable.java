@@ -5,4 +5,5 @@ import java.util.Date;
 public interface Consolidatable {
     String getConsolidationGroupBy();
     Date getConsolidationSortBy();
+    String getSourceEndpointName();
 }

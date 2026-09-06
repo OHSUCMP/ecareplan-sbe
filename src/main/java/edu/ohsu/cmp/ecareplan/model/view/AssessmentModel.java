@@ -5,8 +5,7 @@ import edu.ohsu.cmp.ecareplan.entity.Assessment;
 import org.hl7.fhir.r4.model.Questionnaire;
 import org.hl7.fhir.r4.model.QuestionnaireResponse;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class AssessmentModel {
     private final String name;
@@ -94,6 +93,17 @@ public class AssessmentModel {
 
     public List<ResponseSummary> getResponseSummaryList() {
         return responseSummaryList;
+    }
+
+    public Map<String, List<ResponseSummary>> getAllDataBySourceEndpointName() {
+        Map<String, List<ResponseSummary>> map = new HashMap<>();
+        for (ResponseSummary item : responseSummaryList) {
+            if ( ! map.containsKey(item.getSourceEndpointName()) ) {
+                map.put(item.getSourceEndpointName(), new ArrayList<>());
+            }
+            map.get(item.getSourceEndpointName()).add(item);
+        }
+        return map;
     }
 
     public static final class ResponseSummary {
