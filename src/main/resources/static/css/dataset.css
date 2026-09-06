@@ -156,12 +156,6 @@ display.progress > div {
     display: none !important;
 }
 
-.source-endpoint-tinted {
-    --source-endpoint-bg: #f8fbfc;
-    --source-endpoint-border: #dbe8ee;
-    --source-endpoint-accent: #7698a1;
-}
-
 .source-endpoint-legend {
     margin-bottom: 1rem;
     padding: 1rem 1.1rem;
