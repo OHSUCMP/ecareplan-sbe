@@ -298,10 +298,10 @@ function getChartOptions(chart) {
     };
 }
 
-function buildConsolidatedChartData(model) {
-    if (!model || !model.mostRecentData) return null;
+function buildConsolidatedChartData(records) {
+    if (!Array.isArray(records) || records.length === 0) return null;
 
-    const records = [ model.mostRecentData ].concat(Array.isArray(model.historicalData) ? model.historicalData : []);
+    const mostRecentData = records[0] || {};
     const linesByConceptName = new Map();
 
     records.forEach(function(record) {
@@ -341,10 +341,10 @@ function buildConsolidatedChartData(model) {
     if (lines.length === 0) return null;
 
     return {
-        title: (model.mostRecentData.description || 'Vitals') + ' Over Time',
+        title: (mostRecentData.description || 'Vitals') + ' Over Time',
         labels: {
             x: 'Date',
-            y: model.mostRecentData.resultUnits || ''
+            y: mostRecentData.resultUnits || ''
         },
         lines: lines
     };

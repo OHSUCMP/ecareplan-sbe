@@ -27,6 +27,7 @@
 
     function buildCardSelectorData(model) {
         model = model || {};
+        let mostRecentData = getVisibleSourceRecords(model, 'authored')[0] || {};
 
         return [{
             label: 'Name',
@@ -34,8 +35,8 @@
             bootstrapWidth: 8
         }, {
             label: 'Authored Date',
-            value: formatDate(model.authored),
-            valueForCompare: model.authored,
+            value: formatDate(mostRecentData.authored),
+            valueForCompare: mostRecentData.authored,
             bootstrapWidth: 4
         }];
     }
@@ -47,15 +48,10 @@
         card.title = model.label || '(No Name)';
         card.learnMoreUrl = model.learnMoreUrl;
 
-        let sources = [];
-        let responseSummaryList = Array.isArray(model.responseSummaryList) ? model.responseSummaryList : [];
-
-        responseSummaryList.forEach(function(data) {
-            if (data && data.sourceEndpointName && sources.indexOf(data.sourceEndpointName) === -1) {
-                sources.push(data.sourceEndpointName);
-            }
-        });
-        card.source = sources;
+        let responseSummaryList = getVisibleSourceRecords(model, 'authored');
+        card.source = getSourceEndpointNames(responseSummaryList.map(function(response) {
+            return response.sourceEndpointName;
+        }));
 
         if (responseSummaryList.length >= 2) {
             let chartData = [];
