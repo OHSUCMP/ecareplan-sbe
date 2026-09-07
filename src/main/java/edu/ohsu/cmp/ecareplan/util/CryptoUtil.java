@@ -76,7 +76,8 @@ public class CryptoUtil {
         return new SecretKeySpec(tmp.getEncoded(), "AES");
     }
 
-    public static String encrypt(Object obj, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidParameterSpecException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+    public static String encrypt(Object obj, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            InvalidKeyException, InvalidParameterSpecException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         Cipher cipher = Cipher.getInstance(CIPHER);
         byte[] iv = randomBytes(IV_LENGTH);
 
@@ -108,12 +109,14 @@ public class CryptoUtil {
         return Base64.encodeBase64String(payload);
     }
 
-    public static <T> T decrypt(Class<T> clazz, String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+    public static <T> T decrypt(Class<T> clazz, String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException,
+            NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         Gson gson = new GsonBuilder().create();
         return gson.fromJson(decrypt(encryptedDataB64, secretKey), clazz);
     }
 
-    public static String decrypt(String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+    public static String decrypt(String encryptedDataB64, SecretKey secretKey) throws NoSuchPaddingException,
+            NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         byte[] payload = Base64.decodeBase64(encryptedDataB64);
         Cipher cipher = Cipher.getInstance(CIPHER);
 
