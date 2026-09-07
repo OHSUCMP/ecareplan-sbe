@@ -361,8 +361,8 @@ public class UserWorkspace {
 
         boolean loadFromEndpoint = uec != null;
 
-        EndpointReadProgressModel progress = new EndpointReadProgressModel(endpoint, ! loadFromEndpoint);
-        endpointReadProgressMap.put(endpoint.getId(), progress);
+        EndpointReadProgressModel endpointProgress = new EndpointReadProgressModel(endpoint, ! loadFromEndpoint);
+        endpointReadProgressMap.put(endpoint.getId(), endpointProgress);
 
         FHIRCredentials credentials = loadFromEndpoint ?
                 uec.getCredentialsWithClient().getCredentials() :
@@ -371,12 +371,12 @@ public class UserWorkspace {
         DataSetBuilderRequestConfiguration cfg = new DataSetBuilderRequestConfiguration(ue, credentials, endpointPatientId);
 
         EndpointPopulationTask task = new EndpointPopulationTask(sessionId, loadFromEndpoint, cfg,
-                launchCredentials, progress,
+                launchCredentials, endpointProgress,
                 ctx.getBean(UserWorkspaceService.class),
-                endpointService, sdsService, auditService);
+                endpointService, sdsService, backgroundTaskService, auditService);
 
-        Future<Void> future = backgroundTaskService.submit(task);
-        progress.setFuture(future);
+        Future<Void> endpointFuture = backgroundTaskService.submit(task);
+        endpointProgress.setFuture(endpointFuture);
     }
 
     private String getPatientIdForEndpoint(Endpoint endpoint) throws DataException {
@@ -583,7 +583,7 @@ public class UserWorkspace {
 ///////////////////////////////////////////////////////////////////////////////////////
 /// Data Set Caching Functions
 
-    public void invalidateCache(DataSet<?> dataSet, Endpoint endpoint) {
+    public synchronized void invalidateCache(DataSet<?> dataSet, Endpoint endpoint) {
         cache.invalidate(buildDataSetEndpointKey(dataSet, endpoint));
     }
 
@@ -602,7 +602,7 @@ public class UserWorkspace {
                 new ArrayList<>();
     }
 
-    public void addToCache(DataSet<?> dataSet, Endpoint endpoint, List<? extends BaseDataSetModel<?>> resources) {
+    public synchronized void addToCache(DataSet<?> dataSet, Endpoint endpoint, List<? extends BaseDataSetModel<?>> resources) {
         cache.put(buildDataSetEndpointKey(dataSet, endpoint), resources);
         updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
         notifyDataSetUpdated(dataSet, endpoint);

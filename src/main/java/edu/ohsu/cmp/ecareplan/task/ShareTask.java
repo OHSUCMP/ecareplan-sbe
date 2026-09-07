@@ -58,6 +58,11 @@ public class ShareTask implements ITask<Void> {
         return new Callable<Void>() {
             @Override
             public Void call() {
+                final long start = System.currentTimeMillis();
+
+                logger.info("BEGIN sharing {} {} resources from endpoint={} to SDS for session={}", resources.size(),
+                        dataSet.getName(), endpoint.getName(), sessionId);
+
                 progress.setStatus(ProgressStatus.RUNNING);
 
                 final int maxAttempts = 10;
@@ -163,6 +168,10 @@ public class ShareTask implements ITask<Void> {
                             " from " + endpoint.getName() + ", but progress current != max?  that's weird.  investigate?");
                     progress.setStatus(ProgressStatus.COMPLETED);
                 }
+
+                long runtime = System.currentTimeMillis() - start;
+                logger.info("DONE sharing {} {} resources from endpoint={} to SDS for session={} (took {} ms)", resources.size(),
+                        dataSet.getName(), endpoint.getName(), sessionId, runtime);
 
                 return null;
             }
