@@ -117,24 +117,25 @@ public class DataSetPopulationTask implements ITask<Void> {
 
                 } finally {
                     addToCache(dataSet, endpoint, resources);
-
-                    if (sdsFuture != null) {
-                        try {
-                            sdsFuture.get();
-
-                        } catch (InterruptedException e) {
-                            logger.error("Interrupted while sharing data to SDS", e);
-                            Thread.currentThread().interrupt();
-
-                        } catch (ExecutionException | CancellationException e) {
-                            logger.error("Failed while sharing data to SDS", e);
-                        }
-                    }
                 }
 
                 long runtime = System.currentTimeMillis() - start;
                 logger.info("DONE populating {} from endpoint={} for session={}, userId={} (took {} ms)", dataSet.getName(),
                         endpoint.getName(), sessionId, user.getId(), runtime);
+
+                // wait for all child SDS tasks to complete
+                if (sdsFuture != null) {
+                    try {
+                        sdsFuture.get();
+
+                    } catch (InterruptedException e) {
+                        logger.error("Interrupted while sharing data to SDS", e);
+                        Thread.currentThread().interrupt();
+
+                    } catch (ExecutionException | CancellationException e) {
+                        logger.error("Failed while sharing data to SDS", e);
+                    }
+                }
 
                 return null;
             }
@@ -155,14 +156,12 @@ public class DataSetPopulationTask implements ITask<Void> {
 
     @SuppressWarnings("unchecked")
     private <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<?> dataSet, DataSetBuilderRequestConfiguration cfg, IDataSetBuilder dataSetBuilder) {
-        final long start = System.currentTimeMillis();
         final UserEndpoint userEndpoint = cfg.userEndpoint();
-
-        logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, userEndpoint.getUser().getId(),
-                userEndpoint.getEndpoint().getName());
 
         List<? extends BaseDataSetModel<?>> list = null;
         try {
+            final long start = System.currentTimeMillis();
+
             if (DataSet.PATIENT.equals(dataSet)) {
                 list = dataSetBuilder.buildPatients(cfg);
             } else if (DataSet.CARE_PLANS.equals(dataSet)) {
@@ -252,9 +251,6 @@ public class DataSetPopulationTask implements ITask<Void> {
                 throw new RuntimeException(e);
             }
         }
-
-        logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
-                userEndpoint.getUser().getId(), userEndpoint.getEndpoint().getName(), (System.currentTimeMillis() - start));
 
         return list != null ?
                 (List<T>) list :
