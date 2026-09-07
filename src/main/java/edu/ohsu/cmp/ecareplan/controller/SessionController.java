@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.controller;
 
+import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
@@ -82,7 +83,7 @@ public class SessionController extends BaseController {
     }
 
     @PostMapping("refresh")
-    public ResponseEntity<?> refresh(HttpSession session) {
+    public ResponseEntity<?> refresh(HttpSession session) throws DataException {
         if (userWorkspaceService.exists(session.getId())) {
             UserWorkspace workspace = userWorkspaceService.get(session.getId());
 
