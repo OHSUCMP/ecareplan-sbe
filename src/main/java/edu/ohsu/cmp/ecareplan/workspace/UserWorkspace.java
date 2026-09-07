@@ -251,7 +251,6 @@ public class UserWorkspace {
                 );
 
             } catch (Exception e) {
-                logger.debug("caught {} attempting to send {} - {}", e.getClass().getSimpleName(), "dataset-update", e.getMessage(), e);
                 clearEmitter(currentEmitter);
                 try {
                     currentEmitter.completeWithError(e);
