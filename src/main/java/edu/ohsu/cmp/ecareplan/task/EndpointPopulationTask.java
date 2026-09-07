@@ -1,7 +1,6 @@
 package edu.ohsu.cmp.ecareplan.task;
 
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
-import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSetBuilderRequestConfiguration;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
@@ -62,60 +61,56 @@ public class EndpointPopulationTask implements ITask<Void> {
 
     @Override
     public Callable<Void> getCallable() {
-        return new Callable<>() {
-            @Override
-            public Void call() {
-                final long start = System.currentTimeMillis();
-                final User user = cfg.userEndpoint().getUser();
-                final Endpoint endpoint = cfg.userEndpoint().getEndpoint();
-                final List<Future<Void>> dataSetFutures = new ArrayList<>();
+        return () -> {
+            final long start = System.currentTimeMillis();
+            final Endpoint endpoint = cfg.userEndpoint().getEndpoint();
+            final List<Future<Void>> dataSetFutures = new ArrayList<>();
 
-                logger.info("BEGIN populating endpoint={} for session={}", endpoint.getName(), sessionId);
+            logger.info("BEGIN populating endpoint={} for session={}", endpoint.getName(), sessionId);
 
-                notifyEndpointPopulationStarted(endpoint);
+            notifyEndpointPopulationStarted(endpoint);
 
+            try {
+                for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
+                    DataSetPopulationTask task = new DataSetPopulationTask(sessionId, loadFromEndpoint, dataSet,
+                            cfg, launchCredentials, progress,
+                            userWorkspaceService, endpointService, sdsService, auditService);
+                    Future<Void> future = backgroundTaskService.submit(task);
+                    dataSetFutures.add(future);
+                }
+
+            } finally {
                 try {
-                    for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
-                        DataSetPopulationTask task = new DataSetPopulationTask(sessionId, loadFromEndpoint, dataSet,
-                                cfg, launchCredentials, progress,
-                                userWorkspaceService, endpointService, sdsService, auditService);
-                        Future<Void> future = backgroundTaskService.submit(task);
-                        dataSetFutures.add(future);
+                    for (Future<Void> dataSetFuture : dataSetFutures) { // wait for all dataSet tasks to complete
+                        dataSetFuture.get();
                     }
 
-                } finally {
-                    try {
-                        for (Future<Void> dataSetFuture : dataSetFutures) { // wait for all dataSet tasks to complete
-                            dataSetFuture.get();
-                        }
-
-                        if (loadFromEndpoint) {
-                            logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
-                            endpointService.updateUserEndpointLastSyncCompleted(cfg.userEndpoint());
-                        }
-
-                    } catch (InterruptedException e) {
-                        logger.error("Interrupted while populating dataSet", e);
-                        Thread.currentThread().interrupt();
-
-                    } catch (ExecutionException | CancellationException e) {
-                        logger.error("Failed while populating dataSet", e);
+                    if (loadFromEndpoint) {
+                        logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
+                        endpointService.updateUserEndpointLastSyncCompleted(cfg.userEndpoint());
                     }
+
+                } catch (InterruptedException e) {
+                    logger.error("Interrupted while populating dataSet", e);
+                    Thread.currentThread().interrupt();
+
+                } catch (ExecutionException | CancellationException e) {
+                    logger.error("Failed while populating dataSet", e);
                 }
-
-                long runtime = System.currentTimeMillis() - start;
-                logger.info("DONE populating endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
-
-                notifyEndpointPopulationComplete(endpoint);
-                notifyIfAllComplete();
-
-                if ( ! userWorkspaceService.exists(sessionId) ) {
-                    // user logged out during population, flush any accumulated progress data from the SDS service
-                    sdsService.clearAllCompletedProgress(sessionId);
-                }
-
-                return null;
             }
+
+            long runtime = System.currentTimeMillis() - start;
+            logger.info("DONE populating endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+
+            notifyEndpointPopulationComplete(endpoint);
+            notifyIfAllComplete();
+
+            if ( ! userWorkspaceService.exists(sessionId) ) {
+                // user logged out during population, flush any accumulated progress data from the SDS service
+                sdsService.clearAllCompletedProgress(sessionId);
+            }
+
+            return null;
         };
     }
 

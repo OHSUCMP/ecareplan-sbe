@@ -38,7 +38,6 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -176,28 +175,6 @@ public class UserWorkspace {
         sdsService.clearAllCompletedProgress(sessionId);
     }
 
-    private void waitUntilAllProgressComplete() {
-        endpointReadProgressMap.values().forEach(pm -> {
-            try {
-                if (pm.getFuture() != null) {
-                    pm.getFuture().get();
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                logger.error("Error waiting for future to complete", e);
-            }
-        });
-        sdsService.waitUntilAllProgressComplete(sessionId);
-    }
-
-    private synchronized void terminateRemainingProgress() {
-        endpointReadProgressMap.values().forEach(pm -> {
-            if (pm.getFuture() != null) {
-                pm.getFuture().cancel(true);
-            }
-        });
-        sdsService.terminateRemainingProgress(sessionId);
-    }
-
     public synchronized SseEmitter createNewEmitter() {
         if (shutdown.get()) {
             SseEmitter closedEmitter = new SseEmitter(0L);
@@ -293,13 +270,6 @@ public class UserWorkspace {
 
     public Audience getAudience() {
         return audience;
-    }
-
-    public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint endpoint) {
-        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
-        return uec != null ?
-                uec.getCredentialsWithClient() :
-                null;
     }
 
     public void configureUserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
