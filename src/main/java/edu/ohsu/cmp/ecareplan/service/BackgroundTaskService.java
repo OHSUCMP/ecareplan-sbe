@@ -5,7 +5,6 @@ import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutorService;
@@ -20,16 +19,11 @@ public class BackgroundTaskService {
     private final ExecutorService executorService;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
-    @Value("${background-task-service.thread-pool-size:0}")
-    private Integer poolSize;
-
     public BackgroundTaskService() {
-        if (poolSize == null) {
-            int n_cpu = Runtime.getRuntime().availableProcessors();
-            poolSize = n_cpu * 10;
-        }
-        logger.info("BackgroundTaskService thread pool size: " + poolSize);
-        executorService = Executors.newFixedThreadPool(poolSize);
+        // Parent tasks wait for children submitted to this same executor. A thread per
+        // task avoids pool starvation, and virtual threads release carriers while waiting.
+        executorService = Executors.newThreadPerTaskExecutor(
+                Thread.ofVirtual().name("background-task-", 0).factory());
     }
 
     @PreDestroy
@@ -44,7 +38,7 @@ public class BackgroundTaskService {
 
 
     public <T> Future<T> submit(ITask<T> task) {
-        logger.info("Submitting task : " + task.getDescription());
+        logger.info("Submitting task : {}", task.getDescription());
         return executorService.submit(task.getCallable());
     }
 }

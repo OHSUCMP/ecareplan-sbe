@@ -23,10 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 public class DataSetPopulationTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(DataSetPopulationTask.class);
@@ -78,76 +75,98 @@ public class DataSetPopulationTask implements ITask<Void> {
             logger.info("BEGIN populating {} from {} for session={}, userId={}", dataSet.getName(),
                     endpoint.getName(), sessionId, user.getId());
 
-            List<? extends BaseDataSetModel<?>> resources = null;
+            List<? extends BaseDataSetModel<?>> resources = List.of();
             Future<Void> sdsFuture = null;
             try {
-                progress.setStatus(dataSet, ProgressStatus.RUNNING);
-                invalidateCache(dataSet, endpoint);
-
-                if (loadFromEndpoint) {
-                    resources = getDataSetModelsForEndpoint(dataSet, cfg, endpointService);
-                    sdsFuture = sdsService.shareToSDS(sessionId, dataSet, endpoint, launchCredentials, resources);
-
-                } else {
-                    resources = getDataSetModelsForEndpoint(dataSet, cfg, sdsService);
-                }
-
-            } catch (Exception e) {
-                String endpointNameForLogging = ! loadFromEndpoint ?
-                        "SDS for " + endpoint.getName() :
-                        endpoint.getName();
-
-                logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
-                        endpointNameForLogging, sessionId, e.getMessage(), e);
-                auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
-                        "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " +
-                                endpointNameForLogging + " - " + e.getMessage());
-                progress.addError(dataSet, e.getMessage());
-
-                if (e instanceof ForbiddenOperationException && ! loadFromEndpoint) {
-                    // user can't access their SDS records that the app seems to think they have
-                    // maybe the SDS was reset?
-                    // in any case, it probably makes sense to just clear their lastSyncCompleted timestamp and abort this attempt
-                    endpointService.clearUserEndpointLastSyncCompleted(cfg.userEndpoint());
-                    auditService.doAudit(user, AuditSeverity.WARN, "endpoint population",
-                            "cleared SDS lastSyncCompleted timestamp and aborting population for " + endpoint.getName());
-                }
-
-            } finally {
-                addToCache(dataSet, endpoint, resources);
-            }
-
-            long runtime = System.currentTimeMillis() - start;
-            logger.info("DONE populating {} from {} for session={}, userId={} (took {} ms)", dataSet.getName(),
-                    endpoint.getName(), sessionId, user.getId(), runtime);
-
-            // wait for all child SDS tasks to complete
-            if (sdsFuture != null) {
                 try {
-                    sdsFuture.get();
+                    checkInterrupted();
+                    progress.setStatus(dataSet, ProgressStatus.RUNNING);
+                    invalidateCache(dataSet, endpoint);
 
-                } catch (InterruptedException e) {
-                    logger.error("Interrupted while sharing data to SDS", e);
-                    Thread.currentThread().interrupt();
+                    if (loadFromEndpoint) {
+                        resources = getDataSetModelsForEndpoint(dataSet, cfg, endpointService);
+                        checkInterrupted();
+                        sdsFuture = sdsService.shareToSDS(sessionId, dataSet, endpoint, launchCredentials, resources);
 
-                } catch (ExecutionException | CancellationException e) {
-                    logger.error("Failed while sharing data to SDS", e);
+                    } else {
+                        resources = getDataSetModelsForEndpoint(dataSet, cfg, sdsService);
+                    }
+
+                } catch (Exception e) {
+                    String endpointNameForLogging = ! loadFromEndpoint ?
+                            "SDS for " + endpoint.getName() :
+                            endpoint.getName();
+
+                    logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
+                            endpointNameForLogging, sessionId, e.getMessage(), e);
+                    auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
+                            "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " +
+                                    endpointNameForLogging + " - " + e.getMessage());
+                    progress.addError(dataSet, e.getMessage());
+
+                    if (e instanceof ForbiddenOperationException && ! loadFromEndpoint) {
+                        // user can't access their SDS records that the app seems to think they have
+                        // maybe the SDS was reset?
+                        // in any case, it probably makes sense to just clear their lastSyncCompleted timestamp and abort this attempt
+                        endpointService.clearUserEndpointLastSyncCompleted(cfg.userEndpoint());
+                        auditService.doAudit(user, AuditSeverity.WARN, "endpoint population",
+                                "cleared SDS lastSyncCompleted timestamp and aborting population for " + endpoint.getName());
+                    }
+
+                    throw e;
+
+                } finally {
+                    addToCache(dataSet, endpoint, resources);
+                }
+
+                long runtime = System.currentTimeMillis() - start;
+                logger.info("DONE populating {} from {} for session={}, userId={} (took {} ms)", dataSet.getName(),
+                        endpoint.getName(), sessionId, user.getId(), runtime);
+
+                // wait for all child SDS tasks to complete
+                if (sdsFuture != null) {
+                    try {
+                        sdsFuture.get();
+
+                    } catch (InterruptedException e) {
+                        sdsFuture.cancel(true);
+                        logger.error("Interrupted while sharing data to SDS", e);
+                        Thread.currentThread().interrupt();
+                        throw e;
+
+                    } catch (ExecutionException | CancellationException e) {
+                        logger.error("Failed while sharing data to SDS", e);
+                        progress.addError(dataSet, "Failed while sharing data to SDS: " + e.getMessage());
+                        throw e;
+                    }
+                }
+
+                return null;
+            } finally {
+                if (sdsFuture != null && !sdsFuture.isDone()) {
+                    sdsFuture.cancel(true);
                 }
             }
-
-            return null;
         };
     }
 
+    private static void checkInterrupted() throws InterruptedException {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("Dataset population interrupted");
+        }
+    }
+
     private void addToCache(DataSet<?> dataSet, Endpoint endpoint, List<? extends BaseDataSetModel<?>> resources) {
-        if (userWorkspaceService.exists(sessionId)) {
-            userWorkspaceService.get(sessionId).addToCache(dataSet, endpoint, resources);
+        var workspace = userWorkspaceService.getIfPresent(sessionId);
+        if (workspace != null) {
+            workspace.addToCache(dataSet, endpoint, resources);
         }
     }
 
     private void invalidateCache(DataSet<?> dataSet, Endpoint endpoint) {
-        if (userWorkspaceService.exists(sessionId)) {
-            userWorkspaceService.get(sessionId).invalidateCache(dataSet, endpoint);
+        var workspace = userWorkspaceService.getIfPresent(sessionId);
+        if (workspace != null) {
+            workspace.invalidateCache(dataSet, endpoint);
         }
     }
 

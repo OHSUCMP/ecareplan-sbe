@@ -6,7 +6,7 @@ import java.util.Date;
 
 public abstract class BaseProgressModel implements IProgress {
     protected final String endpointName;
-    protected Date lastUpdated;
+    protected volatile Date lastUpdated;
 
     public BaseProgressModel(String endpointName) {
         this.endpointName = endpointName;

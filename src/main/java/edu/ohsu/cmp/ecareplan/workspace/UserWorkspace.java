@@ -571,9 +571,12 @@ public class UserWorkspace {
                 new ArrayList<>();
     }
 
-    public synchronized void addToCache(DataSet<?> dataSet, Endpoint endpoint, List<? extends BaseDataSetModel<?>> resources) {
-        cache.put(buildDataSetEndpointKey(dataSet, endpoint), resources);
-        updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
+    public void addToCache(DataSet<?> dataSet, Endpoint endpoint, List<? extends BaseDataSetModel<?>> resources) {
+        synchronized (this) {
+            cache.put(buildDataSetEndpointKey(dataSet, endpoint), resources);
+            updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
+        }
+        // Sending to a slow browser must not hold the workspace lock for other datasets.
         notifyDataSetUpdated(dataSet, endpoint);
     }
 }

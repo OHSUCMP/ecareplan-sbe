@@ -12,7 +12,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     private final Boolean loadingFromSDS;
     private final Map<DataSet<?>, ProgressStatus> dataSetStatusMap;
     private final Map<DataSet<?>, List<String>> dataSetErrorsMap;
-    private transient Future<Void> future;
+    private transient volatile Future<Void> future;
 
     public EndpointReadProgressModel(Endpoint endpoint, Boolean loadingFromSDS) {
         super(endpoint.getName());
@@ -54,7 +54,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     }
 
     @Override
-    public ProgressStatus getStatus() {
+    public synchronized ProgressStatus getStatus() {
         if (dataSetStatusMap.values().stream().allMatch(s -> s == ProgressStatus.COMPLETED))
             return ProgressStatus.COMPLETED;
         else if (dataSetStatusMap.values().stream().anyMatch(s -> s == ProgressStatus.RUNNING))
@@ -63,7 +63,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
             return ProgressStatus.WAITING_TO_START;
     }
 
-    public ProgressStatus getStatus(DataSet<?> dataSet) {
+    public synchronized ProgressStatus getStatus(DataSet<?> dataSet) {
         return dataSetStatusMap.get(dataSet);
     }
 
@@ -73,7 +73,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     }
 
     @Override
-    public String getMessage() {
+    public synchronized String getMessage() {
         if (dataSetStatusMap.values().stream().allMatch(s -> s == ProgressStatus.COMPLETED)) {
             return dataSetErrorsMap.isEmpty() ?
                     "All datasets have been successfully read." :
@@ -91,23 +91,23 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
     }
 
     @Override
-    public Integer getCurrent() {
+    public synchronized Integer getCurrent() {
         return dataSetStatusMap.values().stream().filter(s -> s == ProgressStatus.COMPLETED).toList().size();
     }
 
     @Override
-    public Integer getTotal() {
+    public synchronized Integer getTotal() {
         return dataSetStatusMap.size();
     }
 
     @Override
-    public List<String> getErrors() {
+    public synchronized List<String> getErrors() {
         return dataSetErrorsMap.values().stream().flatMap(List::stream).toList();
     }
 
-    public List<String> getErrors(DataSet<?> dataSet) {
+    public synchronized List<String> getErrors(DataSet<?> dataSet) {
         return dataSetErrorsMap.containsKey(dataSet) ?
-                dataSetErrorsMap.get(dataSet) :
+                new ArrayList<>(dataSetErrorsMap.get(dataSet)) :
                 List.of();
     }
 
@@ -119,7 +119,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
         lastUpdated = new Date();
     }
 
-    public DataSetReadProgressModel getDataSetReadProgressModel(DataSet<?> dataSet) {
+    public synchronized DataSetReadProgressModel getDataSetReadProgressModel(DataSet<?> dataSet) {
         return new DataSetReadProgressModel(dataSet, endpoint, loadingFromSDS, getStatus(dataSet), getErrors(dataSet), lastUpdated);
     }
 }
