@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.service;
 
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
+import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class SessionService extends BaseService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public void prepareSession(String sessionId, FHIRCredentials credentials, Audience audience) throws ConfigurationException {
+    public void prepareSession(String sessionId, FHIRCredentials credentials, Audience audience) throws ConfigurationException, DataException {
         logger.debug("preparing session {} with credentials={}", sessionId, credentials);
 
         userWorkspaceService.init(sessionId, audience, credentials);

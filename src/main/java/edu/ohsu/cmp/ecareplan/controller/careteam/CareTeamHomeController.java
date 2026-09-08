@@ -3,6 +3,7 @@ package edu.ohsu.cmp.ecareplan.controller.careteam;
 import edu.ohsu.cmp.ecareplan.controller.BaseController;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
+import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
@@ -21,8 +22,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import java.io.IOException;
 
 @Controller
 @RequestMapping("/care-team")
@@ -53,21 +52,21 @@ public class CareTeamHomeController extends BaseController {
         return "launch";
     }
 
-    @GetMapping("complete-handshake")
-    public String completeHandshake(HttpSession session, Model model) {
+    @GetMapping("smart-callback")
+    public String smartCallback(Model model) {
         setCommonViewComponents(model);
         model.addAttribute("cacheCredentials", cacheCredentials);
         model.addAttribute("redirectUri", "/care-team");
-        return "complete-handshake";
+        return "smart-callback";
     }
 
-    @PostMapping("prepare-session")
-    public ResponseEntity<?> prepareSession(HttpSession session,
-                                            @RequestParam String clientId,
-                                            @RequestParam String serverUrl,
-                                            @RequestParam String bearerToken,
-                                            @RequestParam String patientId,
-                                            @RequestParam String userId) throws ConfigurationException, IOException {
+    @PostMapping("complete-handshake")
+    public ResponseEntity<?> completeHandshake(HttpSession session,
+                                               @RequestParam String clientId,
+                                               @RequestParam String serverUrl,
+                                               @RequestParam String bearerToken,
+                                               @RequestParam String patientId,
+                                               @RequestParam String userId) throws ConfigurationException, DataException {
 
         Endpoint careTeamEndpoint = endpointService.getCareTeamLaunchEndpoint();
         if ( ! careTeamEndpoint.getClientId().equals(clientId) || ! careTeamEndpoint.getIss().equals(serverUrl) ) {

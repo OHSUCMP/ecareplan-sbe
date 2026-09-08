@@ -1,9 +1,6 @@
 package edu.ohsu.cmp.ecareplan.workspace;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
-import ca.uhn.fhir.rest.server.exceptions.ForbiddenOperationException;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.impl.JWTParser;
 import com.auth0.jwt.interfaces.Payload;
@@ -13,18 +10,20 @@ import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.CaseNotHandledException;
-import edu.ohsu.cmp.ecareplan.model.*;
+import edu.ohsu.cmp.ecareplan.exception.DataException;
+import edu.ohsu.cmp.ecareplan.model.Audience;
+import edu.ohsu.cmp.ecareplan.model.EndpointModel;
+import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.dataset.BaseDataSetModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
+import edu.ohsu.cmp.ecareplan.model.dataset.DataSetBuilderRequestConfiguration;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.model.progress.EndpointReadProgressModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.service.*;
-import edu.ohsu.cmp.ecareplan.transform.GenericResourceTransformer;
-import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
+import edu.ohsu.cmp.ecareplan.task.EndpointPopulationTask;
 import edu.ohsu.cmp.ecareplan.util.CryptoUtil;
-import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
@@ -39,13 +38,12 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Calendar;
-import java.util.concurrent.*;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UserWorkspace {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
-    public static final int POOL_SIZE = 5;
+    private static final Logger logger = LoggerFactory.getLogger(UserWorkspace.class);
 
     private final ApplicationContext ctx;
     private final String sessionId;
@@ -54,12 +52,11 @@ public class UserWorkspace {
     private final FHIRCredentials launchCredentials;
     private final User user;
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
-    private final Map<Long, String> endpointPatientIdMap;
     private final Cache<String, List<? extends BaseDataSetModel<?>>> cache;
-    private final ExecutorService executorService;
     private final EndpointService endpointService;
     private final SDSService sdsService;
     private final AuditService auditService;
+    private final BackgroundTaskService backgroundTaskService;
     private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
     private final AtomicBoolean shutdown;
 
@@ -79,6 +76,7 @@ public class UserWorkspace {
         endpointService = ctx.getBean(EndpointService.class);
         sdsService = ctx.getBean(SDSService.class);
         auditService = ctx.getBean(AuditService.class);
+        backgroundTaskService = ctx.getBean(BackgroundTaskService.class);
 
         UserService userService = ctx.getBean(UserService.class);
         user = userService.getUser(
@@ -100,7 +98,6 @@ public class UserWorkspace {
         }
 
         userEndpointCredentialsMap = new LinkedHashMap<>();
-        endpointPatientIdMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
         UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint, launchCredentials.getPatientId());
@@ -112,26 +109,8 @@ public class UserWorkspace {
                 .expireAfterWrite(6, TimeUnit.HOURS)
                 .build();
 
-        executorService = Executors.newFixedThreadPool(POOL_SIZE);
-
         shutdown = new AtomicBoolean(false);
         setupAutoShutdownJob();
-    }
-
-    public String getPatientIdForEndpoint(Endpoint endpoint) {
-        if ( ! endpointPatientIdMap.containsKey(endpoint.getId()) ) {
-            try {
-                UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
-                endpointPatientIdMap.put(endpoint.getId(), CryptoUtil.decrypt(userEndpoint.getEncryptedPatientId(), secretKey));
-            } catch (Exception e) {
-                if (e instanceof RuntimeException re) {
-                    throw re;
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-        return endpointPatientIdMap.get(endpoint.getId());
     }
 
     public UserEndpoint getOrCreateUserEndpoint(Endpoint endpoint, String fhirPatientId) {
@@ -191,37 +170,9 @@ public class UserWorkspace {
         }
     }
 
-    private synchronized void addProgressError(Endpoint endpoint, DataSet<?> dataSet, String error) {
-        if (endpointReadProgressMap.containsKey(endpoint.getId())) {
-            endpointReadProgressMap.get(endpoint.getId()).addError(dataSet, error);
-        }
-    }
-
     private synchronized void clearAllCompletedProgress() {
         endpointReadProgressMap.values().removeIf(pm -> pm.getFuture() == null || pm.getFuture().isDone());
         sdsService.clearAllCompletedProgress(sessionId);
-    }
-
-    private void waitUntilAllProgressComplete() {
-        endpointReadProgressMap.values().forEach(pm -> {
-            try {
-                if (pm.getFuture() != null) {
-                    pm.getFuture().get();
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                logger.error("Error waiting for future to complete", e);
-            }
-        });
-        sdsService.waitUntilAllProgressComplete(sessionId);
-    }
-
-    private synchronized void terminateRemainingProgress() {
-        endpointReadProgressMap.values().forEach(pm -> {
-            if (pm.getFuture() != null) {
-                pm.getFuture().cancel(true);
-            }
-        });
-        sdsService.terminateRemainingProgress(sessionId);
     }
 
     public synchronized SseEmitter createNewEmitter() {
@@ -277,7 +228,6 @@ public class UserWorkspace {
                 );
 
             } catch (Exception e) {
-                logger.debug("caught {} attempting to send {} - {}", e.getClass().getSimpleName(), "dataset-update", e.getMessage(), e);
                 clearEmitter(currentEmitter);
                 try {
                     currentEmitter.completeWithError(e);
@@ -288,26 +238,26 @@ public class UserWorkspace {
         }
     }
 
-    private void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
+    public void notifyDataSetUpdated(DataSet<?> dataSet, Endpoint endpoint) {
         sendUpdateNotification("dataset-update", Map.of(
                 "dataSet", dataSet.toString(),
                 "endpoint", endpoint.getName()
         ));
     }
 
-    private void notifyEndpointPopulationStarted(Endpoint endpoint) {
+    public void notifyEndpointPopulationStarted(Endpoint endpoint) {
         sendUpdateNotification("endpoint-population-started", Map.of(
                 "endpoint", endpoint.getName()
         ));
     }
 
-    private void notifyEndpointPopulationComplete(Endpoint endpoint) {
+    public void notifyEndpointPopulationComplete(Endpoint endpoint) {
         sendUpdateNotification("endpoint-population-complete", Map.of(
                 "endpoint", endpoint.getName()
         ));
     }
 
-    private void notifyIfAllComplete() {
+    public void notifyIfAllComplete() {
         List<IProgress> progress = getCurrentProgress();
         if (progress.stream().allMatch(p -> p.getStatus().equals(ProgressStatus.COMPLETED))) {
             sendUpdateNotification("all-complete", Map.of());
@@ -320,13 +270,6 @@ public class UserWorkspace {
 
     public Audience getAudience() {
         return audience;
-    }
-
-    public FHIRCredentialsWithClient getCredentialsWithClientForEndpoint(Endpoint endpoint) {
-        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
-        return uec != null ?
-                uec.getCredentialsWithClient() :
-                null;
     }
 
     public void configureUserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
@@ -362,146 +305,74 @@ public class UserWorkspace {
         return user;
     }
 
-    public void populate() {
+    public void populate() throws DataException {
         clearAllCompletedProgress();
         for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             populateEndpoint(ue.getEndpoint());
         }
     }
 
-    public void populateEndpoint(Endpoint endpoint) {
+    public void populateEndpoint(Endpoint endpoint) throws DataException {
         // todo : eventually, a refresh token should be stored on the UserEndpoint object, and
         //        this function should use that to automatically obtain a fresh authentication token
         //        if a valid one isn't present, prior to populating data sets
 
+        final UserEndpoint ue = endpointService.getUserEndpoint(user, endpoint);
+        final UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
+
         // preliminary sanity check
-        UserEndpoint ue = endpointService.getUserEndpoint(user, endpoint);
-        UserEndpointCredentials uec = getUserEndpointCredentials(endpoint);
         if (uec == null && ue.getLastSyncCompleted() == null) {
             logger.warn("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS.  How did we get here?", endpoint.getName());
             return;
         }
-        boolean loadFromEndpoint = uec != null;
 
         clearAllCompletedProgress();
 
-        Callable<Void> callable = new Callable<>() {
-            @Override
-            public Void call() {
-                long start = System.currentTimeMillis();
-                logger.info("BEGIN populating for endpoint={} for session={}", endpoint.getName(), sessionId);
-                notifyEndpointPopulationStarted(endpoint);
-                List<Future<Void>> futures = new ArrayList<>();
-                try {
-                    for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
-                        try {
-                            updateProgress(endpoint, dataSet, ProgressStatus.RUNNING);
-                            cache.invalidate(buildDataSetEndpointKey(dataSet, endpoint));
+        boolean loadFromEndpoint = uec != null;
 
-                            if (loadFromEndpoint) {
-                                getDataSetModelsForEndpoint(dataSet, endpoint, endpointService);
-                                Future<Void> future = sdsService.shareToSDS(sessionId, dataSet, endpoint);
-                                if (future != null) {
-                                    futures.add(future);
-                                }
-                            } else {
-                                getDataSetModelsForEndpoint(dataSet, endpoint, sdsService);
-                            }
+        EndpointReadProgressModel endpointProgress = new EndpointReadProgressModel(endpoint, ! loadFromEndpoint);
+        endpointReadProgressMap.put(endpoint.getId(), endpointProgress);
 
-                        } catch (Exception e) {
-                            final String endpointNameForLogging = ! loadFromEndpoint ?
-                                    "SDS for " + endpoint.getName() :
-                                    endpoint.getName();
+        FHIRCredentials credentials = loadFromEndpoint ?
+                uec.getCredentialsWithClient().getCredentials() :
+                launchCredentials;
+        String endpointPatientId = getPatientIdForEndpoint(endpoint);
+        DataSetBuilderRequestConfiguration cfg = new DataSetBuilderRequestConfiguration(ue, credentials, endpointPatientId);
 
-                            logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
-                                    endpointNameForLogging, sessionId, e.getMessage(), e);
-                            auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
-                                    "caught " + e.getClass().getSimpleName() + " populating " + dataSet.getName() + " from " +
-                                    endpointNameForLogging + " - " + e.getMessage());
-                            addProgressError(endpoint, dataSet, e.getMessage());
+        EndpointPopulationTask task = new EndpointPopulationTask(sessionId, loadFromEndpoint, cfg,
+                launchCredentials, endpointProgress,
+                ctx.getBean(UserWorkspaceService.class),
+                endpointService, sdsService, backgroundTaskService, auditService);
 
-                            if (e instanceof ForbiddenOperationException && ! loadFromEndpoint) {
-                                // user can't access their SDS records that the app seems to think they have
-                                // maybe the SDS was reset?
-                                // in any case, it probably makes sense to just clear their lastSyncCompleted timestamp and abort this attempt
-                                endpointService.clearUserEndpointLastSyncCompleted(ue);
-                                auditService.doAudit(user, AuditSeverity.WARN, "endpoint population",
-                                        "cleared SDS lastSyncCompleted timestamp and aborting population for " + endpoint.getName());
-                                break;
-                            }
-
-                        } finally {
-                            updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
-                            notifyDataSetUpdated(dataSet, endpoint);
-                        }
-                    }
-
-                } finally {
-                    if (loadFromEndpoint) {
-                        try {
-                            for (Future<Void> future : futures) {
-                                future.get(); // waits until this task completes
-                            }
-                            logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
-                            UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
-                            endpointService.updateUserEndpointLastSyncCompleted(userEndpoint);
-
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new IllegalStateException("Interrupted while sharing data to SDS", e);
-
-                        } catch (ExecutionException | CancellationException e) {
-                            logger.error("Failed while sharing data to SDS", e);
-                        }
-                    }
-                }
-
-                long runtime = System.currentTimeMillis() - start;
-                logger.info("DONE populating for endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
-
-                notifyEndpointPopulationComplete(endpoint);
-                notifyIfAllComplete();
-
-                return null;
-            }
-        };
-
-        EndpointReadProgressModel progressModel = new EndpointReadProgressModel(endpoint, ! loadFromEndpoint);
-        endpointReadProgressMap.put(endpoint.getId(), progressModel);
-        Future<Void> future = executorService.submit(callable);
-        progressModel.setFuture(future);
-        logger.info("Submitted callable for endpoint={} for session {}", endpoint.getIss(), sessionId);
+        Future<Void> endpointFuture = backgroundTaskService.submit(task);
+        endpointProgress.setFuture(endpointFuture);
     }
 
-    public void clearCacheAndCredentials() {
-        logger.info("clearing cache and credentials for session={}", sessionId);
+    private String getPatientIdForEndpoint(Endpoint endpoint) throws DataException {
+        try {
+            UserEndpoint userEndpoint = endpointService.getUserEndpoint(user, endpoint);
+            return CryptoUtil.decrypt(userEndpoint.getEncryptedPatientId(), secretKey);
 
-        cache.invalidateAll();
-        cache.cleanUp();
-
-        userEndpointCredentialsMap.clear();
-        endpointPatientIdMap.clear();
+        } catch (Exception e) {
+            throw new DataException(e);
+        }
     }
 
-    public void shutdown(boolean force) {
+    public void shutdown() {
         if ( ! shutdown.compareAndSet(false, true) ) {
             logger.debug("workspace for session={} already shut down", sessionId);
             return;
         }
+
+        shutdownJobs();
         closeEmitterIfPresent();
 
-        if (force) {
-            terminateRemainingProgress();
-        } else {
-            waitUntilAllProgressComplete();
-        }
-
-        sdsService.shutdown(sessionId);
-        ExecutorUtil.shutdownAndAwaitTermination(executorService, 10);
+        sdsService.clearProgressForSession(sessionId);
         secretKey = null;
         endpointReadProgressMap.clear();
-        clearCacheAndCredentials();
-        shutdownJobs();
+        cache.invalidateAll();
+        cache.cleanUp();
+        userEndpointCredentialsMap.clear();
     }
 
     private void shutdownJobs() {
@@ -591,14 +462,6 @@ public class UserWorkspace {
         return payload.getExpiresAt();
     }
 
-    public ResourceTransformer getResourceTransformer(EndpointProviderType endpointProviderType) {
-        // todo : this needs to return an appropriate transformer based on the endpoint provider type
-        //        for now, just return GenericResourceTransformer
-
-        ResourceCategorizationService rcs = ctx.getBean(ResourceCategorizationService.class);
-
-        return new GenericResourceTransformer(rcs);
-    }
 
     public void setCurrentlyLaunchingEndpoint(Endpoint endpoint) {
         currentlyLaunchingEndpoint = endpoint;
@@ -665,15 +528,17 @@ public class UserWorkspace {
         List<T> list = new ArrayList<>();
         for (UserEndpoint ue : endpointService.getAllUserEndpoints(user)) {
             Endpoint endpoint = null;
-            if (ue.getLastSyncCompleted() != null) {
+            if (ue.getLastSyncCompleted() != null) {    // could we get resources from the SDS?
                 endpoint = ue.getEndpoint();
-            } else {
+
+            } else {                                    // if not, could we get resources directly from the endpoint?
                 UserEndpointCredentials uec = getUserEndpointCredentials(ue.getEndpoint());
                 if (uec != null) {
                     endpoint = ue.getEndpoint();
                 }
             }
-            if (endpoint != null) {
+
+            if (endpoint != null) {                     // okay, we *can* get resources for this endpoint, somehow.  get them.
                 List<T> dataSetModels = getCachedDataSetModelsForEndpoint(dataSet, endpoint);
                 if (dataSetModels != null) {
                     list.addAll(dataSetModels);
@@ -686,6 +551,10 @@ public class UserWorkspace {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /// Data Set Caching Functions
+
+    public synchronized void invalidateCache(DataSet<?> dataSet, Endpoint endpoint) {
+        cache.invalidate(buildDataSetEndpointKey(dataSet, endpoint));
+    }
 
     private String buildDataSetEndpointKey(DataSet<?> dataSet, Endpoint endpoint) {
         return dataSet.getName() + "|" + endpoint.getIss();  // use iss instead of name.  it's possible that multiple
@@ -702,111 +571,9 @@ public class UserWorkspace {
                 new ArrayList<>();
     }
 
-
-    @SuppressWarnings("unchecked")
-    public <T extends BaseDataSetModel<?>> List<T> getDataSetModelsForEndpoint(DataSet<T> dataSet, Endpoint endpoint, IDataSetBuilder dataSetBuilder) {
-        return (List<T>) cache.get(buildDataSetEndpointKey(dataSet, endpoint), s -> {
-            long start = System.currentTimeMillis();
-            logger.info("BEGIN build {} for session={}, userId={}, endpoint={}", dataSet.getName(), sessionId, user.getId(),
-                    endpoint.getName());
-
-            List<? extends BaseDataSetModel<?>> list = null;
-            try {
-                if (DataSet.PATIENT.equals(dataSet)) {
-                    list = dataSetBuilder.buildPatients(sessionId, endpoint);
-                } else if (DataSet.CARE_PLANS.equals(dataSet)) {
-                    list = dataSetBuilder.buildCarePlans(sessionId, endpoint);
-                } else if (DataSet.CARE_TEAMS.equals(dataSet)) {
-                    list = dataSetBuilder.buildCareTeams(sessionId, endpoint);
-                } else if (DataSet.CLINICAL_NOTES.equals(dataSet)) {
-                    list = dataSetBuilder.buildClinicalNotes(sessionId, endpoint);
-                } else if (DataSet.CONDITIONS.equals(dataSet)) {
-                    list = dataSetBuilder.buildConditions(sessionId, endpoint);
-                } else if (DataSet.DIAGNOSTIC_REPORTS.equals(dataSet)) {
-                    list = dataSetBuilder.buildDiagnosticReports(sessionId, endpoint);
-                } else if (DataSet.ENCOUNTERS.equals(dataSet)) {
-                    list = dataSetBuilder.buildEncounters(sessionId, endpoint);
-                } else if (DataSet.GOALS.equals(dataSet)) {
-                    list = dataSetBuilder.buildGoals(sessionId, endpoint);
-                } else if (DataSet.IMMUNIZATIONS.equals(dataSet)) {
-                    list = dataSetBuilder.buildImmunizations(sessionId, endpoint);
-                } else if (DataSet.LAB_RESULTS.equals(dataSet)) {
-                    list = dataSetBuilder.buildLabResults(sessionId, endpoint);
-                } else if (DataSet.MEDICATIONS.equals(dataSet)) {
-                    list = dataSetBuilder.buildMedications(sessionId, endpoint);
-                } else if (DataSet.PROCEDURES.equals(dataSet)) {
-                    list = dataSetBuilder.buildProcedures(sessionId, endpoint);
-                } else if (DataSet.QUESTIONNAIRE_RESPONSES.equals(dataSet)) {
-                    list = dataSetBuilder.buildQuestionnaireResponses(sessionId, endpoint);
-                } else if (DataSet.SERVICE_REQUESTS.equals(dataSet)) {
-                    list = dataSetBuilder.buildServiceRequests(sessionId, endpoint);
-                } else if (DataSet.SOCIAL_HISTORIES.equals(dataSet)) {
-                    list = dataSetBuilder.buildSocialHistories(sessionId, endpoint);
-                } else if (DataSet.SURVEY_OBSERVATIONS.equals(dataSet)) {
-                    list = dataSetBuilder.buildSurveyObservations(sessionId, endpoint);
-                } else if (DataSet.VITALS.equals(dataSet)) {
-                    list = dataSetBuilder.buildVitals(sessionId, endpoint);
-                } else {
-                    throw new CaseNotHandledException("Case not handled for data set: " + dataSet.getName());
-                }
-
-                if (dataSetBuilder instanceof EndpointService) {
-                    auditService.doAudit(user, AuditSeverity.INFO, "cache population", "got " + list.size() + " resource(s) for dataSet=" + dataSet.getName() +
-                            " from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
-                }
-
-            } catch (Exception e) {
-                final String endpointNameForLogging = dataSetBuilder instanceof SDSService ?
-                        "SDS for " + endpoint.getName() :
-                        endpoint.getName();
-
-                if (e instanceof ForbiddenOperationException foe) {
-                    logger.error("attempt to retrieve {} from {} was forbidden - {}",
-                            dataSet.getName(), endpointNameForLogging, foe.getMessage());
-
-                    if (DataSet.PATIENT.equals(dataSet)) {
-                        logger.error("Patient is required for system operation; aborting -");
-                        throw foe;
-
-                    } else {
-                        auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
-                                " from " + endpointNameForLogging + " was forbidden");
-                        addProgressError(endpoint, dataSet, foe.getMessage());
-                    }
-
-                } else if (e instanceof InvalidRequestException ire) {
-                    logger.error("attempt to retrieve {} from {} triggered an InvalidRequestException - {}",
-                            dataSet.getName(), endpointNameForLogging, ire.getMessage());
-
-                    if (DataSet.PATIENT.equals(dataSet)) {
-                        logger.error("Patient is required for system operation; aborting -");
-                        throw ire;
-
-                    } else {
-                        auditService.doAudit(user, AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
-                                dataSet.getName() + " from " + endpointNameForLogging);
-                        addProgressError(endpoint, dataSet, e.getMessage());
-                    }
-
-                } else if (e instanceof AuthenticationException ae) {
-                    // access token expired
-                    // handle gracefully if possible, otherwise abort
-                    throw ae;
-
-                } else if (e instanceof RuntimeException re) {
-                    throw re;
-
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            logger.info("DONE building {} for session={}, userId={}, endpoint={} (took {} ms)", dataSet.getName(), sessionId,
-                    user.getId(), endpoint.getName(), (System.currentTimeMillis() - start));
-
-            return list != null ?
-                    list :
-                    List.of();
-        });
+    public synchronized void addToCache(DataSet<?> dataSet, Endpoint endpoint, List<? extends BaseDataSetModel<?>> resources) {
+        cache.put(buildDataSetEndpointKey(dataSet, endpoint), resources);
+        updateProgress(endpoint, dataSet, ProgressStatus.COMPLETED);
+        notifyDataSetUpdated(dataSet, endpoint);
     }
 }

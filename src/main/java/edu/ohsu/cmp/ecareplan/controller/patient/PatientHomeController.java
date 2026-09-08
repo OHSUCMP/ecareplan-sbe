@@ -3,6 +3,7 @@ package edu.ohsu.cmp.ecareplan.controller.patient;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
+import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
@@ -59,7 +60,7 @@ public class PatientHomeController extends BasePatientController {
     }
 
     @GetMapping("smart-callback")
-    public String smartCallback(HttpSession session, Model model) {
+    public String smartCallback(Model model) {
         setCommonViewComponents(model);
         model.addAttribute("cacheCredentials", cacheCredentials);
         model.addAttribute("redirectUri", "/patient");
@@ -72,7 +73,7 @@ public class PatientHomeController extends BasePatientController {
                                                @RequestParam String serverUrl,
                                                @RequestParam String bearerToken,
                                                @RequestParam String patientId,
-                                               @RequestParam String userId) throws ConfigurationException {
+                                               @RequestParam String userId) throws ConfigurationException, DataException {
 
         if (userWorkspaceService.exists(session.getId())) {
             UserWorkspace workspace = userWorkspaceService.get(session.getId());

@@ -1,26 +1,20 @@
 package edu.ohsu.cmp.ecareplan.service;
 
-import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
-import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
+import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
-import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
-import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.progress.ConsolidatedShareProgressModel;
 import edu.ohsu.cmp.ecareplan.model.progress.IProgress;
 import edu.ohsu.cmp.ecareplan.model.progress.ShareProgressModel;
+import edu.ohsu.cmp.ecareplan.task.ShareTask;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
-import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
-import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
-import jakarta.annotation.PreDestroy;
-import org.hl7.fhir.instance.model.api.IDomainResource;
 import org.hl7.fhir.r4.model.Patient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,20 +24,15 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Service
-public class SDSService extends BaseService implements IDataSetBuilder {
+public class SDSService extends BaseDataSetBuilderService implements IDataSetBuilder {
     private static final Logger logger = LoggerFactory.getLogger(SDSService.class);
 
     private static final String PARTITION_HEADER = "X-Partition-Name";
-    private static final int POOL_SIZE = 5;
-    private static final String AUDIT_ACTION_SHARE = "share to SDS";
-
-    private final AtomicBoolean shutdown = new AtomicBoolean(false);
-
 
     @Value("${socket.timeout:300000}")
     private Integer socketTimeout;
@@ -52,47 +41,22 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     private String sdsFhirEndpointUrl;
 
     @Autowired
-    private EndpointService endpointService;
-
-    @Autowired
     private QueryService queryService;
 
     @Autowired
     private MedicationFlagService medicationFlagService;
 
-    private final ExecutorService executorService;
+    @Autowired
+    private BackgroundTaskService backgroundTaskService;
+
     private final Map<String, Map<String, ShareProgressModel>> sessionIdProgressMap;
 
     public SDSService() {
-        executorService = Executors.newFixedThreadPool(POOL_SIZE);
         sessionIdProgressMap = Collections.synchronizedMap(new HashMap<>());
     }
 
-    @PreDestroy
-    public void shutdown() {
-        if ( ! shutdown.compareAndSet(false, true) ) {
-            logger.debug("SDS service already shut down");
-            return;
-        }
-
-        ExecutorUtil.shutdownAndAwaitTermination(executorService, 10);
-        sessionIdProgressMap.clear();
-    }
-
-    public void shutdown(String sessionId) {
-        logger.info("Shutting down SDS service operations for session {}", sessionId);
+    public void clearProgressForSession(String sessionId) {
         if (sessionIdProgressMap.containsKey(sessionId)) {
-            for (ShareProgressModel pm : sessionIdProgressMap.get(sessionId).values()) {
-                if (pm.getFuture() == null) {
-                    logger.warn("No future found for endpoint={} dataSet={} for session {}", pm.getEndpoint().getIss(), pm.getDataSet(), sessionId);
-                    logger.warn("Skipping cancellation (is that odd though?  why is the future null?)");
-                    continue;
-                }
-                if ( ! pm.getFuture().isDone() && ! pm.getFuture().isCancelled() ) {
-                    logger.info("Cancelling future for endpoint={} dataSet={} for session {}", pm.getEndpoint().getIss(), pm.getDataSet(), sessionId);
-                    pm.getFuture().cancel(true);
-                }
-            }
             sessionIdProgressMap.get(sessionId).clear();
             sessionIdProgressMap.remove(sessionId);
         }
@@ -180,7 +144,8 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         return dataSet.getName() + "|" + endpoint.getIss();
     }
 
-    public Future<Void> shareToSDS(String sessionId, DataSet<?> dataSet, Endpoint endpoint) {
+    public Future<Void> shareToSDS(String sessionId, DataSet<?> dataSet, Endpoint endpoint, FHIRCredentials credentials,
+                                   List<? extends BaseDataSetModel<?>> resources) {
         if ( ! sessionIdProgressMap.containsKey(sessionId) ) {
             sessionIdProgressMap.put(sessionId, Collections.synchronizedMap(new LinkedHashMap<>()));
         }
@@ -199,16 +164,11 @@ public class SDSService extends BaseService implements IDataSetBuilder {
             }
         }
 
-        IGenericClient client = buildClient(sessionId);
-
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        List<? extends BaseDataSetModel<?>> list = workspace.getCachedDataSetModelsForEndpoint(dataSet, endpoint);
-
-        ProgressStatus status = list.isEmpty() ?
+        ProgressStatus status = resources.isEmpty() ?
                 ProgressStatus.COMPLETED :
                 ProgressStatus.WAITING_TO_START;
 
-        final ShareProgressModel progress = new ShareProgressModel(dataSet, endpoint, status, 0, list.size());
+        final ShareProgressModel progress = new ShareProgressModel(dataSet, endpoint, status, 0, resources.size());
 
         sessionIdProgressMap.get(sessionId).put(key, progress);
 
@@ -216,173 +176,62 @@ public class SDSService extends BaseService implements IDataSetBuilder {
             return null;
         }
 
-        Callable<Void> callable = new Callable<Void>() {
-            @Override
-            public Void call() {
-                if (ProgressStatus.WAITING_TO_START.equals(progress.getStatus())) {
-                    progress.setStatus(ProgressStatus.RUNNING);
-                }
-
-                final int maxAttempts = 10;
-
-                for (BaseDataSetModel<?> item : list) {
-                    try {
-                        final IDomainResource resource = item.toResourceForSDSExport();
-                        final String id = FhirUtil.toRelativeReference(resource.getId());
-
-                        int attempt = 0;
-                        boolean success = false;
-                        while ( ! success && attempt++ < maxAttempts ) {
-                            if (attempt > 1) {
-                                logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
-                                        id, endpoint.getName(), sessionId, attempt, maxAttempts);
-                            }
-
-                            try {
-                                MethodOutcome outcome = client.update()
-                                        .resource(resource)
-                                        .withId(id)
-                                        .withAdditionalHeader(PARTITION_HEADER, endpoint.getIss())
-                                        .execute();
-
-                                int code = outcome.getResponseStatusCode();
-                                if (code == 200) {
-                                    logger.debug("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
-                                    success = true;
-
-                                } else if (code == 201) {
-                                    logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
-
-                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_ACTION_SHARE, "created " + id + " from " + endpoint.getName());
-
-                                    success = true;
-
-                                } else if (code >= 400) {
-                                    // initial failures at this point we only want to appear in debug logs
-                                    logger.debug("Failed sharing {} from {} with status code {} ({}/{})",
-                                            id, endpoint.getName(), outcome.getResponseStatusCode(), attempt, maxAttempts);
-
-                                } else {
-                                    logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
-
-                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
-                                            " sharing " + id + " from " + endpoint.getName());
-
-                                    success = (code > 201 && code < 300);
-                                }
-
-                            } catch (FhirClientConnectionException fcce) {
-                                // Connection refused
-                                throw fcce;
-
-                            } catch (ResourceNotFoundException rnfe) {
-                                // HTTP 404 Not Found - generally thrown if the SDS can't introspect
-                                throw rnfe;
-
-                            } catch (Exception e) {
-                                logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                        id, endpoint.getName(), sessionId, e.getMessage());
-                                logger.debug(e.getMessage(), e);
-                            }
-                        }
-
-                        if ( ! success ) {
-                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
-                            progress.addError("Failed to share " + id);
-                        }
-
-                    } catch (Exception e) {
-                        final String id = FhirUtil.toRelativeReference(item.getId());
-
-                        logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                id, endpoint.getName(), sessionId, e.getMessage());
-                        logger.debug(e.getMessage(), e);
-
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE,
-                                "caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
-
-                        progress.addError("caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
-
-                        if (e instanceof FhirClientConnectionException fcce) {
-                            throw fcce;
-
-                        } else if (e instanceof ResourceNotFoundException rnfe) {
-                            throw rnfe;
-                        }
-
-                    } finally {
-                        if (progress.getCurrent() < progress.getTotal()) {
-                            progress.setCurrent(progress.getCurrent() + 1);
-                        }
-
-                        if (progress.getCurrent().equals(progress.getTotal())) {
-                            progress.setStatus(ProgressStatus.COMPLETED);
-                        }
-                    }
-                }
-
-                if ( ! progress.getCurrent().equals(progress.getTotal()) ) {
-                    logger.warn("somehow got through all list items for " + dataSet.getName() +
-                            " from " + endpoint.getName() + ", but progress current != max?  that's weird.  investigate?");
-                    progress.setStatus(ProgressStatus.COMPLETED);
-                }
-
-                return null;
-            }
-        };
-
-        Future<Void> future = executorService.submit(callable);
-        logger.info("Submitted callable for endpoint={} dataSet={} for session {}", endpoint.getIss(), dataSet, sessionId);
+        IGenericClient client = buildClient(credentials);
+        ShareTask task = new ShareTask(sessionId, dataSet, endpoint, client, resources, progress, auditService);
+        Future<Void> future = backgroundTaskService.submit(task);
         progress.setFuture(future);
+
         return future;
     }
 
     @Override
-    public List<PatientModel> buildPatients(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Patient from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<PatientModel> buildPatients(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Patient from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         // note : we don't store the Patient "query" in the database as we do with everything else, since we will always
         //        read the Patient resource directly by reference.  this is so standard that we're able to safely hardcode it
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         PatientModel patientModel = rt.transformPatient(
-                fhirService.readByReference(client, Patient.class, "Patient/" + workspace.getPatientIdForEndpoint(e), headers)
+                fhirService.readByReference(client, Patient.class, "Patient/" + cfg.endpointPatientId(), headers)
         );
 
-        patientModel.setSourceEndpointName(e.getName());
-        patientModel.setSourceEndpointIss(e.getIss());
+        patientModel.setSourceEndpointName(ue.getEndpoint().getName());
+        patientModel.setSourceEndpointIss(ue.getEndpoint().getIss());
         patientModel.setSourcedFromSDS(true);
 
         return List.of(patientModel);
     }
 
     @Override
-    public List<CarePlanModel> buildCarePlans(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Plans from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<CarePlanModel> buildCarePlans(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Care Plans from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<CarePlanModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_PLANS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_PLANS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformCarePlans(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (CarePlanModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -390,27 +239,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<CareTeamModel> buildCareTeams(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Teams from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<CareTeamModel> buildCareTeams(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Care Teams from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<CareTeamModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_TEAMS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_TEAMS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformCareTeams(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (CareTeamModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -418,27 +268,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<ClinicalNoteModel> buildClinicalNotes(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Clinical Notes from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<ClinicalNoteModel> buildClinicalNotes(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Clinical Notes from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<ClinicalNoteModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CLINICAL_NOTES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CLINICAL_NOTES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformClinicalNotes(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (ClinicalNoteModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -446,27 +297,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<ConditionModel> buildConditions(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Conditions from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<ConditionModel> buildConditions(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Conditions from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<ConditionModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CONDITIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CONDITIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformConditions(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (ConditionModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -474,27 +326,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<DiagnosticReportModel> buildDiagnosticReports(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Diagnostic Reports from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<DiagnosticReportModel> buildDiagnosticReports(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Diagnostic Reports from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<DiagnosticReportModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.DIAGNOSTIC_REPORTS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.DIAGNOSTIC_REPORTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformDiagnosticReports(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (DiagnosticReportModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -502,27 +355,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Encounters from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<EncounterModel> buildEncounters(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Encounters from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<EncounterModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.ENCOUNTERS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.ENCOUNTERS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformEncounters(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (EncounterModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -530,27 +384,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<GoalModel> buildGoals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Goals from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<GoalModel> buildGoals(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Goals from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<GoalModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.GOALS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.GOALS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformGoals(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (GoalModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -558,27 +413,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<ImmunizationModel> buildImmunizations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Immunizations from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<ImmunizationModel> buildImmunizations(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Immunizations from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<ImmunizationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.IMMUNIZATIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.IMMUNIZATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformImmunizations(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (ImmunizationModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -586,27 +442,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Lab Results from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<LabResultModel> buildLabResults(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Lab Results from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<LabResultModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.LAB_RESULTS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.LAB_RESULTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformLabResults(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (LabResultModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -614,20 +471,21 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<MedicationModel> buildMedications(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Medications from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<MedicationModel> buildMedications(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Medications from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<MedicationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.MEDICATIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.MEDICATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformMedications(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
@@ -637,8 +495,8 @@ public class SDSService extends BaseService implements IDataSetBuilder {
         }
 
         for (MedicationModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -646,27 +504,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<ProcedureModel> buildProcedures(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Procedures from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<ProcedureModel> buildProcedures(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Procedures from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<ProcedureModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.PROCEDURES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.PROCEDURES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformProcedures(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (ProcedureModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -674,27 +533,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<QuestionnaireResponseModel> buildQuestionnaireResponses(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Questionnaire Responses from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<QuestionnaireResponseModel> buildQuestionnaireResponses(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Questionnaire Responses from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<QuestionnaireResponseModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.QUESTIONNAIRE_RESPONSES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.QUESTIONNAIRE_RESPONSES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformQuestionnaireResponses(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (QuestionnaireResponseModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -702,27 +562,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<ServiceRequestModel> buildServiceRequests(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Service Requests from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<ServiceRequestModel> buildServiceRequests(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Service Requests from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<ServiceRequestModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SERVICE_REQUESTS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SERVICE_REQUESTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformServiceRequests(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (ServiceRequestModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -730,27 +591,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<SocialHistoryModel> buildSocialHistories(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Social Histories from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<SocialHistoryModel> buildSocialHistories(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Social Histories from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<SocialHistoryModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SOCIAL_HISTORIES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SOCIAL_HISTORIES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformSocialHistories(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (SocialHistoryModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -758,27 +620,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<SurveyObservationModel> buildSurveyObservations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Survey Observations from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<SurveyObservationModel> buildSurveyObservations(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Survey Observations from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<SurveyObservationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SURVEY_OBSERVATIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SURVEY_OBSERVATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformSurveyObservations(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (SurveyObservationModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -786,27 +649,28 @@ public class SDSService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<VitalsModel> buildVitals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Vitals from SDS for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
-        IGenericClient client = buildClient(sessionId);
+    public List<VitalsModel> buildVitals(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final IGenericClient client = buildClient(cfg.credentials());
+
+        logger.info("building Vitals from SDS for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(PARTITION_HEADER, e.getIss());
+        headers.put(PARTITION_HEADER, ue.getEndpoint().getIss());
 
         List<VitalsModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.VITALS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.VITALS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformVitals(
-                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(workspace.getPatientIdForEndpoint(e), qm.getQuery()), headers)
+                            fhirService.search(client, sdsFhirEndpointUrl, doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()), headers)
                     )
             );
         }
 
         for (VitalsModel item : list) {
-            item.setSourceEndpointName(e.getName());
-            item.setSourceEndpointIss(e.getIss());
+            item.setSourceEndpointName(ue.getEndpoint().getName());
+            item.setSourceEndpointIss(ue.getEndpoint().getIss());
             item.setSourcedFromSDS(true);
         }
 
@@ -818,11 +682,8 @@ public class SDSService extends BaseService implements IDataSetBuilder {
 /// private methods
 ///
 
-    private IGenericClient buildClient(String sessionId) {
-        Endpoint patientLaunchEndpoint = endpointService.getPatientLaunchEndpoint();
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(patientLaunchEndpoint);
-        return FhirUtil.buildClient(sdsFhirEndpointUrl, fcc.getCredentials().getBearerToken(), socketTimeout, false);
+    private IGenericClient buildClient(FHIRCredentials fc) {
+        return FhirUtil.buildClient(sdsFhirEndpointUrl, fc.getBearerToken(), socketTimeout, false);
     }
 
     private String doTokenReplacements(String patientId, String fhirQuery) {

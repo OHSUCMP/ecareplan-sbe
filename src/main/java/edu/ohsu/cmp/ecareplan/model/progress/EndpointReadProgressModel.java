@@ -35,7 +35,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
         return future;
     }
 
-    public void setFuture(Future<Void> future) {
+    public synchronized void setFuture(Future<Void> future) {
         this.future = future;
     }
 
@@ -67,7 +67,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
         return dataSetStatusMap.get(dataSet);
     }
 
-    public void setStatus(DataSet<?> dataSet, ProgressStatus status) {
+    public synchronized void setStatus(DataSet<?> dataSet, ProgressStatus status) {
         dataSetStatusMap.put(dataSet, status);
         lastUpdated = new Date();
     }
@@ -111,7 +111,7 @@ public class EndpointReadProgressModel extends BaseProgressModel implements IPro
                 List.of();
     }
 
-    public void addError(DataSet<?> dataSet, String error) {
+    public synchronized void addError(DataSet<?> dataSet, String error) {
         if ( ! dataSetErrorsMap.containsKey(dataSet)) {
             dataSetErrorsMap.put(dataSet, new ArrayList<>());
         }

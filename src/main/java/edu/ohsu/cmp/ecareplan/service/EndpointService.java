@@ -9,6 +9,7 @@ import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.EndpointModel;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
+import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 import edu.ohsu.cmp.ecareplan.model.fhir.ResourceWithBundle;
@@ -17,7 +18,6 @@ import edu.ohsu.cmp.ecareplan.repository.UserEndpointRepository;
 import edu.ohsu.cmp.ecareplan.transform.ResourceTransformer;
 import edu.ohsu.cmp.ecareplan.util.CryptoUtil;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
-import edu.ohsu.cmp.ecareplan.workspace.UserWorkspace;
 import org.hl7.fhir.r4.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +44,11 @@ import java.util.List;
 import java.util.function.Function;
 
 @Service
-public class EndpointService extends BaseService implements IDataSetBuilder {
+public class EndpointService extends BaseDataSetBuilderService implements IDataSetBuilder {
     private static final Logger logger = LoggerFactory.getLogger(EndpointService.class);
+
+    @Value("${socket.timeout:300000}")
+    private Integer socketTimeout;
 
     @Value("${endpoint.patientLaunch.name}")
     private String patientEndpointName;
@@ -102,7 +105,7 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
 
     public UserEndpoint createUserEndpoint(User user, Endpoint endpoint, String fhirPatientId, String refreshToken, SecretKey secretKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidParameterSpecException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         UserEndpoint ue = new UserEndpoint();
-        ue.setUserId(user.getId());
+        ue.setUser(user);
         ue.setEndpoint(endpoint);
         ue.setEncryptedPatientId(CryptoUtil.encrypt(fhirPatientId, secretKey));
         if (refreshToken != null) ue.setEncryptedRefreshToken(CryptoUtil.encrypt(refreshToken, secretKey));
@@ -127,11 +130,13 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
     }
 
     @Override
-    public List<PatientModel> buildPatients(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Patient for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<PatientModel> buildPatients(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Patient for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
 
         // note : we don't store the Patient "query" in the database as we do with everything else, since we will always
         //        read the Patient resource directly by reference.  this is so standard that we're able to safely hardcode it
@@ -140,76 +145,84 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
                 fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Patient.class, "Patient/" + fcc.getCredentials().getPatientId())
         );
 
-        patientModel.setSourceEndpointName(e.getName());
-        patientModel.setSourceEndpointIss(e.getIss());
+        patientModel.setSourceEndpointName(ue.getEndpoint().getName());
+        patientModel.setSourceEndpointIss(ue.getEndpoint().getIss());
 
         return List.of(patientModel);
     }
 
     @Override
-    public List<CarePlanModel> buildCarePlans(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Plans for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<CarePlanModel> buildCarePlans(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Care Plans for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<CarePlanModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_PLANS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_PLANS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformCarePlans(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (CarePlanModel cp : list) {
-            cp.setSourceEndpointName(e.getName());
-            cp.setSourceEndpointIss(e.getIss());
+            cp.setSourceEndpointName(ue.getEndpoint().getName());
+            cp.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<CareTeamModel> buildCareTeams(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Care Teams for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<CareTeamModel> buildCareTeams(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Care Teams for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<CareTeamModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_TEAMS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CARE_TEAMS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformCareTeams(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (CareTeamModel ct : list) {
-            ct.setSourceEndpointName(e.getName());
-            ct.setSourceEndpointIss(e.getIss());
+            ct.setSourceEndpointName(ue.getEndpoint().getName());
+            ct.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<ClinicalNoteModel> buildClinicalNotes(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Clinical Notes for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<ClinicalNoteModel> buildClinicalNotes(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Clinical Notes for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<ClinicalNoteModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CLINICAL_NOTES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CLINICAL_NOTES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformClinicalNotes(
                             fhirService.search(fcc, qm.getStrategy(),
-                                    doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()),
+                                    doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()),
                                     null,
                                     new Function<ResourceWithBundle, List<Resource>>() {
                                         @Override
                                         public List<Resource> apply(ResourceWithBundle resourceWithBundle) {
-                                            if (resourceWithBundle.getResource() instanceof DocumentReference) {
-                                                DocumentReference dr = (DocumentReference) resourceWithBundle.getResource();
+                                            if (resourceWithBundle.getResource() instanceof DocumentReference dr) {
                                                 List<Resource> list = new ArrayList<>();
                                                 if (dr.hasContent()) {
                                                     for (DocumentReference.DocumentReferenceContentComponent content : dr.getContent()) {
@@ -237,163 +250,184 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         }
 
         for (ClinicalNoteModel cn : list) {
-            cn.setSourceEndpointName(e.getName());
-            cn.setSourceEndpointIss(e.getIss());
+            cn.setSourceEndpointName(ue.getEndpoint().getName());
+            cn.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<ConditionModel> buildConditions(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Conditions for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<ConditionModel> buildConditions(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Conditions for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<ConditionModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CONDITIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.CONDITIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformConditions(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (ConditionModel cm : list) {
-            cm.setSourceEndpointName(e.getName());
-            cm.setSourceEndpointIss(e.getIss());
+            cm.setSourceEndpointName(ue.getEndpoint().getName());
+            cm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<DiagnosticReportModel> buildDiagnosticReports(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Diagnostic Reports for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<DiagnosticReportModel> buildDiagnosticReports(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Diagnostic Reports for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<DiagnosticReportModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.DIAGNOSTIC_REPORTS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.DIAGNOSTIC_REPORTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformDiagnosticReports(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (DiagnosticReportModel dr : list) {
-            dr.setSourceEndpointName(e.getName());
-            dr.setSourceEndpointIss(e.getIss());
+            dr.setSourceEndpointName(ue.getEndpoint().getName());
+            dr.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<EncounterModel> buildEncounters(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Encounters for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<EncounterModel> buildEncounters(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Encounters for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<EncounterModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.ENCOUNTERS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.ENCOUNTERS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformEncounters(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (EncounterModel em : list) {
-            em.setSourceEndpointName(e.getName());
-            em.setSourceEndpointIss(e.getIss());
+            em.setSourceEndpointName(ue.getEndpoint().getName());
+            em.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<GoalModel> buildGoals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Goals for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<GoalModel> buildGoals(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Goals for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<GoalModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.GOALS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.GOALS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformGoals(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (GoalModel gm : list) {
-            gm.setSourceEndpointName(e.getName());
-            gm.setSourceEndpointIss(e.getIss());
+            gm.setSourceEndpointName(ue.getEndpoint().getName());
+            gm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<ImmunizationModel> buildImmunizations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Immunizations for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<ImmunizationModel> buildImmunizations(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Immunizations for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<ImmunizationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.IMMUNIZATIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.IMMUNIZATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformImmunizations(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (ImmunizationModel im : list) {
-            im.setSourceEndpointName(e.getName());
-            im.setSourceEndpointIss(e.getIss());
+            im.setSourceEndpointName(ue.getEndpoint().getName());
+            im.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<LabResultModel> buildLabResults(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Lab Results for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<LabResultModel> buildLabResults(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Lab Results for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<LabResultModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.LAB_RESULTS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.LAB_RESULTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformLabResults(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (LabResultModel tm : list) {
-            tm.setSourceEndpointName(e.getName());
-            tm.setSourceEndpointIss(e.getIss());
+            tm.setSourceEndpointName(ue.getEndpoint().getName());
+            tm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<MedicationModel> buildMedications(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Medications for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<MedicationModel> buildMedications(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Medications for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<MedicationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.MEDICATIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.MEDICATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformMedications(
                             fhirService.search(fcc, qm.getStrategy(),
-                                    doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()),
+                                    doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()),
                                     null,
                                     new Function<ResourceWithBundle, List<Resource>>() {
                                         @Override
@@ -436,146 +470,164 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
         }
 
         for (MedicationModel mm : list) {
-            mm.setSourceEndpointName(e.getName());
-            mm.setSourceEndpointIss(e.getIss());
+            mm.setSourceEndpointName(ue.getEndpoint().getName());
+            mm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<ProcedureModel> buildProcedures(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Procedures for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<ProcedureModel> buildProcedures(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Procedures for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<ProcedureModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.PROCEDURES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.PROCEDURES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformProcedures(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (ProcedureModel pm : list) {
-            pm.setSourceEndpointName(e.getName());
-            pm.setSourceEndpointIss(e.getIss());
+            pm.setSourceEndpointName(ue.getEndpoint().getName());
+            pm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<QuestionnaireResponseModel> buildQuestionnaireResponses(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Questionnaire Responses for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<QuestionnaireResponseModel> buildQuestionnaireResponses(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Questionnaire Responses for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<QuestionnaireResponseModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.QUESTIONNAIRE_RESPONSES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.QUESTIONNAIRE_RESPONSES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformQuestionnaireResponses(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (QuestionnaireResponseModel qrm : list) {
-            qrm.setSourceEndpointName(e.getName());
-            qrm.setSourceEndpointIss(e.getIss());
+            qrm.setSourceEndpointName(ue.getEndpoint().getName());
+            qrm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<ServiceRequestModel> buildServiceRequests(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Service Requests for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<ServiceRequestModel> buildServiceRequests(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Service Requests for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<ServiceRequestModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SERVICE_REQUESTS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SERVICE_REQUESTS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformServiceRequests(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (ServiceRequestModel sr : list) {
-            sr.setSourceEndpointName(e.getName());
-            sr.setSourceEndpointIss(e.getIss());
+            sr.setSourceEndpointName(ue.getEndpoint().getName());
+            sr.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<SocialHistoryModel> buildSocialHistories(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Social Histories for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<SocialHistoryModel> buildSocialHistories(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Social Histories for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<SocialHistoryModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SOCIAL_HISTORIES, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SOCIAL_HISTORIES, ue.getEndpoint())) {
             list.addAll(
                     rt.transformSocialHistories(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (SocialHistoryModel sh : list) {
-            sh.setSourceEndpointName(e.getName());
-            sh.setSourceEndpointIss(e.getIss());
+            sh.setSourceEndpointName(ue.getEndpoint().getName());
+            sh.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<SurveyObservationModel> buildSurveyObservations(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Survey Observations for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<SurveyObservationModel> buildSurveyObservations(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Survey Observations for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<SurveyObservationModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SURVEY_OBSERVATIONS, e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.SURVEY_OBSERVATIONS, ue.getEndpoint())) {
             list.addAll(
                     rt.transformSurveyObservations(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (SurveyObservationModel so : list) {
-            so.setSourceEndpointName(e.getName());
-            so.setSourceEndpointIss(e.getIss());
+            so.setSourceEndpointName(ue.getEndpoint().getName());
+            so.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
     }
 
     @Override
-    public List<VitalsModel> buildVitals(String sessionId, Endpoint e) throws DataException, ConfigurationException, IOException {
-        UserWorkspace workspace = userWorkspaceService.get(sessionId);
-        logger.info("building Vitals for session={}, user={}, endpoint={}", sessionId, workspace.getUser().getId(), e.getIss());
-        FHIRCredentialsWithClient fcc = workspace.getCredentialsWithClientForEndpoint(e);
-        ResourceTransformer rt = workspace.getResourceTransformer(e.getProviderType());
+    public List<VitalsModel> buildVitals(DataSetBuilderRequestConfiguration cfg) throws DataException, ConfigurationException, IOException {
+        final UserEndpoint ue = cfg.userEndpoint();
+        final FHIRCredentials fc = cfg.credentials();
+        final ResourceTransformer rt = getResourceTransformer(ue.getEndpoint().getProviderType());
+        final FHIRCredentialsWithClient fcc = buildCredentialsWithClient(fc);
+
+        logger.info("building Vitals for user={}, endpoint={}", ue.getUser().getId(), ue.getEndpoint().getIss());
+
         List<VitalsModel> list = new ArrayList<>();
-        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.VITALS,e)) {
+        for (QueryModel qm : queryService.getDataSetQueriesForEndpoint(DataSet.VITALS,ue.getEndpoint())) {
             list.addAll(
                     rt.transformVitals(
-                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(fcc.getCredentials().getPatientId(), qm.getQuery()))
+                            fhirService.search(fcc, qm.getStrategy(), doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()))
                     )
             );
         }
 
         for (VitalsModel vm : list) {
-            vm.setSourceEndpointName(e.getName());
-            vm.setSourceEndpointIss(e.getIss());
+            vm.setSourceEndpointName(ue.getEndpoint().getName());
+            vm.setSourceEndpointIss(ue.getEndpoint().getIss());
         }
 
         return list;
@@ -585,6 +637,10 @@ public class EndpointService extends BaseService implements IDataSetBuilder {
 ///////////////////////////////////////////////////////////////////////
 /// private methods
 ///
+
+    private FHIRCredentialsWithClient buildCredentialsWithClient(FHIRCredentials fc) {
+        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fc.getServerURL(), fc.getBearerToken(), socketTimeout));
+    }
 
     private static final DateFormat FHIR_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
