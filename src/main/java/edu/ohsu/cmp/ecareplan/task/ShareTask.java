@@ -58,7 +58,7 @@ public class ShareTask implements ITask<Void> {
         return () -> {
             final long start = System.currentTimeMillis();
 
-            logger.info("BEGIN sharing {} {} resources from endpoint={} to SDS for session={}", resources.size(),
+            logger.info("BEGIN sharing {} {} resources from {} to SDS for session={}", resources.size(),
                     dataSet.getName(), endpoint.getName(), sessionId);
 
             progress.setStatus(ProgressStatus.RUNNING);
@@ -168,7 +168,7 @@ public class ShareTask implements ITask<Void> {
             }
 
             long runtime = System.currentTimeMillis() - start;
-            logger.info("DONE sharing {} {} resources from endpoint={} to SDS for session={} (took {} ms)", resources.size(),
+            logger.info("DONE sharing {} {} resources from {} to SDS for session={} (took {} ms)", resources.size(),
                     dataSet.getName(), endpoint.getName(), sessionId, runtime);
 
             return null;

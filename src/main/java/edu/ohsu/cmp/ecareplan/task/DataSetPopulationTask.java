@@ -75,7 +75,7 @@ public class DataSetPopulationTask implements ITask<Void> {
             final User user = cfg.userEndpoint().getUser();
             final Endpoint endpoint = cfg.userEndpoint().getEndpoint();
 
-            logger.info("BEGIN populating {} from endpoint={} for session={}, userId={}", dataSet.getName(),
+            logger.info("BEGIN populating {} from {} for session={}, userId={}", dataSet.getName(),
                     endpoint.getName(), sessionId, user.getId());
 
             List<? extends BaseDataSetModel<?>> resources = null;
@@ -118,7 +118,7 @@ public class DataSetPopulationTask implements ITask<Void> {
             }
 
             long runtime = System.currentTimeMillis() - start;
-            logger.info("DONE populating {} from endpoint={} for session={}, userId={} (took {} ms)", dataSet.getName(),
+            logger.info("DONE populating {} from {} for session={}, userId={} (took {} ms)", dataSet.getName(),
                     endpoint.getName(), sessionId, user.getId(), runtime);
 
             // wait for all child SDS tasks to complete

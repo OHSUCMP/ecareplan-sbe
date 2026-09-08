@@ -66,7 +66,7 @@ public class EndpointPopulationTask implements ITask<Void> {
             final Endpoint endpoint = cfg.userEndpoint().getEndpoint();
             final List<Future<Void>> dataSetFutures = new ArrayList<>();
 
-            logger.info("BEGIN populating endpoint={} for session={}", endpoint.getName(), sessionId);
+            logger.info("BEGIN populating {} for session={}", endpoint.getName(), sessionId);
 
             notifyEndpointPopulationStarted(endpoint);
 
@@ -100,7 +100,7 @@ public class EndpointPopulationTask implements ITask<Void> {
             }
 
             long runtime = System.currentTimeMillis() - start;
-            logger.info("DONE populating endpoint={} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+            logger.info("DONE populating {} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
 
             notifyEndpointPopulationComplete(endpoint);
             notifyIfAllComplete();
