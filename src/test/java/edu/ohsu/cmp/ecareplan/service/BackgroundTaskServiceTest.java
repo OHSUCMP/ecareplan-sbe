@@ -70,6 +70,31 @@ class BackgroundTaskServiceTest {
     }
 
     @Test
+    void shutdownInterruptsRunningTasksInsteadOfWaitingOutAGracePeriod() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        service.submit(task(() -> {
+            started.countDown();
+            try {
+                new CountDownLatch(1).await();
+            } catch (InterruptedException e) {
+                interrupted.countDown();
+                throw e;
+            }
+            return null;
+        }));
+        assertTrue(started.await(5, TimeUnit.SECONDS));
+
+        long elapsedMillis = System.nanoTime();
+        service.shutdown();
+        elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - elapsedMillis);
+
+        assertTrue(interrupted.await(5, TimeUnit.SECONDS));
+        // a grace-period shutdown would have blocked for its full 10s before interrupting this task
+        assertTrue(elapsedMillis < 5000, "shutdown took " + elapsedMillis + "ms; expected an immediate interrupt");
+    }
+
+    @Test
     void preservesExceptionsAndRejectsSubmissionsAfterShutdown() throws Exception {
         var failure = new IllegalStateException("test failure");
         Future<Void> future = service.submit(task(() -> { throw failure; }));

@@ -25,6 +25,12 @@ public class ShareTask implements ITask<Void> {
     private static final String PARTITION_HEADER = "X-Partition-Name";
     private static final String AUDIT_ACTION_SHARE = "share to SDS";
 
+    // deliberately short: backoff is applied per resource, so a dataset where every resource
+    // fails pays this on all of them.  enough to stop hammering the SDS and to give interruption
+    // a gap to land in, without turning one bad dataset into hours of sleeping
+    private static final long BACKOFF_BASE_MILLIS = 100L;
+    private static final long BACKOFF_MAX_MILLIS = 400L;
+
     private final String sessionId;
     private final DataSet<?> dataSet;
     private final Endpoint endpoint;
@@ -61,11 +67,12 @@ public class ShareTask implements ITask<Void> {
             logger.info("BEGIN sharing {} {} resources from {} to SDS for session={}", resources.size(),
                     dataSet.getName(), endpoint.getName(), sessionId);
 
-            progress.setStatus(ProgressStatus.RUNNING);
-
             final int maxAttempts = 10;
 
             try {
+                checkInterrupted();
+                progress.setStatus(ProgressStatus.RUNNING);
+
                 for (BaseDataSetModel<?> item : resources) {
                     checkInterrupted();
                     try {
@@ -77,6 +84,9 @@ public class ShareTask implements ITask<Void> {
                         while ( ! success && attempt++ < maxAttempts ) {
                             checkInterrupted();
                             if (attempt > 1) {
+                                // backoff introduced to mitigate retry storms and facilitate interruption
+                                Thread.sleep(backoffMillis(attempt));
+
                                 logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
                                         id, endpoint.getName(), sessionId, attempt, maxAttempts);
                             }
@@ -123,6 +133,13 @@ public class ShareTask implements ITask<Void> {
                                 throw rnfe;
 
                             } catch (Exception e) {
+                                if (Thread.currentThread().isInterrupted()) {
+                                    // interrupting a virtual thread blocked on socket I/O closes the
+                                    // socket, so this is the interrupt arriving, not a share failure.
+                                    // rethrow so shutdown doesn't log an error per in-flight resource
+                                    throw e;
+                                }
+
                                 logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
                                         id, endpoint.getName(), sessionId, e.getMessage());
                                 logger.debug(e.getMessage(), e);
@@ -161,14 +178,7 @@ public class ShareTask implements ITask<Void> {
                         if (progress.getCurrent() < progress.getTotal()) {
                             progress.setCurrent(progress.getCurrent() + 1);
                         }
-
                     }
-                }
-
-                if ( ! progress.getCurrent().equals(progress.getTotal()) ) {
-                    logger.warn("somehow got through all list items for " + dataSet.getName() +
-                            " from " + endpoint.getName() + ", but progress current != max?  that's weird.  investigate?");
-                    progress.setStatus(ProgressStatus.COMPLETED);
                 }
 
                 long runtime = System.currentTimeMillis() - start;
@@ -193,5 +203,11 @@ public class ShareTask implements ITask<Void> {
         if (Thread.currentThread().isInterrupted()) {
             throw new InterruptedException("Sharing data to SDS interrupted");
         }
+    }
+
+    // doubling per re-attempt, capped.  attempt is 1-based and this is only called when
+    // attempt > 1, so the first re-attempt waits BACKOFF_BASE_MILLIS
+    private static long backoffMillis(int attempt) {
+        return Math.min(BACKOFF_BASE_MILLIS << Math.min(attempt - 2, 20), BACKOFF_MAX_MILLIS);
     }
 }

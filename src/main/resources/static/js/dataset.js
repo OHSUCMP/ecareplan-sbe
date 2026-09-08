@@ -1244,7 +1244,7 @@ function initializeSSE(_callback) {
             }
 
             if (getDataSets().indexOf(eventData.dataSet) !== -1) {
-                logInfo("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint);
+                logInfo("dataset-update: dataSet=" + eventData.dataSet + ", endpoint=" + eventData.endpoint + " at " + formatDateTime(new Date()));
                 getUpdatedModels(_callback);
             }
         } catch (error) {
@@ -1259,7 +1259,7 @@ function initializeSSE(_callback) {
                 return;
             }
 
-            logInfo("endpoint-population-started: endpoint=" + eventData.endpoint);
+            logInfo("endpoint-population-started: endpoint=" + eventData.endpoint + " at " + formatDateTime(new Date()));
         } catch (error) {
             reportAndRenderModelsError(error, 'SSE endpoint-population-started handler');
         }
@@ -1272,7 +1272,7 @@ function initializeSSE(_callback) {
                 return;
             }
 
-            logInfo("endpoint-population-complete: endpoint=" + eventData.endpoint);
+            logInfo("endpoint-population-complete: endpoint=" + eventData.endpoint + " at " + formatDateTime(new Date()));
         } catch (error) {
             reportAndRenderModelsError(error, 'SSE endpoint-population-complete handler');
         }
@@ -1280,7 +1280,7 @@ function initializeSSE(_callback) {
 
     eventSource.addEventListener("all-complete", function(event) {
         try {
-            logInfo("all-complete");
+            logInfo("all-complete at " + formatDateTime(new Date()));
             $('#refresh').removeAttr('aria-disabled').removeClass('disabled').show();
         } catch (error) {
             reportAndRenderModelsError(error, 'SSE all-complete handler');

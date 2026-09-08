@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.service;
 
+import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.User;
@@ -47,9 +48,6 @@ import java.util.function.Function;
 public class EndpointService extends BaseDataSetBuilderService implements IDataSetBuilder {
     private static final Logger logger = LoggerFactory.getLogger(EndpointService.class);
 
-    @Value("${socket.timeout:300000}")
-    private Integer socketTimeout;
-
     @Value("${endpoint.patientLaunch.name}")
     private String patientEndpointName;
 
@@ -70,6 +68,11 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
 
     @Autowired
     private MedicationFlagService medicationFlagService;
+
+    @Override
+    protected ServerValidationModeEnum getServerValidationMode() {
+        return ServerValidationModeEnum.ONCE;
+    }
 
     public Endpoint getPatientLaunchEndpoint() {
         return endpointRepository.findByName(patientEndpointName);
@@ -219,31 +222,29 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
                             fhirService.search(fcc, qm.getStrategy(),
                                     doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()),
                                     null,
-                                    new Function<ResourceWithBundle, List<Resource>>() {
-                                        @Override
-                                        public List<Resource> apply(ResourceWithBundle resourceWithBundle) {
-                                            if (resourceWithBundle.getResource() instanceof DocumentReference dr) {
-                                                List<Resource> list = new ArrayList<>();
-                                                if (dr.hasContent()) {
-                                                    for (DocumentReference.DocumentReferenceContentComponent content : dr.getContent()) {
-                                                        if (content.hasAttachment() && content.getAttachment().hasUrl()) {
-                                                            if ( ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), content.getAttachment().getUrl()) ) {
-                                                                try {
-                                                                    list.add(
-                                                                            fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Binary.class, content.getAttachment().getUrl())
-                                                                    );
-                                                                } catch (Exception e) {
-                                                                    logger.error("Error reading binary reference: " + content.getAttachment().getUrl(), e);
-                                                                    if (e instanceof AuthenticationException ae) throw ae;
-                                                                }
+                                    (Function<ResourceWithBundle, List<Resource>>) resourceWithBundle -> {
+                                        if (resourceWithBundle.getResource() instanceof DocumentReference dr) {
+                                            List<Resource> list1 = new ArrayList<>();
+                                            if (dr.hasContent()) {
+                                                for (DocumentReference.DocumentReferenceContentComponent content : dr.getContent()) {
+                                                    if (content.hasAttachment() && content.getAttachment().hasUrl()) {
+                                                        if (!FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), content.getAttachment().getUrl())) {
+                                                            try {
+                                                                list1.add(
+                                                                        fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Binary.class, content.getAttachment().getUrl())
+                                                                );
+                                                            } catch (Exception e) {
+                                                                logger.error("Error reading binary reference: " + content.getAttachment().getUrl(), e);
+                                                                if (e instanceof AuthenticationException ae)
+                                                                    throw ae;
                                                             }
                                                         }
                                                     }
                                                 }
-                                                return list;
                                             }
-                                            return null;
+                                            return list1;
                                         }
+                                        return null;
                                     })
                     )
             );
@@ -429,37 +430,33 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
                             fhirService.search(fcc, qm.getStrategy(),
                                     doTokenReplacements(cfg.endpointPatientId(), qm.getQuery()),
                                     null,
-                                    new Function<ResourceWithBundle, List<Resource>>() {
-                                        @Override
-                                        public List<Resource> apply(ResourceWithBundle resourceWithBundle) {
-                                            if (resourceWithBundle.getResource() instanceof MedicationRequest) {
-                                                MedicationRequest mr = (MedicationRequest) resourceWithBundle.getResource();
-                                                List<Resource> list = new ArrayList<>();
-                                                if (mr.hasMedicationReference() && ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getMedicationReference())) {
-                                                    try {
-                                                        list.add(
-                                                                fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Medication.class, mr.getMedicationReference())
-                                                        );
-                                                    } catch (Exception e) {
-                                                        logger.error("Error reading medication reference: " + mr.getMedicationReference().getReference(), e);
-                                                        if (e instanceof AuthenticationException ae) throw ae;
-                                                    }
+                                    (Function<ResourceWithBundle, List<Resource>>) resourceWithBundle -> {
+                                        if (resourceWithBundle.getResource() instanceof MedicationRequest mr) {
+                                            List<Resource> list1 = new ArrayList<>();
+                                            if (mr.hasMedicationReference() && !FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getMedicationReference())) {
+                                                try {
+                                                    list1.add(
+                                                            fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Medication.class, mr.getMedicationReference())
+                                                    );
+                                                } catch (Exception e) {
+                                                    logger.error("Error reading medication reference: " + mr.getMedicationReference().getReference(), e);
+                                                    if (e instanceof AuthenticationException ae) throw ae;
                                                 }
-
-                                                if (mr.hasRequester() && mr.getRequester().hasReference() && ! FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getRequester().getReference())) {
-                                                    try {
-                                                        list.add(
-                                                                fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Practitioner.class, mr.getRequester().getReference())
-                                                        );
-                                                    } catch (Exception e) {
-                                                        logger.error("Error reading requester reference: " + mr.getRequester().getReference(), e);
-                                                        if (e instanceof AuthenticationException ae) throw ae;
-                                                    }
-                                                }
-                                                return list;
                                             }
-                                            return null;
+
+                                            if (mr.hasRequester() && mr.getRequester().hasReference() && !FhirUtil.bundleContainsReference(resourceWithBundle.getBundle(), mr.getRequester().getReference())) {
+                                                try {
+                                                    list1.add(
+                                                            fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Practitioner.class, mr.getRequester().getReference())
+                                                    );
+                                                } catch (Exception e) {
+                                                    logger.error("Error reading requester reference: " + mr.getRequester().getReference(), e);
+                                                    if (e instanceof AuthenticationException ae) throw ae;
+                                                }
+                                            }
+                                            return list1;
                                         }
+                                        return null;
                                     })
                     )
             );
@@ -639,7 +636,7 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
 ///
 
     private FHIRCredentialsWithClient buildCredentialsWithClient(FHIRCredentials fc) {
-        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fc.getServerURL(), fc.getBearerToken(), socketTimeout));
+        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fhirContext, fc.getServerURL(), fc.getBearerToken()));
     }
 
     private static final DateFormat FHIR_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");

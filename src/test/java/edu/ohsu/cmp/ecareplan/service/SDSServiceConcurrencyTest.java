@@ -39,7 +39,15 @@ class SDSServiceConcurrencyTest {
         when(credentials.getBearerToken()).thenReturn("test-token");
         ReflectionTestUtils.setField(service, "backgroundTaskService", background);
         ReflectionTestUtils.setField(service, "sdsFhirEndpointUrl", "https://sds.example.test/fhir");
+
+        // the FhirContext is built by @PostConstruct, which nothing runs when the service is
+        // constructed directly, so stand in for Spring here
         ReflectionTestUtils.setField(service, "socketTimeout", 1000);
+        ReflectionTestUtils.setField(service, "poolMaxTotal", BaseDataSetBuilderService.DEFAULT_POOL_MAX_TOTAL);
+        ReflectionTestUtils.setField(service, "poolMaxPerRoute", BaseDataSetBuilderService.DEFAULT_POOL_MAX_PER_ROUTE);
+        ReflectionTestUtils.setField(service, "connectionRequestTimeout", BaseDataSetBuilderService.DEFAULT_CONNECTION_REQUEST_TIMEOUT);
+        ReflectionTestUtils.invokeMethod(service, "initFhirContext");
+
         when(background.submit(any())).thenAnswer(invocation -> new CompletableFuture<Void>());
     }
 

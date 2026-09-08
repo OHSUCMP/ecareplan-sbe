@@ -5,6 +5,8 @@ import edu.ohsu.cmp.ecareplan.util.ExecutorUtil;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutorService;
@@ -26,6 +28,11 @@ public class BackgroundTaskService {
                 Thread.ofVirtual().name("background-task-", 0).factory());
     }
 
+    @EventListener(ContextClosedEvent.class)
+    public void onContextClosed() {
+        shutdown();
+    }
+
     @PreDestroy
     public void shutdown() {
         if ( ! shutdown.compareAndSet(false, true) ) {
@@ -33,7 +40,8 @@ public class BackgroundTaskService {
             return;
         }
 
-        ExecutorUtil.shutdownAndAwaitTermination(executorService, 10);
+        logger.info("interrupting background tasks and awaiting termination");
+        ExecutorUtil.shutdownNowAndAwaitTermination(executorService, 10);
     }
 
 

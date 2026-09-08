@@ -97,6 +97,13 @@ public class DataSetPopulationTask implements ITask<Void> {
                             "SDS for " + endpoint.getName() :
                             endpoint.getName();
 
+                    if (e instanceof InterruptedException || Thread.currentThread().isInterrupted()) {
+                        // shutting down, not failing.  don't audit or record a progress error for it
+                        logger.info("interrupted populating {} from {} for session={}", dataSet.getName(),
+                                endpointNameForLogging, sessionId);
+                        throw e;
+                    }
+
                     logger.error("caught {} populating {} from {} for session={} - {}", e.getClass().getSimpleName(), dataSet.getName(),
                             endpointNameForLogging, sessionId, e.getMessage(), e);
                     auditService.doAudit(user, AuditSeverity.ERROR, "endpoint population",
@@ -130,7 +137,7 @@ public class DataSetPopulationTask implements ITask<Void> {
 
                     } catch (InterruptedException e) {
                         sdsFuture.cancel(true);
-                        logger.error("Interrupted while sharing data to SDS", e);
+                        logger.info("Interrupted while sharing data to SDS - {}", e.getMessage());
                         Thread.currentThread().interrupt();
                         throw e;
 

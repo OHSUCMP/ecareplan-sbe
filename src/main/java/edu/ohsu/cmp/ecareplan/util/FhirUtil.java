@@ -3,11 +3,11 @@ package edu.ohsu.cmp.ecareplan.util;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
 import org.slf4j.Logger;
@@ -34,19 +34,15 @@ public class FhirUtil {
     private static final String EXTENSION_OAUTH_URIS_URL = "http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris";
     private static final String EXTENSION_TOKEN_URL = "token";
 
-    public static IGenericClient buildClient(String serverUrl, String bearerToken, int socketTimeout) {
-        return buildClient(serverUrl, bearerToken, socketTimeout, true);
-    }
+    private static final FhirContext FHIR_R4_CONTEXT_AUXILIARY = FhirContext.forR4();
 
-    public static IGenericClient buildClient(String serverUrl, String bearerToken, int socketTimeout, boolean doServerValidation) {
-        logger.debug("building FHIR R4 client for serverUrl=" + serverUrl + ", bearerToken=" + bearerToken +
-                ", socketTimeout=" + socketTimeout);
+    /**
+     * Server validation and connection settings come from the supplied context's client factory, so
+     * pass the context belonging to the service that owns this endpoint's configuration.
+     */
+    public static IGenericClient buildClient(FhirContext ctx, String serverUrl, String bearerToken) {
+        logger.debug("building FHIR R4 client for serverUrl=" + serverUrl + ", bearerToken=" + bearerToken);
 
-        FhirContext ctx = FhirContext.forR4();
-        ctx.getRestfulClientFactory().setSocketTimeout(socketTimeout);
-        if ( ! doServerValidation ) {
-            ctx.getRestfulClientFactory().setServerValidationMode(ServerValidationModeEnum.NEVER);
-        }
         IGenericClient client = ctx.newRestfulGenericClient(serverUrl);
 
         BearerTokenAuthInterceptor authInterceptor = new BearerTokenAuthInterceptor(bearerToken);
@@ -63,7 +59,7 @@ public class FhirUtil {
 
     public static List<String> buildKeys(String id, Identifier identifier) {
         List<Identifier> identifiers = identifier != null ?
-                Arrays.asList(identifier) :
+                List.of(identifier) :
                 null;
 
         return buildKeys(id, identifiers);
@@ -99,28 +95,6 @@ public class FhirUtil {
 
         return list;
     }
-
-
-//    public static Bundle toBundle(String patientId, FhirConfigManager fcm,
-//                                  Collection<? extends FHIRCompatible> collection) throws DataException {
-//        return toBundle(patientId, fcm, null, collection);
-//    }
-//
-//    public static Bundle toBundle(String patientId, FhirConfigManager fcm, Bundle.BundleType bundleType,
-//                                  Collection<? extends FHIRCompatible> collection) throws DataException {
-//        if (collection == null) return null;
-//
-//        Bundle bundle = new Bundle();
-//        bundle.setType(bundleType);
-//
-//        for (FHIRCompatible item : collection) {
-//            bundle.getEntry().addAll(
-//                    item.toBundle(patientId, fcm).getEntry()
-//            );
-//        }
-//
-//        return bundle;
-//    }
 
     public static Bundle bundleResources(Resource ... resources) {
         return bundleResources(Bundle.BundleType.COLLECTION, Arrays.asList(resources));
@@ -234,7 +208,7 @@ public class FhirUtil {
 
         if (isContainedReference(reference)) {
             for (Resource r : resource.getContained()) {
-                if (StringUtils.equals(reference, r.getId())) {
+                if (Strings.CS.equals(reference, r.getId())) {
                     return true;
                 }
             }
@@ -264,7 +238,7 @@ public class FhirUtil {
             if (entry.hasResource()) {
                 Resource r = entry.getResource();
                 if (r.hasId()) {
-                    if (Pattern.matches("(.*\\/)?" + referenceId + "(\\/.*)?", r.getId())) {
+                    if (Pattern.matches("(.*/)?" + referenceId + "(/.*)?", r.getId())) {
                         logger.debug("matched: '" + r.getId() + "' contains '" + reference + "'");
                         return true;
                     } else {
@@ -277,6 +251,7 @@ public class FhirUtil {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     public static boolean bundleContainsResourceWithIdentifier(Bundle b, Identifier identifier) {
         if (identifier == null) return false;
 
@@ -312,8 +287,7 @@ public class FhirUtil {
         }
 
         if (reference.hasIdentifier()) {
-            T t = getResourceFromBundleByIdentifier(bundle, aClass, reference.getIdentifier());
-            if (t != null) return t;
+            return getResourceFromBundleByIdentifier(bundle, aClass, reference.getIdentifier());
         }
 
         return null;
@@ -338,12 +312,11 @@ public class FhirUtil {
     /**
      * getContainedResourceByReference
      * Replaces DomainResource.getContained(String reference) as that function is buggy.
-     * See https://github.com/hapifhir/hapi-fhir/issues/6612 for details.
+     * See <a href="https://github.com/hapifhir/hapi-fhir/issues/6612">...</a> for details.
      * @param resource the DomainResource object that is expected to contain the referenced resource
      * @param aClass the type of resource that is expected for the specified reference
      * @param reference a reference to a contained resource, which is expected to begin with "#"
      * @return a resource of type specified by aClass from containedList with an id that matches the specified reference
-     * @param <T>
      */
     @SuppressWarnings("unchecked")
     public static <T extends IBaseResource> T getContainedResourceByReference(DomainResource resource, Class<T> aClass, String reference) {
@@ -362,7 +335,7 @@ public class FhirUtil {
 
         if (isContainedReference(reference)) {
             for (Resource r : resource.getContained()) {
-                if (StringUtils.equals(reference, r.getId())) {
+                if (Strings.CS.equals(reference, r.getId())) {
                     return r;
                 }
             }
@@ -394,7 +367,7 @@ public class FhirUtil {
             if (r.getClass().isAssignableFrom(aClass)) {
                 if (r.hasId()) {
                     try {
-                        if (Pattern.matches("(.*\\/)?" + referenceId + "(\\/.*)?", r.getId())) {
+                        if (Pattern.matches("(.*/)?" + referenceId + "(/.*)?", r.getId())) {
                             return aClass.cast(entry.getResource());
                         }
                     } catch (NullPointerException npe) {
@@ -409,6 +382,7 @@ public class FhirUtil {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T extends IBaseResource> T getResourceFromBundleByIdentifier(Bundle b, Class<T> aClass, Identifier identifier) {
         if (b == null) return null;
         if (identifier == null) return null;
@@ -521,11 +495,20 @@ public class FhirUtil {
         }
     }
 
+    public static String toJson(IBaseResource r) {
+        return FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().encodeResourceToString(r);
+    }
+
+    public static <R extends IBaseResource> R fromJson(Class<R> clazz, String json) {
+        return FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().parseResource(clazz, json);
+    }
+
     private static final Pattern ID_PATTERN = Pattern.compile("\"id\":\\s+\"([^\"]+)\"");
 
-    public static String toJson(IBaseResource r) {
-        FhirContext ctx = FhirContext.forR4();
-        IParser parser = ctx.newJsonParser();
+    public static String toJsonForLogging(IBaseResource r) {
+        if (r == null) return "";
+
+        IParser parser = FHIR_R4_CONTEXT_AUXILIARY.newJsonParser();
         parser.setPrettyPrint(true);
         if (r instanceof Patient) {
             String json = parser.encodeResourceToString(r);
@@ -712,8 +695,7 @@ public class FhirUtil {
     public static boolean hasHomeSettingExtension(DomainResource domainResource) {
         if (domainResource != null && domainResource.hasExtension(EXTENSION_HOME_SETTING_URL)) {
             Extension extension = domainResource.getExtensionByUrl(EXTENSION_HOME_SETTING_URL);
-            if (extension.hasValue() && extension.getValue() instanceof Coding) {
-                Coding coding = (Coding) extension.getValue();
+            if (extension.hasValue() && extension.getValue() instanceof Coding coding) {
                 return coding.is(EXTENSION_HOME_SETTING_SYSTEM, EXTENSION_HOME_SETTING_CODE);
             }
         }

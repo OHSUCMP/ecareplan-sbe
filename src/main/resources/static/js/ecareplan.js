@@ -249,6 +249,26 @@ function formatDate(date, format = 'MMM d, yyyy') {
     });
 }
 
+function formatDateTime(date) {
+    const d = date instanceof Date ? date : new Date(date);
+
+    if (Number.isNaN(d.getTime())) {
+        return '';
+    }
+
+    const pad = value => String(value).padStart(2, '0');
+
+    return [
+        d.getFullYear(),
+        pad(d.getMonth() + 1),
+        pad(d.getDate())
+    ].join('-') + ' ' + [
+        pad(d.getHours()),
+        pad(d.getMinutes()),
+        pad(d.getSeconds())
+    ].join(':');
+}
+
 function safeTextValue(value, fallback) {
     return value === undefined || value === null ? fallback : value;
 }

@@ -37,9 +37,6 @@ import java.util.function.Function;
 public class FHIRService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Value("${socket.timeout:300000}")
-    private Integer socketTimeout;
-
     @Value("${fhir.search.count}")
     private int searchCount;
 
@@ -103,9 +100,13 @@ public class FHIRService {
             return aClass.cast(r);
 
         } catch (ClassCastException cce) {
-            logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), r.getClass().getName(), aClass.getName());
+            String classNameForLogging = r != null ?
+                    r.getClass().getSimpleName() :
+                    "null";
+
+            logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), classNameForLogging, aClass.getName());
             if (logger.isDebugEnabled()) {
-                logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJson(r));
+                logger.debug("{} : {}", classNameForLogging, FhirUtil.toJsonForLogging(r));
             }
             throw cce;
         }
@@ -150,14 +151,14 @@ public class FHIRService {
 
             } catch (InternalErrorException iee) {
                 // HTTP 500 Internal Server Error - retry
-                if (attempt < maxRetries) {
+                if (canRetry(attempt)) {
                     logger.debug("caught {} while reading: {} - retrying -", iee.getClass().getSimpleName(), reference);
                 } else {
                     throw iee;
                 }
 
             } catch (UnclassifiedServerFailureException usfe) {
-                if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                if (usfe.getStatusCode() == 504 && canRetry(attempt)) { // gateway timeout - retry
                     logger.debug("caught HTTP 504 Bad Gateway while reading {} - retrying -", reference);
                 } else {
                     throw usfe;
@@ -239,7 +240,7 @@ public class FHIRService {
                 // bundle.getTotal() may be null and if so it will return 0, even if there are many entries.  Cerner does this
                 logger.info("search: got Bundle with total={}, entries={} for query: {}", bundle.getTotal(), bundle.getEntry().size(), fhirQuery);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("bundle = {}", FhirUtil.toJson(bundle));
+                    logger.debug("bundle = {}", FhirUtil.toJsonForLogging(bundle));
                 }
                 break;
 
@@ -249,14 +250,14 @@ public class FHIRService {
 
             } catch (InternalErrorException iee) {
                 // HTTP 500 Internal Server Error - retry
-                if (attempt < maxRetries) {
+                if (canRetry(attempt)) {
                     logger.debug("caught {} executing search: {} - retrying", iee.getClass().getSimpleName(), fhirQuery);
                 } else {
                     throw iee;
                 }
 
             } catch (UnclassifiedServerFailureException usfe) {
-                if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                if (usfe.getStatusCode() == 504 && canRetry(attempt)) { // gateway timeout - retry
                     logger.debug("caught HTTP 504 Bad Gateway executing search: {} - retrying -", fhirQuery);
                 } else {
                     throw usfe;
@@ -270,6 +271,12 @@ public class FHIRService {
 
             int page = 2;
             while (bundle.getLink(Bundle.LINK_NEXT) != null) {
+                if (Thread.currentThread().isInterrupted()) {
+                    // stop requesting pages - the task this is running in is being shut down.
+                    // isInterrupted() doesn't clear the flag, so callers still see the interrupt
+                    throw new DataException("interrupted paginating search: " + fhirQuery);
+                }
+
                 attempt = 0;
                 while (attempt++ < maxRetries) {
                     try {
@@ -277,7 +284,7 @@ public class FHIRService {
                         break;
 
                     } catch (UnclassifiedServerFailureException usfe) {
-                        if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                        if (usfe.getStatusCode() == 504 && canRetry(attempt)) { // gateway timeout - retry
                             logger.debug("caught HTTP 504 Bad Gateway getting page {} for search: {} - retrying -", page, fhirQuery);
                         } else {
                             throw usfe;
@@ -287,7 +294,7 @@ public class FHIRService {
 
                 logger.info("search (page {}): {} (size={})", page, fhirQuery, bundle.getTotal());
                 if (logger.isDebugEnabled()) {
-                    logger.debug("bundle = {}", FhirUtil.toJson(bundle));
+                    logger.debug("bundle = {}", FhirUtil.toJsonForLogging(bundle));
                 }
 
                 compositeBundle.consume(bundle);
@@ -316,7 +323,7 @@ public class FHIRService {
         IGenericClient client = buildClient(fcc, strategy);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("transacting {}: {}", resource.getClass().getSimpleName(), FhirUtil.toJson(resource));
+            logger.debug("transacting {}: {}", resource.getClass().getSimpleName(), FhirUtil.toJsonForLogging(resource));
         }
 
         MethodOutcome outcome = client.create()
@@ -324,7 +331,7 @@ public class FHIRService {
                 .withAdditionalHeader("Prefer", "return=representation")
                 .execute();
 
-        T t = null;
+        T t;
         try {
             if (outcome.getResource() != null) {
                 t = (T) outcome.getResource();
@@ -334,7 +341,7 @@ public class FHIRService {
                 // header in the response that points to the newly created resource.
 
                 String location = outcome.getResponseHeaders() != null ?
-                        outcome.getResponseHeaders().get("location").get(0) :
+                        outcome.getResponseHeaders().get("location").getFirst() :
                         null;
 
                 if (StringUtils.isNotBlank(location)) {
@@ -353,7 +360,7 @@ public class FHIRService {
             logger.error("caught {} transacting {} - {}", e.getClass().getName(), resource.getClass().getSimpleName(), e.getMessage(), e);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("resource={}", FhirUtil.toJson(resource));
+                logger.debug("resource={}", FhirUtil.toJsonForLogging(resource));
                 logger.debug("outcome={}", outcome);
                 if (outcome != null) logger.debug("response status code={}", outcome.getResponseStatusCode());
                 if (outcome != null && outcome.getResponseHeaders() != null) {
@@ -363,7 +370,7 @@ public class FHIRService {
                     }
                 }
                 if (logger.isDebugEnabled() && outcome != null && outcome.getOperationOutcome() != null) {
-                    logger.debug("response operation outcome={}", FhirUtil.toJson(outcome.getOperationOutcome()));
+                    logger.debug("response operation outcome={}", FhirUtil.toJsonForLogging(outcome.getOperationOutcome()));
                 }
             }
 
@@ -400,9 +407,7 @@ public class FHIRService {
                     }
                 }
 
-                client = FhirUtil.buildClient(getBackendServerURL(fcc),
-                        accessToken.getAccessToken(),
-                        socketTimeout);
+                client = FhirUtil.buildClient(fcc.getClient().getFhirContext(), getBackendServerURL(fcc), accessToken.getAccessToken());
 
             } else {
                 throw new ConfigurationException("BACKEND context requested but JWT not defined");
@@ -419,7 +424,7 @@ public class FHIRService {
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("transacting Bundle: {}", FhirUtil.toJson(bundle));
+            logger.debug("transacting Bundle: {}", FhirUtil.toJsonForLogging(bundle));
         }
 
         Bundle response = client.transaction().withBundle(bundle)
@@ -427,7 +432,7 @@ public class FHIRService {
                 .execute();
 
         if (logger.isDebugEnabled()) {
-            logger.debug("transaction response: {}", FhirUtil.toJson(response));
+            logger.debug("transaction response: {}", FhirUtil.toJsonForLogging(response));
         }
 
         return response;
@@ -438,6 +443,10 @@ public class FHIRService {
 //////////////////////////////////////////////////////////////////////////////////////
 // private methods
 //
+
+    private boolean canRetry(int attempt) {
+        return attempt < maxRetries && ! Thread.currentThread().isInterrupted();
+    }
 
     private String getBackendServerURL(FHIRCredentialsWithClient fcc) {
         return StringUtils.isNotBlank(backendIss) ?
@@ -450,9 +459,7 @@ public class FHIRService {
             if (accessTokenService.isAccessTokenEnabled()) {
                 AccessToken accessToken = accessTokenService.getAccessToken(fcc);
 
-                return FhirUtil.buildClient(getBackendServerURL(fcc),
-                        accessToken.getAccessToken(),
-                        socketTimeout);
+                return FhirUtil.buildClient(fcc.getClient().getFhirContext(), getBackendServerURL(fcc), accessToken.getAccessToken());
 
             } else {
                 throw new ConfigurationException("BACKEND context requested but JWT not defined");
