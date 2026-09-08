@@ -809,6 +809,10 @@ span.flag {
         border-radius: 0.75rem;
     }
 
+    .progress-detail-bar {
+        height: 3.5rem;
+    }
+
     .card-selector-layout .card-panel.d-none {
         display: block !important;
     }
