@@ -72,6 +72,10 @@ public class EndpointPopulationTask implements ITask<Void> {
 
             try {
                 for (DataSet<?> dataSet : DataSet.ALL_DATASETS_BY_PRIORITY) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException("Endpoint population interrupted");
+                    }
+
                     DataSetPopulationTask task = new DataSetPopulationTask(sessionId, loadFromEndpoint, dataSet,
                             cfg, launchCredentials, progress,
                             userWorkspaceService, endpointService, sdsService, auditService);
@@ -79,35 +83,49 @@ public class EndpointPopulationTask implements ITask<Void> {
                     dataSetFutures.add(future);
                 }
 
-            } finally {
-                try {
-                    for (Future<Void> dataSetFuture : dataSetFutures) { // wait for all dataSet tasks to complete
+                Exception failure = null;
+                for (Future<Void> dataSetFuture : dataSetFutures) {
+                    try {
                         dataSetFuture.get();
+                    } catch (ExecutionException | CancellationException e) {
+                        // A failed child must not leave other children running after completion.
+                        logger.error("Failed while populating dataSet", e);
+                        if (failure == null) {
+                            failure = e;
+                        }
                     }
-
-                    if (loadFromEndpoint) {
-                        logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
-                        endpointService.updateUserEndpointLastSyncCompleted(cfg.userEndpoint());
-                    }
-
-                } catch (InterruptedException e) {
-                    logger.error("Interrupted while populating dataSet", e);
-                    Thread.currentThread().interrupt();
-
-                } catch (ExecutionException | CancellationException e) {
-                    logger.error("Failed while populating dataSet", e);
                 }
-            }
+                if (failure != null) {
+                    throw failure;
+                }
 
-            long runtime = System.currentTimeMillis() - start;
-            logger.info("DONE populating {} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+                if (loadFromEndpoint && progress.getErrors().isEmpty()) {
+                    logger.info("Successfully shared all data from {} to SDS", endpoint.getName());
+                    endpointService.updateUserEndpointLastSyncCompleted(cfg.userEndpoint());
+                }
 
-            notifyEndpointPopulationComplete(endpoint);
-            notifyIfAllComplete();
+            } catch (InterruptedException e) {
+                logger.error("Interrupted while populating dataSet", e);
+                Thread.currentThread().interrupt();
+                throw e;
 
-            if ( ! userWorkspaceService.exists(sessionId) ) {
-                // user logged out during population, flush any accumulated progress data from the SDS service
-                sdsService.clearAllCompletedProgress(sessionId);
+            } finally {
+                for (Future<Void> future : dataSetFutures) {
+                    if (!future.isDone()) {
+                        future.cancel(true);
+                    }
+                }
+
+                long runtime = System.currentTimeMillis() - start;
+                logger.info("DONE populating {} for session={} (took {} ms)", endpoint.getName(), sessionId, runtime);
+
+                notifyEndpointPopulationComplete(endpoint);
+                notifyIfAllComplete();
+
+                if ( ! userWorkspaceService.exists(sessionId) ) {
+                    // user logged out during population, flush any accumulated progress data from the SDS service
+                    sdsService.clearAllCompletedProgress(sessionId);
+                }
             }
 
             return null;
@@ -115,20 +133,23 @@ public class EndpointPopulationTask implements ITask<Void> {
     }
 
     private void notifyEndpointPopulationStarted(Endpoint endpoint) {
-        if (userWorkspaceService.exists(sessionId)) {
-            userWorkspaceService.get(sessionId).notifyEndpointPopulationStarted(endpoint);
+        var workspace = userWorkspaceService.getIfPresent(sessionId);
+        if (workspace != null) {
+            workspace.notifyEndpointPopulationStarted(endpoint);
         }
     }
 
     private void notifyEndpointPopulationComplete(Endpoint endpoint) {
-        if (userWorkspaceService.exists(sessionId)) {
-            userWorkspaceService.get(sessionId).notifyEndpointPopulationComplete(endpoint);
+        var workspace = userWorkspaceService.getIfPresent(sessionId);
+        if (workspace != null) {
+            workspace.notifyEndpointPopulationComplete(endpoint);
         }
     }
 
     private void notifyIfAllComplete() {
-        if (userWorkspaceService.exists(sessionId)) {
-            userWorkspaceService.get(sessionId).notifyIfAllComplete();
+        var workspace = userWorkspaceService.getIfPresent(sessionId);
+        if (workspace != null) {
+            workspace.notifyIfAllComplete();
         }
     }
 }

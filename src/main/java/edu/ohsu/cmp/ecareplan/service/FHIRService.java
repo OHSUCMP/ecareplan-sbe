@@ -4,10 +4,7 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.IReadExecutable;
-import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import ca.uhn.fhir.rest.server.exceptions.UnclassifiedServerFailureException;
+import ca.uhn.fhir.rest.server.exceptions.*;
 import edu.ohsu.cmp.ecareplan.exception.*;
 import edu.ohsu.cmp.ecareplan.model.fhir.CompositeBundle;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentialsWithClient;
@@ -151,6 +148,14 @@ public class FHIRService {
                 logger.error("caught {} reading {} - {}", ire.getClass().getName(), reference, ire.getMessage());
                 throw ire;
 
+            } catch (InternalErrorException iee) {
+                // HTTP 500 Internal Server Error - retry
+                if (attempt < maxRetries) {
+                    logger.debug("caught {} while reading: {} - retrying -", iee.getClass().getSimpleName(), reference);
+                } else {
+                    throw iee;
+                }
+
             } catch (UnclassifiedServerFailureException usfe) {
                 if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
                     logger.debug("caught HTTP 504 Bad Gateway while reading {} - retrying -", reference);
@@ -241,6 +246,14 @@ public class FHIRService {
             } catch (InvalidRequestException ire) {
                 logger.error("caught {} executing search: {}", ire.getClass().getName(), fhirQuery, ire);
                 throw ire;
+
+            } catch (InternalErrorException iee) {
+                // HTTP 500 Internal Server Error - retry
+                if (attempt < maxRetries) {
+                    logger.debug("caught {} executing search: {} - retrying", iee.getClass().getSimpleName(), fhirQuery);
+                } else {
+                    throw iee;
+                }
 
             } catch (UnclassifiedServerFailureException usfe) {
                 if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry

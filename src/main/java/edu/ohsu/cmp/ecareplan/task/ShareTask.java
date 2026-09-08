@@ -40,7 +40,7 @@ public class ShareTask implements ITask<Void> {
         this.dataSet = dataSet;
         this.endpoint = endpoint;
         this.client = client;
-        this.resources = resources;
+        this.resources = List.copyOf(resources);
         this.progress = progress;
         this.auditService = auditService;
     }
@@ -65,113 +65,133 @@ public class ShareTask implements ITask<Void> {
 
             final int maxAttempts = 10;
 
-            for (BaseDataSetModel<?> item : resources) {
-                try {
-                    final IDomainResource resource = item.toResourceForSDSExport();
-                    final String id = FhirUtil.toRelativeReference(resource.getId());
+            try {
+                for (BaseDataSetModel<?> item : resources) {
+                    checkInterrupted();
+                    try {
+                        final IDomainResource resource = item.toResourceForSDSExport();
+                        final String id = FhirUtil.toRelativeReference(resource.getId());
 
-                    int attempt = 0;
-                    boolean success = false;
-                    while ( ! success && attempt++ < maxAttempts ) {
-                        if (attempt > 1) {
-                            logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
-                                    id, endpoint.getName(), sessionId, attempt, maxAttempts);
-                        }
-
-                        try {
-                            MethodOutcome outcome = client.update()
-                                    .resource(resource)
-                                    .withId(id)
-                                    .withAdditionalHeader(PARTITION_HEADER, endpoint.getIss())
-                                    .execute();
-
-                            int code = outcome.getResponseStatusCode();
-                            if (code == 200) {
-                                logger.debug("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
-                                success = true;
-
-                            } else if (code == 201) {
-                                logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
-
-                                auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_ACTION_SHARE, "created " + id + " from " + endpoint.getName());
-
-                                success = true;
-
-                            } else if (code >= 400) {
-                                // initial failures at this point we only want to appear in debug logs
-                                logger.debug("Failed sharing {} from {} with status code {} ({}/{})",
-                                        id, endpoint.getName(), outcome.getResponseStatusCode(), attempt, maxAttempts);
-
-                            } else {
-                                logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
-
-                                auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
-                                        " sharing " + id + " from " + endpoint.getName());
-
-                                success = (code > 201 && code < 300);
+                        int attempt = 0;
+                        boolean success = false;
+                        while ( ! success && attempt++ < maxAttempts ) {
+                            checkInterrupted();
+                            if (attempt > 1) {
+                                logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
+                                        id, endpoint.getName(), sessionId, attempt, maxAttempts);
                             }
 
-                        } catch (FhirClientConnectionException fcce) {
-                            // Connection refused
+                            try {
+                                MethodOutcome outcome = client.update()
+                                        .resource(resource)
+                                        .withId(id)
+                                        .withAdditionalHeader(PARTITION_HEADER, endpoint.getIss())
+                                        .execute();
+
+                                int code = outcome.getResponseStatusCode();
+                                if (code == 200) {
+                                    logger.debug("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+                                    success = true;
+
+                                } else if (code == 201) {
+                                    logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+
+                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_ACTION_SHARE, "created " + id + " from " + endpoint.getName());
+
+                                    success = true;
+
+                                } else if (code >= 400) {
+                                    // initial failures at this point we only want to appear in debug logs
+                                    logger.debug("Failed sharing {} from {} with status code {} ({}/{})",
+                                            id, endpoint.getName(), outcome.getResponseStatusCode(), attempt, maxAttempts);
+
+                                } else {
+                                    logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
+
+                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
+                                            " sharing " + id + " from " + endpoint.getName());
+
+                                    success = (code > 201 && code < 300);
+                                }
+
+                            } catch (FhirClientConnectionException fcce) {
+                                // Connection refused
+                                throw fcce;
+
+                            } catch (ResourceNotFoundException rnfe) {
+                                // HTTP 404 Not Found - generally thrown if the SDS can't introspect
+                                throw rnfe;
+
+                            } catch (Exception e) {
+                                logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
+                                        id, endpoint.getName(), sessionId, e.getMessage());
+                                logger.debug(e.getMessage(), e);
+                            }
+                        }
+
+                        if ( ! success ) {
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
+                            progress.addError("Failed to share " + id);
+                        }
+
+                    } catch (Exception e) {
+                        if (e instanceof InterruptedException || Thread.currentThread().isInterrupted()) {
+                            Thread.currentThread().interrupt();
+                            throw new InterruptedException("Sharing data to SDS interrupted");
+                        }
+                        final String id = FhirUtil.toRelativeReference(item.getId());
+
+                        logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
+                                id, endpoint.getName(), sessionId, e.getMessage());
+                        logger.debug(e.getMessage(), e);
+
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE,
+                                "caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
+
+                        progress.addError("caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
+
+                        if (e instanceof FhirClientConnectionException fcce) {
                             throw fcce;
 
-                        } catch (ResourceNotFoundException rnfe) {
-                            // HTTP 404 Not Found - generally thrown if the SDS can't introspect
+                        } else if (e instanceof ResourceNotFoundException rnfe) {
                             throw rnfe;
-
-                        } catch (Exception e) {
-                            logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                    id, endpoint.getName(), sessionId, e.getMessage());
-                            logger.debug(e.getMessage(), e);
                         }
-                    }
 
-                    if ( ! success ) {
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
-                        progress.addError("Failed to share " + id);
-                    }
+                    } finally {
+                        if (progress.getCurrent() < progress.getTotal()) {
+                            progress.setCurrent(progress.getCurrent() + 1);
+                        }
 
-                } catch (Exception e) {
-                    final String id = FhirUtil.toRelativeReference(item.getId());
-
-                    logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
-                            id, endpoint.getName(), sessionId, e.getMessage());
-                    logger.debug(e.getMessage(), e);
-
-                    auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE,
-                            "caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
-
-                    progress.addError("caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
-
-                    if (e instanceof FhirClientConnectionException fcce) {
-                        throw fcce;
-
-                    } else if (e instanceof ResourceNotFoundException rnfe) {
-                        throw rnfe;
-                    }
-
-                } finally {
-                    if (progress.getCurrent() < progress.getTotal()) {
-                        progress.setCurrent(progress.getCurrent() + 1);
-                    }
-
-                    if (progress.getCurrent().equals(progress.getTotal())) {
-                        progress.setStatus(ProgressStatus.COMPLETED);
                     }
                 }
-            }
 
-            if ( ! progress.getCurrent().equals(progress.getTotal()) ) {
-                logger.warn("somehow got through all list items for " + dataSet.getName() +
-                        " from " + endpoint.getName() + ", but progress current != max?  that's weird.  investigate?");
+                if ( ! progress.getCurrent().equals(progress.getTotal()) ) {
+                    logger.warn("somehow got through all list items for " + dataSet.getName() +
+                            " from " + endpoint.getName() + ", but progress current != max?  that's weird.  investigate?");
+                    progress.setStatus(ProgressStatus.COMPLETED);
+                }
+
+                long runtime = System.currentTimeMillis() - start;
+                logger.info("DONE sharing {} {} resources from {} to SDS for session={} (took {} ms)", resources.size(),
+                        dataSet.getName(), endpoint.getName(), sessionId, runtime);
+
+                if (!progress.getErrors().isEmpty()) {
+                    throw new IllegalStateException("Failed to share all " + dataSet.getName() + " resources to SDS");
+                }
+                return null;
+            } catch (InterruptedException e) {
+                progress.addError("Sharing data to SDS interrupted");
+                Thread.currentThread().interrupt();
+                throw e;
+            } finally {
                 progress.setStatus(ProgressStatus.COMPLETED);
             }
-
-            long runtime = System.currentTimeMillis() - start;
-            logger.info("DONE sharing {} {} resources from {} to SDS for session={} (took {} ms)", resources.size(),
-                    dataSet.getName(), endpoint.getName(), sessionId, runtime);
-
-            return null;
         };
+    }
+
+    private static void checkInterrupted() throws InterruptedException {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("Sharing data to SDS interrupted");
+        }
     }
 }

@@ -12,11 +12,11 @@ import java.util.concurrent.Future;
 public class ShareProgressModel extends BaseProgressModel implements IProgress {
     private final DataSet<?> dataSet;
     private final Endpoint endpoint;
-    private ProgressStatus status;
-    private Integer current;
+    private volatile ProgressStatus status;
+    private volatile Integer current;
     private final Integer total;
     private final List<String> errors;
-    private transient Future<Void> future = null;
+    private transient volatile Future<Void> future = null;
 
     public ShareProgressModel(DataSet<?> dataSet, Endpoint endpoint, ProgressStatus status, Integer current, Integer total) {
         super(endpoint.getName());
@@ -56,7 +56,7 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
     @Override
     public String getMessage() {
         if (status == ProgressStatus.COMPLETED) {
-            return errors.isEmpty() ?
+            return getErrors().isEmpty() ?
                     "Share of " + dataSet.getDisplay() + " from " + endpoint.getName() + " has completed successfully." :
                     "Share of " + dataSet.getDisplay() + " from " + endpoint.getName() + " has completed with errors.  See error list for details.";
 
@@ -100,11 +100,11 @@ public class ShareProgressModel extends BaseProgressModel implements IProgress {
     }
 
     @Override
-    public List<String> getErrors() {
-        return errors;
+    public synchronized List<String> getErrors() {
+        return new ArrayList<>(errors);
     }
 
-    public void addError(String error) {
+    public synchronized void addError(String error) {
         errors.add(error);
         lastUpdated = new Date();
     }

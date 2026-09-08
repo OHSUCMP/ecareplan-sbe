@@ -35,6 +35,10 @@ public class UserWorkspaceService {
         return map.containsKey(sessionId);
     }
 
+    public UserWorkspace getIfPresent(String sessionId) {
+        return map.get(sessionId);
+    }
+
     public void init(String sessionId, Audience audience, FHIRCredentials credentials) throws ConfigurationException {
         try {
             if (shutdown(sessionId)) {
