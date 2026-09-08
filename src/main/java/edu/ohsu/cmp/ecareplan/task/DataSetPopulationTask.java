@@ -30,6 +30,7 @@ public class DataSetPopulationTask implements ITask<Void> {
 
     private final String sessionId;
     private final boolean loadFromEndpoint;
+    private final boolean doShareOperations;
     private final DataSet<?> dataSet;
     private final DataSetBuilderRequestConfiguration cfg;
     private final FHIRCredentials launchCredentials;
@@ -39,13 +40,14 @@ public class DataSetPopulationTask implements ITask<Void> {
     private final SDSService sdsService;
     private final AuditService auditService;
 
-    public DataSetPopulationTask(String sessionId, boolean loadFromEndpoint, DataSet<?> dataSet,
-                                 DataSetBuilderRequestConfiguration cfg,
+    public DataSetPopulationTask(String sessionId, boolean loadFromEndpoint, boolean doShareOperations,
+                                 DataSet<?> dataSet, DataSetBuilderRequestConfiguration cfg,
                                  FHIRCredentials launchCredentials, EndpointReadProgressModel progress,
                                  UserWorkspaceService userWorkspaceService, EndpointService endpointService, SDSService sdsService, AuditService auditService) {
 
         this.sessionId = sessionId;
         this.loadFromEndpoint = loadFromEndpoint;
+        this.doShareOperations = doShareOperations;
         this.dataSet = dataSet;
         this.cfg = cfg;
         this.launchCredentials = launchCredentials;
@@ -62,7 +64,9 @@ public class DataSetPopulationTask implements ITask<Void> {
                 ", userId=" + cfg.userEndpoint().getUser().getId() +
                 ", dataSet=" + dataSet.getName() +
                 ", endpoint=" + cfg.userEndpoint().getEndpoint().getName() +
-                ", loadFromEndpoint=" + loadFromEndpoint + ")";
+                ", loadFromEndpoint=" + loadFromEndpoint +
+                ", doShareOperations=" + doShareOperations +
+                ")";
     }
 
     @Override
@@ -85,8 +89,10 @@ public class DataSetPopulationTask implements ITask<Void> {
 
                     if (loadFromEndpoint) {
                         resources = getDataSetModelsForEndpoint(dataSet, cfg, endpointService);
-                        checkInterrupted();
-                        sdsFuture = sdsService.shareToSDS(sessionId, dataSet, endpoint, launchCredentials, resources);
+                        if (doShareOperations) {
+                            checkInterrupted();
+                            sdsFuture = sdsService.shareToSDS(sessionId, dataSet, endpoint, launchCredentials, resources);
+                        }
 
                     } else {
                         resources = getDataSetModelsForEndpoint(dataSet, cfg, sdsService);

@@ -12,6 +12,7 @@ import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.CaseNotHandledException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
 import edu.ohsu.cmp.ecareplan.model.Audience;
+import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.EndpointModel;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.dataset.BaseDataSetModel;
@@ -57,6 +58,7 @@ public class UserWorkspace {
     private final AuditService auditService;
     private final BackgroundTaskService backgroundTaskService;
     private final Map<Long, EndpointReadProgressModel> endpointReadProgressMap;
+    private final boolean sdsIsAvailable;
     private final AtomicBoolean shutdown;
 
     private SecretKey secretKey;
@@ -107,8 +109,19 @@ public class UserWorkspace {
                 .expireAfterWrite(6, TimeUnit.HOURS)
                 .build();
 
+        sdsIsAvailable = sdsService.isSDSAvailable();
+        if ( ! sdsIsAvailable ) {
+            logger.warn("*** SDS UNAVAILABLE ***");
+            logger.warn("SDS operations will not execute for session {}", sessionId);
+            auditService.doAudit(user, AuditSeverity.WARN, "workspace initialization", "SDS availability check failed for session " + sessionId);
+        }
+
         shutdown = new AtomicBoolean(false);
         setupAutoShutdownJob();
+    }
+
+    public boolean isSDSAvailable() {
+        return sdsIsAvailable;
     }
 
     public UserEndpoint getOrCreateUserEndpoint(Endpoint endpoint, String fhirPatientId) {
@@ -323,10 +336,13 @@ public class UserWorkspace {
             logger.warn("Endpoint {} is not configured for OAuth, and has no record of data synced to the SDS.  How did we get here?", endpoint.getName());
             return;
         }
+        boolean loadFromEndpoint = uec != null;
+        if ( ! loadFromEndpoint && ! sdsIsAvailable ) {
+            logger.warn("SDS is not available, and data cannot be loaded from endpoint {} for session {} - aborting", endpoint.getName(), sessionId);
+            return;
+        }
 
         clearAllCompletedProgress();
-
-        boolean loadFromEndpoint = uec != null;
 
         EndpointReadProgressModel endpointProgress = new EndpointReadProgressModel(endpoint, ! loadFromEndpoint);
         endpointReadProgressMap.put(endpoint.getId(), endpointProgress);
@@ -337,8 +353,8 @@ public class UserWorkspace {
         String endpointPatientId = getPatientIdForEndpoint(endpoint);
         DataSetBuilderRequestConfiguration cfg = new DataSetBuilderRequestConfiguration(ue, credentials, endpointPatientId);
 
-        EndpointPopulationTask task = new EndpointPopulationTask(sessionId, loadFromEndpoint, cfg,
-                launchCredentials, endpointProgress,
+        EndpointPopulationTask task = new EndpointPopulationTask(sessionId, loadFromEndpoint, sdsIsAvailable,
+                cfg, launchCredentials, endpointProgress,
                 ctx.getBean(UserWorkspaceService.class),
                 endpointService, sdsService, backgroundTaskService, auditService);
 

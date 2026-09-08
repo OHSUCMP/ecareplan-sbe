@@ -22,6 +22,20 @@
         </div>
     </section>
 
+    {{#sdsUnavailable}}
+        <div class="alert alert-danger home-sds-alert d-flex align-items-start gap-3" role="alert"
+             aria-labelledby="sds-unavailable-title" aria-describedby="sds-unavailable-description">
+            <span class="home-sds-alert-icon fa-solid fa-triangle-exclamation" aria-hidden="true"></span>
+            <div>
+                <h2 id="sds-unavailable-title" class="alert-heading home-sds-alert-title">Some health record features are unavailable</h2>
+                <p id="sds-unavailable-description" class="mb-0">
+                    The Supplemental Data Store (SDS) is currently unavailable. Health records cannot be retrieved from
+                    or shared to the SDS during this session.
+                </p>
+            </div>
+        </div>
+    {{/sdsUnavailable}}
+
     <div id="progressContainer" class="hidden"></div>
 
     <div class="row g-4 home-section">

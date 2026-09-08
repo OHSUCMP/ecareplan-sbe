@@ -79,6 +79,33 @@
     font-weight: 700;
 }
 
+.home-sds-alert {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid #f1c6cb;
+    border-left: 0.35rem solid #b02a37;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #fcebed 0%, #fff7f7 100%);
+    color: #76232c;
+    line-height: 1.55;
+    box-shadow: 0 0.35rem 1rem rgba(118, 35, 44, 0.06);
+}
+
+.home-sds-alert-icon {
+    flex: 0 0 auto;
+    margin-top: 0.15rem;
+    color: #b02a37;
+    font-size: 1.25rem;
+}
+
+.home-sds-alert-title {
+    margin-bottom: 0.35rem;
+    color: inherit;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
 .home-section {
     margin-bottom: 1.5rem;
 }
