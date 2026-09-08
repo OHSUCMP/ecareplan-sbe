@@ -116,6 +116,7 @@ public class PatientHomeController extends BasePatientController {
             model.addAttribute("pageStyles", new String[] { "endpoint.css", "dataset.css", "patient/home.css" });
 
             model.addAttribute("dataSets", DataSet.PATIENT);
+            model.addAttribute("sdsUnavailable", ! userWorkspaceService.get(sessionId).isSDSAvailable());
 
             auditService.doAudit(sessionId, AuditSeverity.INFO, "visited /patient/home");
 

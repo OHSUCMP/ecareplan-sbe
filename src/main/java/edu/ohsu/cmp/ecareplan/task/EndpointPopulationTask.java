@@ -25,6 +25,7 @@ public class EndpointPopulationTask implements ITask<Void> {
 
     private final String sessionId;
     private final boolean loadFromEndpoint;
+    private final boolean doShareOperations;
     private final DataSetBuilderRequestConfiguration cfg;
     private final FHIRCredentials launchCredentials;
     private final EndpointReadProgressModel progress;
@@ -34,13 +35,15 @@ public class EndpointPopulationTask implements ITask<Void> {
     private final BackgroundTaskService backgroundTaskService;
     private final AuditService auditService;
 
-    public EndpointPopulationTask(String sessionId, boolean loadFromEndpoint, DataSetBuilderRequestConfiguration cfg,
+    public EndpointPopulationTask(String sessionId, boolean loadFromEndpoint, boolean doShareOperations,
+                                  DataSetBuilderRequestConfiguration cfg,
                                   FHIRCredentials launchCredentials, EndpointReadProgressModel progress,
                                   UserWorkspaceService userWorkspaceService, EndpointService endpointService, SDSService sdsService,
                                   BackgroundTaskService backgroundTaskService, AuditService auditService) {
 
         this.sessionId = sessionId;
         this.loadFromEndpoint = loadFromEndpoint;
+        this.doShareOperations = doShareOperations;
         this.cfg = cfg;
         this.launchCredentials = launchCredentials;
         this.progress = progress;
@@ -56,7 +59,8 @@ public class EndpointPopulationTask implements ITask<Void> {
         return "EndpointPopulationTask(sessionId=" + sessionId +
                 ", userId=" + cfg.userEndpoint().getUser().getId() +
                 ", endpoint=" + cfg.userEndpoint().getEndpoint().getName() +
-                ", loadFromEndpoint=" + loadFromEndpoint + ")";
+                ", loadFromEndpoint=" + loadFromEndpoint + "," +
+                ", doShareOperations=" + doShareOperations + ")";
     }
 
     @Override
@@ -76,8 +80,8 @@ public class EndpointPopulationTask implements ITask<Void> {
                         throw new InterruptedException("Endpoint population interrupted");
                     }
 
-                    DataSetPopulationTask task = new DataSetPopulationTask(sessionId, loadFromEndpoint, dataSet,
-                            cfg, launchCredentials, progress,
+                    DataSetPopulationTask task = new DataSetPopulationTask(sessionId,
+                            loadFromEndpoint, doShareOperations, dataSet, cfg, launchCredentials, progress,
                             userWorkspaceService, endpointService, sdsService, auditService);
                     Future<Void> future = backgroundTaskService.submit(task);
                     dataSetFutures.add(future);

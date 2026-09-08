@@ -183,12 +183,12 @@ class PopulationTaskTest {
     }
 
     private EndpointPopulationTask endpointTask(BackgroundTaskService service) {
-        return new EndpointPopulationTask("session", true, cfg, credentials, progress,
+        return new EndpointPopulationTask("session", true, true, cfg, credentials, progress,
                 workspaces, endpoints, sds, service, audit);
     }
 
     private DataSetPopulationTask datasetTask() {
-        return new DataSetPopulationTask("session", true, DataSet.PATIENT, cfg, credentials,
+        return new DataSetPopulationTask("session", true, true, DataSet.PATIENT, cfg, credentials,
                 progress, workspaces, endpoints, sds, audit);
     }
 

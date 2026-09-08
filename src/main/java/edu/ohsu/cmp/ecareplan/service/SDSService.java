@@ -6,6 +6,8 @@ import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
+import edu.ohsu.cmp.ecareplan.http.HttpRequest;
+import edu.ohsu.cmp.ecareplan.http.HttpResponse;
 import edu.ohsu.cmp.ecareplan.model.ProgressStatus;
 import edu.ohsu.cmp.ecareplan.model.QueryModel;
 import edu.ohsu.cmp.ecareplan.model.dataset.*;
@@ -21,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -57,6 +60,20 @@ public class SDSService extends BaseDataSetBuilderService implements IDataSetBui
     @Override
     protected ServerValidationModeEnum getServerValidationMode() {
         return ServerValidationModeEnum.NEVER;
+    }
+
+    public boolean isSDSAvailable() {
+        try {
+            HttpResponse response = new HttpRequest().get(sdsFhirEndpointUrl + "/metadata");
+            if (response.getResponseCode() != HttpStatus.OK.value()) {
+                logger.error("got HTTP {} getting SDS metadata", response.getResponseCode());
+            }
+            return response.getResponseCode() == HttpStatus.OK.value();
+
+        } catch (IOException e) {
+            logger.error("caught {} checking SDS availability - {}", e.getClass().getSimpleName(),e.getMessage());
+            return false;
+        }
     }
 
     public void clearProgressForSession(String sessionId) {
