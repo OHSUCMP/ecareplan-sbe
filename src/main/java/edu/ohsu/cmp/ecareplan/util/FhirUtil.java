@@ -496,16 +496,22 @@ public class FhirUtil {
     }
 
     public static String toJson(IBaseResource r) {
-        return FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().encodeResourceToString(r);
+        return r != null ?
+                FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().encodeResourceToString(r) :
+                "";
     }
 
     public static <R extends IBaseResource> R fromJson(Class<R> clazz, String json) {
-        return FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().parseResource(clazz, json);
+        return clazz == null || StringUtils.isBlank(json) ?
+                null :
+                FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().parseResource(clazz, json);
     }
 
     private static final Pattern ID_PATTERN = Pattern.compile("\"id\":\\s+\"([^\"]+)\"");
 
     public static String toJsonForLogging(IBaseResource r) {
+        if (r == null) return "";
+
         IParser parser = FHIR_R4_CONTEXT_AUXILIARY.newJsonParser();
         parser.setPrettyPrint(true);
         if (r instanceof Patient) {

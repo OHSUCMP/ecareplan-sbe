@@ -100,9 +100,13 @@ public class FHIRService {
             return aClass.cast(r);
 
         } catch (ClassCastException cce) {
-            logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), r.getClass().getName(), aClass.getName());
+            String classNameForLogging = r != null ?
+                    r.getClass().getSimpleName() :
+                    "null";
+
+            logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), classNameForLogging, aClass.getName());
             if (logger.isDebugEnabled()) {
-                logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJsonForLogging(r));
+                logger.debug("{} : {}", classNameForLogging, FhirUtil.toJsonForLogging(r));
             }
             throw cce;
         }
