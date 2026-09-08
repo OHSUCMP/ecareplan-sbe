@@ -1,7 +1,6 @@
 package edu.ohsu.cmp.ecareplan.entity;
 
-import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.parser.IParser;
+import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import jakarta.persistence.*;
 import org.apache.commons.codec.binary.Base64;
 import org.hl7.fhir.r4.model.Coding;
@@ -129,10 +128,8 @@ public class Assessment {
 
     public Questionnaire getQuestionnaire() {
         if (questionnaire == null) {
-            FhirContext ctx = FhirContext.forR4();
-            IParser parser = ctx.newJsonParser();
             String json = new String(Base64.decodeBase64(questionnaireResourceJsonB64), StandardCharsets.UTF_8);
-            questionnaire = parser.parseResource(Questionnaire.class, json);
+            questionnaire = FhirUtil.fromJson(Questionnaire.class, json);
         }
         return questionnaire;
     }

@@ -48,7 +48,6 @@ public class UserWorkspace {
     private final ApplicationContext ctx;
     private final String sessionId;
     private final Audience audience;
-    private final Integer socketTimeout;
     private final FHIRCredentials launchCredentials;
     private final User user;
     private final Map<Long, UserEndpointCredentials> userEndpointCredentialsMap;
@@ -66,12 +65,11 @@ public class UserWorkspace {
     private volatile SseEmitter emitter = null;
 
     protected UserWorkspace(ApplicationContext ctx, String sessionId, Audience audience,
-                            FHIRCredentials launchCredentials, Integer socketTimeout) {
+                            FHIRCredentials launchCredentials) {
         this.ctx = ctx;
         this.sessionId = sessionId;
         this.audience = audience;
         this.launchCredentials = launchCredentials;
-        this.socketTimeout = socketTimeout;
 
         endpointService = ctx.getBean(EndpointService.class);
         sdsService = ctx.getBean(SDSService.class);
@@ -274,9 +272,9 @@ public class UserWorkspace {
 
     public void configureUserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
         IGenericClient client = FhirUtil.buildClient(
+                endpointService.getFhirContext(),
                 credentials.getServerURL(),
-                credentials.getBearerToken(),
-                socketTimeout
+                credentials.getBearerToken()
         );
         FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
 

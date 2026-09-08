@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
@@ -35,9 +36,6 @@ public class SDSService extends BaseDataSetBuilderService implements IDataSetBui
 
     private static final String PARTITION_HEADER = "X-Partition-Name";
 
-    @Value("${socket.timeout:300000}")
-    private Integer socketTimeout;
-
     @Value("${sds.fhirEndpointUrl}")
     private String sdsFhirEndpointUrl;
 
@@ -54,6 +52,11 @@ public class SDSService extends BaseDataSetBuilderService implements IDataSetBui
 
     public SDSService() {
         sessionIdProgressMap = new ConcurrentHashMap<>();
+    }
+
+    @Override
+    protected ServerValidationModeEnum getServerValidationMode() {
+        return ServerValidationModeEnum.NEVER;
     }
 
     public void clearProgressForSession(String sessionId) {
@@ -645,7 +648,7 @@ public class SDSService extends BaseDataSetBuilderService implements IDataSetBui
 ///
 
     private IGenericClient buildClient(FHIRCredentials fc) {
-        return FhirUtil.buildClient(sdsFhirEndpointUrl, fc.getBearerToken(), socketTimeout, false);
+        return FhirUtil.buildClient(fhirContext, sdsFhirEndpointUrl, fc.getBearerToken());
     }
 
     private String doTokenReplacements(String patientId, String fhirQuery) {

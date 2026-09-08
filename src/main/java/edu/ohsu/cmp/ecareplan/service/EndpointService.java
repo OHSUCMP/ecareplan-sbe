@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.service;
 
+import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.entity.User;
@@ -47,9 +48,6 @@ import java.util.function.Function;
 public class EndpointService extends BaseDataSetBuilderService implements IDataSetBuilder {
     private static final Logger logger = LoggerFactory.getLogger(EndpointService.class);
 
-    @Value("${socket.timeout:300000}")
-    private Integer socketTimeout;
-
     @Value("${endpoint.patientLaunch.name}")
     private String patientEndpointName;
 
@@ -70,6 +68,11 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
 
     @Autowired
     private MedicationFlagService medicationFlagService;
+
+    @Override
+    protected ServerValidationModeEnum getServerValidationMode() {
+        return ServerValidationModeEnum.ONCE;
+    }
 
     public Endpoint getPatientLaunchEndpoint() {
         return endpointRepository.findByName(patientEndpointName);
@@ -639,7 +642,7 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
 ///
 
     private FHIRCredentialsWithClient buildCredentialsWithClient(FHIRCredentials fc) {
-        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fc.getServerURL(), fc.getBearerToken(), socketTimeout));
+        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fhirContext, fc.getServerURL(), fc.getBearerToken()));
     }
 
     private static final DateFormat FHIR_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");

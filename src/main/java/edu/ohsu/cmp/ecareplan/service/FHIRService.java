@@ -37,9 +37,6 @@ import java.util.function.Function;
 public class FHIRService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Value("${socket.timeout:300000}")
-    private Integer socketTimeout;
-
     @Value("${fhir.search.count}")
     private int searchCount;
 
@@ -105,7 +102,7 @@ public class FHIRService {
         } catch (ClassCastException cce) {
             logger.error("caught {} attempting to cast {} to {}", cce.getClass().getName(), r.getClass().getName(), aClass.getName());
             if (logger.isDebugEnabled()) {
-                logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJson(r));
+                logger.debug("{} : {}", r.getClass().getName(), FhirUtil.toJsonForLogging(r));
             }
             throw cce;
         }
@@ -239,7 +236,7 @@ public class FHIRService {
                 // bundle.getTotal() may be null and if so it will return 0, even if there are many entries.  Cerner does this
                 logger.info("search: got Bundle with total={}, entries={} for query: {}", bundle.getTotal(), bundle.getEntry().size(), fhirQuery);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("bundle = {}", FhirUtil.toJson(bundle));
+                    logger.debug("bundle = {}", FhirUtil.toJsonForLogging(bundle));
                 }
                 break;
 
@@ -293,7 +290,7 @@ public class FHIRService {
 
                 logger.info("search (page {}): {} (size={})", page, fhirQuery, bundle.getTotal());
                 if (logger.isDebugEnabled()) {
-                    logger.debug("bundle = {}", FhirUtil.toJson(bundle));
+                    logger.debug("bundle = {}", FhirUtil.toJsonForLogging(bundle));
                 }
 
                 compositeBundle.consume(bundle);
@@ -322,7 +319,7 @@ public class FHIRService {
         IGenericClient client = buildClient(fcc, strategy);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("transacting {}: {}", resource.getClass().getSimpleName(), FhirUtil.toJson(resource));
+            logger.debug("transacting {}: {}", resource.getClass().getSimpleName(), FhirUtil.toJsonForLogging(resource));
         }
 
         MethodOutcome outcome = client.create()
@@ -359,7 +356,7 @@ public class FHIRService {
             logger.error("caught {} transacting {} - {}", e.getClass().getName(), resource.getClass().getSimpleName(), e.getMessage(), e);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("resource={}", FhirUtil.toJson(resource));
+                logger.debug("resource={}", FhirUtil.toJsonForLogging(resource));
                 logger.debug("outcome={}", outcome);
                 if (outcome != null) logger.debug("response status code={}", outcome.getResponseStatusCode());
                 if (outcome != null && outcome.getResponseHeaders() != null) {
@@ -369,7 +366,7 @@ public class FHIRService {
                     }
                 }
                 if (logger.isDebugEnabled() && outcome != null && outcome.getOperationOutcome() != null) {
-                    logger.debug("response operation outcome={}", FhirUtil.toJson(outcome.getOperationOutcome()));
+                    logger.debug("response operation outcome={}", FhirUtil.toJsonForLogging(outcome.getOperationOutcome()));
                 }
             }
 
@@ -406,9 +403,7 @@ public class FHIRService {
                     }
                 }
 
-                client = FhirUtil.buildClient(getBackendServerURL(fcc),
-                        accessToken.getAccessToken(),
-                        socketTimeout);
+                client = FhirUtil.buildClient(fcc.getClient().getFhirContext(), getBackendServerURL(fcc), accessToken.getAccessToken());
 
             } else {
                 throw new ConfigurationException("BACKEND context requested but JWT not defined");
@@ -425,7 +420,7 @@ public class FHIRService {
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("transacting Bundle: {}", FhirUtil.toJson(bundle));
+            logger.debug("transacting Bundle: {}", FhirUtil.toJsonForLogging(bundle));
         }
 
         Bundle response = client.transaction().withBundle(bundle)
@@ -433,7 +428,7 @@ public class FHIRService {
                 .execute();
 
         if (logger.isDebugEnabled()) {
-            logger.debug("transaction response: {}", FhirUtil.toJson(response));
+            logger.debug("transaction response: {}", FhirUtil.toJsonForLogging(response));
         }
 
         return response;
@@ -460,9 +455,7 @@ public class FHIRService {
             if (accessTokenService.isAccessTokenEnabled()) {
                 AccessToken accessToken = accessTokenService.getAccessToken(fcc);
 
-                return FhirUtil.buildClient(getBackendServerURL(fcc),
-                        accessToken.getAccessToken(),
-                        socketTimeout);
+                return FhirUtil.buildClient(fcc.getClient().getFhirContext(), getBackendServerURL(fcc), accessToken.getAccessToken());
 
             } else {
                 throw new ConfigurationException("BACKEND context requested but JWT not defined");

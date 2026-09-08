@@ -3,7 +3,6 @@ package edu.ohsu.cmp.ecareplan.util;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
@@ -34,19 +33,15 @@ public class FhirUtil {
     private static final String EXTENSION_OAUTH_URIS_URL = "http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris";
     private static final String EXTENSION_TOKEN_URL = "token";
 
-    public static IGenericClient buildClient(String serverUrl, String bearerToken, int socketTimeout) {
-        return buildClient(serverUrl, bearerToken, socketTimeout, true);
-    }
+    private static final FhirContext FHIR_R4_CONTEXT_AUXILIARY = FhirContext.forR4();
 
-    public static IGenericClient buildClient(String serverUrl, String bearerToken, int socketTimeout, boolean doServerValidation) {
-        logger.debug("building FHIR R4 client for serverUrl=" + serverUrl + ", bearerToken=" + bearerToken +
-                ", socketTimeout=" + socketTimeout);
+    /**
+     * Server validation and connection settings come from the supplied context's client factory, so
+     * pass the context belonging to the service that owns this endpoint's configuration.
+     */
+    public static IGenericClient buildClient(FhirContext ctx, String serverUrl, String bearerToken) {
+        logger.debug("building FHIR R4 client for serverUrl=" + serverUrl + ", bearerToken=" + bearerToken);
 
-        FhirContext ctx = FhirContext.forR4();
-        ctx.getRestfulClientFactory().setSocketTimeout(socketTimeout);
-        if ( ! doServerValidation ) {
-            ctx.getRestfulClientFactory().setServerValidationMode(ServerValidationModeEnum.NEVER);
-        }
         IGenericClient client = ctx.newRestfulGenericClient(serverUrl);
 
         BearerTokenAuthInterceptor authInterceptor = new BearerTokenAuthInterceptor(bearerToken);
@@ -99,28 +94,6 @@ public class FhirUtil {
 
         return list;
     }
-
-
-//    public static Bundle toBundle(String patientId, FhirConfigManager fcm,
-//                                  Collection<? extends FHIRCompatible> collection) throws DataException {
-//        return toBundle(patientId, fcm, null, collection);
-//    }
-//
-//    public static Bundle toBundle(String patientId, FhirConfigManager fcm, Bundle.BundleType bundleType,
-//                                  Collection<? extends FHIRCompatible> collection) throws DataException {
-//        if (collection == null) return null;
-//
-//        Bundle bundle = new Bundle();
-//        bundle.setType(bundleType);
-//
-//        for (FHIRCompatible item : collection) {
-//            bundle.getEntry().addAll(
-//                    item.toBundle(patientId, fcm).getEntry()
-//            );
-//        }
-//
-//        return bundle;
-//    }
 
     public static Bundle bundleResources(Resource ... resources) {
         return bundleResources(Bundle.BundleType.COLLECTION, Arrays.asList(resources));
@@ -521,11 +494,18 @@ public class FhirUtil {
         }
     }
 
+    public static String toJson(IBaseResource r) {
+        return FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().encodeResourceToString(r);
+    }
+
+    public static <R extends IBaseResource> R fromJson(Class<R> clazz, String json) {
+        return FHIR_R4_CONTEXT_AUXILIARY.newJsonParser().parseResource(clazz, json);
+    }
+
     private static final Pattern ID_PATTERN = Pattern.compile("\"id\":\\s+\"([^\"]+)\"");
 
-    public static String toJson(IBaseResource r) {
-        FhirContext ctx = FhirContext.forR4();
-        IParser parser = ctx.newJsonParser();
+    public static String toJsonForLogging(IBaseResource r) {
+        IParser parser = FHIR_R4_CONTEXT_AUXILIARY.newJsonParser();
         parser.setPrettyPrint(true);
         if (r instanceof Patient) {
             String json = parser.encodeResourceToString(r);

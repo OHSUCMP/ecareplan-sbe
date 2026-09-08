@@ -8,7 +8,6 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class UserWorkspaceService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
-    @Value("${socket.timeout:300000}")
-    private Integer socketTimeout;
 
     @Autowired
     private ApplicationContext ctx;
@@ -45,7 +41,7 @@ public class UserWorkspaceService {
                 logger.warn("found pre-existing User Workspace for session={} during init, which we shut down.  this is weird, as this should have been cleared earlier.  ???", sessionId);
             }
 
-            UserWorkspace workspace = new UserWorkspace(ctx, sessionId, audience, credentials, socketTimeout);
+            UserWorkspace workspace = new UserWorkspace(ctx, sessionId, audience, credentials);
             map.put(sessionId, workspace);
 
         } catch (Exception e) {
