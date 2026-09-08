@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import edu.ohsu.cmp.ecareplan.exception.ConfigurationException;
 import edu.ohsu.cmp.ecareplan.exception.DataException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ public class FhirUtil {
 
     public static List<String> buildKeys(String id, Identifier identifier) {
         List<Identifier> identifiers = identifier != null ?
-                Arrays.asList(identifier) :
+                List.of(identifier) :
                 null;
 
         return buildKeys(id, identifiers);
@@ -207,7 +208,7 @@ public class FhirUtil {
 
         if (isContainedReference(reference)) {
             for (Resource r : resource.getContained()) {
-                if (StringUtils.equals(reference, r.getId())) {
+                if (Strings.CS.equals(reference, r.getId())) {
                     return true;
                 }
             }
@@ -237,7 +238,7 @@ public class FhirUtil {
             if (entry.hasResource()) {
                 Resource r = entry.getResource();
                 if (r.hasId()) {
-                    if (Pattern.matches("(.*\\/)?" + referenceId + "(\\/.*)?", r.getId())) {
+                    if (Pattern.matches("(.*/)?" + referenceId + "(/.*)?", r.getId())) {
                         logger.debug("matched: '" + r.getId() + "' contains '" + reference + "'");
                         return true;
                     } else {
@@ -250,6 +251,7 @@ public class FhirUtil {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     public static boolean bundleContainsResourceWithIdentifier(Bundle b, Identifier identifier) {
         if (identifier == null) return false;
 
@@ -285,8 +287,7 @@ public class FhirUtil {
         }
 
         if (reference.hasIdentifier()) {
-            T t = getResourceFromBundleByIdentifier(bundle, aClass, reference.getIdentifier());
-            if (t != null) return t;
+            return getResourceFromBundleByIdentifier(bundle, aClass, reference.getIdentifier());
         }
 
         return null;
@@ -311,12 +312,11 @@ public class FhirUtil {
     /**
      * getContainedResourceByReference
      * Replaces DomainResource.getContained(String reference) as that function is buggy.
-     * See https://github.com/hapifhir/hapi-fhir/issues/6612 for details.
+     * See <a href="https://github.com/hapifhir/hapi-fhir/issues/6612">...</a> for details.
      * @param resource the DomainResource object that is expected to contain the referenced resource
      * @param aClass the type of resource that is expected for the specified reference
      * @param reference a reference to a contained resource, which is expected to begin with "#"
      * @return a resource of type specified by aClass from containedList with an id that matches the specified reference
-     * @param <T>
      */
     @SuppressWarnings("unchecked")
     public static <T extends IBaseResource> T getContainedResourceByReference(DomainResource resource, Class<T> aClass, String reference) {
@@ -335,7 +335,7 @@ public class FhirUtil {
 
         if (isContainedReference(reference)) {
             for (Resource r : resource.getContained()) {
-                if (StringUtils.equals(reference, r.getId())) {
+                if (Strings.CS.equals(reference, r.getId())) {
                     return r;
                 }
             }
@@ -367,7 +367,7 @@ public class FhirUtil {
             if (r.getClass().isAssignableFrom(aClass)) {
                 if (r.hasId()) {
                     try {
-                        if (Pattern.matches("(.*\\/)?" + referenceId + "(\\/.*)?", r.getId())) {
+                        if (Pattern.matches("(.*/)?" + referenceId + "(/.*)?", r.getId())) {
                             return aClass.cast(entry.getResource());
                         }
                     } catch (NullPointerException npe) {
@@ -382,6 +382,7 @@ public class FhirUtil {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T extends IBaseResource> T getResourceFromBundleByIdentifier(Bundle b, Class<T> aClass, Identifier identifier) {
         if (b == null) return null;
         if (identifier == null) return null;
@@ -692,8 +693,7 @@ public class FhirUtil {
     public static boolean hasHomeSettingExtension(DomainResource domainResource) {
         if (domainResource != null && domainResource.hasExtension(EXTENSION_HOME_SETTING_URL)) {
             Extension extension = domainResource.getExtensionByUrl(EXTENSION_HOME_SETTING_URL);
-            if (extension.hasValue() && extension.getValue() instanceof Coding) {
-                Coding coding = (Coding) extension.getValue();
+            if (extension.hasValue() && extension.getValue() instanceof Coding coding) {
                 return coding.is(EXTENSION_HOME_SETTING_SYSTEM, EXTENSION_HOME_SETTING_CODE);
             }
         }

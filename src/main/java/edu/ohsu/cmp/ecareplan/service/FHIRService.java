@@ -327,7 +327,7 @@ public class FHIRService {
                 .withAdditionalHeader("Prefer", "return=representation")
                 .execute();
 
-        T t = null;
+        T t;
         try {
             if (outcome.getResource() != null) {
                 t = (T) outcome.getResource();
@@ -337,7 +337,7 @@ public class FHIRService {
                 // header in the response that points to the newly created resource.
 
                 String location = outcome.getResponseHeaders() != null ?
-                        outcome.getResponseHeaders().get("location").get(0) :
+                        outcome.getResponseHeaders().get("location").getFirst() :
                         null;
 
                 if (StringUtils.isNotBlank(location)) {
