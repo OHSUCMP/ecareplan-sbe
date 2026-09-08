@@ -105,7 +105,7 @@ public class EndpointPopulationTask implements ITask<Void> {
                 }
 
             } catch (InterruptedException e) {
-                logger.error("Interrupted while populating dataSet", e);
+                logger.info("Interrupted while populating {} for session={} - {}", endpoint.getName(), sessionId, e.getMessage());
                 Thread.currentThread().interrupt();
                 throw e;
 

@@ -9,21 +9,16 @@ import java.util.concurrent.TimeUnit;
 public class ExecutorUtil {
     private static final Logger logger = LoggerFactory.getLogger(ExecutorUtil.class);
 
-    // adapted from https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/concurrent/ExecutorService.html
-    public static void shutdownAndAwaitTermination(ExecutorService pool, long timeout) {
+    public static void shutdownNowAndAwaitTermination(ExecutorService pool, long timeout) {
         if (pool == null) return;
 
-        pool.shutdown();
+        pool.shutdownNow();
 
         try {
-            if ( ! pool.awaitTermination(timeout, TimeUnit.SECONDS) ) {
-                pool.shutdownNow();
-                if ( ! pool.awaitTermination(timeout, TimeUnit.SECONDS) )
-                    logger.error("ExecutorService pool did not terminate");
-            }
+            if ( ! pool.awaitTermination(timeout, TimeUnit.SECONDS) )
+                logger.error("ExecutorService pool did not terminate");
 
         } catch (InterruptedException ex) {
-            pool.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }

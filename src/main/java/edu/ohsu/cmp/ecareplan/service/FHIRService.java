@@ -150,14 +150,14 @@ public class FHIRService {
 
             } catch (InternalErrorException iee) {
                 // HTTP 500 Internal Server Error - retry
-                if (attempt < maxRetries) {
+                if (canRetry(attempt)) {
                     logger.debug("caught {} while reading: {} - retrying -", iee.getClass().getSimpleName(), reference);
                 } else {
                     throw iee;
                 }
 
             } catch (UnclassifiedServerFailureException usfe) {
-                if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                if (usfe.getStatusCode() == 504 && canRetry(attempt)) { // gateway timeout - retry
                     logger.debug("caught HTTP 504 Bad Gateway while reading {} - retrying -", reference);
                 } else {
                     throw usfe;
@@ -249,14 +249,14 @@ public class FHIRService {
 
             } catch (InternalErrorException iee) {
                 // HTTP 500 Internal Server Error - retry
-                if (attempt < maxRetries) {
+                if (canRetry(attempt)) {
                     logger.debug("caught {} executing search: {} - retrying", iee.getClass().getSimpleName(), fhirQuery);
                 } else {
                     throw iee;
                 }
 
             } catch (UnclassifiedServerFailureException usfe) {
-                if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                if (usfe.getStatusCode() == 504 && canRetry(attempt)) { // gateway timeout - retry
                     logger.debug("caught HTTP 504 Bad Gateway executing search: {} - retrying -", fhirQuery);
                 } else {
                     throw usfe;
@@ -270,6 +270,12 @@ public class FHIRService {
 
             int page = 2;
             while (bundle.getLink(Bundle.LINK_NEXT) != null) {
+                if (Thread.currentThread().isInterrupted()) {
+                    // stop requesting pages - the task this is running in is being shut down.
+                    // isInterrupted() doesn't clear the flag, so callers still see the interrupt
+                    throw new DataException("interrupted paginating search: " + fhirQuery);
+                }
+
                 attempt = 0;
                 while (attempt++ < maxRetries) {
                     try {
@@ -277,7 +283,7 @@ public class FHIRService {
                         break;
 
                     } catch (UnclassifiedServerFailureException usfe) {
-                        if (usfe.getStatusCode() == 504 && attempt < maxRetries) { // gateway timeout - retry
+                        if (usfe.getStatusCode() == 504 && canRetry(attempt)) { // gateway timeout - retry
                             logger.debug("caught HTTP 504 Bad Gateway getting page {} for search: {} - retrying -", page, fhirQuery);
                         } else {
                             throw usfe;
@@ -438,6 +444,10 @@ public class FHIRService {
 //////////////////////////////////////////////////////////////////////////////////////
 // private methods
 //
+
+    private boolean canRetry(int attempt) {
+        return attempt < maxRetries && ! Thread.currentThread().isInterrupted();
+    }
 
     private String getBackendServerURL(FHIRCredentialsWithClient fcc) {
         return StringUtils.isNotBlank(backendIss) ?
