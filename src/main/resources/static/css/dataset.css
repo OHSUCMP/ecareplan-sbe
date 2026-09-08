@@ -35,17 +35,6 @@ display.progress > div {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
-.container > h1::before {
-    content: "MyCarePlanner";
-    display: block;
-    margin-bottom: 0.35rem;
-    color: #b3fff0;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
 #modelsContainer {
     margin-top: 1rem;
 }
