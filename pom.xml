@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.ohsu.cmp</groupId>
     <artifactId>ecareplan-sbe</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <name>eCarePlan - Spring Boot Edition</name>
     <description>The eCarePlan project, refactored to use Spring Boot for improved performance and maintainability</description>
     <url/>
