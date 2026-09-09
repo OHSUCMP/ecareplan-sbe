@@ -114,7 +114,9 @@
         }
 
         if (mostRecentData.referenceRange) {
-            card.rows.push([ mostRecentData.referenceRange ]);
+            card.rows.push([
+                { label: 'Reference Range', value: mostRecentData.referenceRange }
+            ]);
         }
 
         let notes = Array.isArray(mostRecentData.notes) ? mostRecentData.notes : [];
