@@ -91,12 +91,12 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
         BigDecimal referenceRangeHigh = null;
         if (observation.hasReferenceRange()) {
             Observation.ObservationReferenceRangeComponent range = observation.getReferenceRangeFirstRep();
-            if (range.hasText()) {
-                referenceRange = range.getText();
-            } else if (range.hasLow() && range.hasHigh()) {
+            if (range.hasLow() && range.hasHigh()) {
                 referenceRangeLow = range.getLow().getValue();
                 referenceRangeHigh = range.getHigh().getValue();
                 referenceRange = range.getLow().getValue() + " - " + range.getHigh().getValue();
+            } else if (range.hasText()) {
+                referenceRange = range.getText();
             }
         }
 
