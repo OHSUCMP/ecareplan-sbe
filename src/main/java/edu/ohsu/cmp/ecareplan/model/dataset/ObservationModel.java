@@ -107,46 +107,37 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
             }
         }
 
-        flag = false;
         if (observation.hasInterpretation()) {
             if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_HIGH_PANIC)) {
                 interpretation = "High Panic";
-                flag = true;
             } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_LOW_PANIC)) {
                 interpretation = "Low Panic";
-                flag = true;
             } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_HIGH)) {
                 interpretation = "High";
-                flag = true;
             } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_LOW)) {
                 interpretation = "Low";
-                flag = true;
             } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_ABNORMAL)) {
                 interpretation = "Abnormal";
-                flag = true;
             } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_NORMAL)) {
                 interpretation = "Normal";
             } else {
                 interpretation = getConceptNameFromCodeableConcept(observation.getInterpretationFirstRep());
-                if (interpretation != null) {
-                    String check = interpretation.toLowerCase();
-                    flag = check.contains("low") || check.contains("high") || check.contains("abnormal");
-                }
             }
 
         } else if (resultValue != null) {
             if (isCompositeBloodPressureObservation(observation)) {
                 interpretation = interpretBloodPressure(resultValue);
-                flag = interpretation != null;
-
             } else if (resultValue.isComparable() && referenceRangeLow != null && resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
                 interpretation = "Low";
-                flag = true;
-
             } else if (resultValue.isComparable() && referenceRangeHigh != null && resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
                 interpretation = "High";
-                flag = true;
             }
+        }
+
+        flag = false;
+        if (interpretation != null) {
+            String check = interpretation.toLowerCase();
+            flag = check.contains("low") || check.contains("high") || check.contains("abnormal");
         }
 
         if (observation.hasPerformer()) {
