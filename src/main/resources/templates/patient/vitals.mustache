@@ -81,7 +81,7 @@
 
         if (mostRecentData.interpretation) {
             card.rows.push([
-                { label: 'Interpretation', value: mostRecentData.interpretation }
+                { label: 'Interpretation', value: mostRecentData.interpretation, alert: mostRecentData.flag }
             ]);
         }
 
@@ -99,7 +99,7 @@
         if (historicalData.length > 0) {
             card.rows.push({
                 title: 'Historical Data',
-                headers: [ 'Result', 'Effective Date' ],
+                headers: [ 'Result', 'Effective Date', 'Interpretation' ],
                 rows: historicalData.map(function(data) {
                     data = data || {};
 
@@ -107,11 +107,14 @@
                         source: data.sourceEndpointName,
                         data: [
                             data.resultText || '(No Result)',
-                            formatDate(data.effectiveDate) || '(No Date)'
+                            formatDate(data.effectiveDate) || '(No Date)',
+                            renderInterpretation(data.interpretation, data.flag)
                         ]
                     };
                 }),
-                beginExpanded: false
+                beginExpanded: historicalData.some(function(data) {
+                    return data && data.flag === true && String(data.interpretation || '').trim().length > 0;
+                })
             });
         }
 

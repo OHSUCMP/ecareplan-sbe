@@ -668,11 +668,23 @@ function isLabeledCardCell(cell) {
         && Object.prototype.hasOwnProperty.call(cell, 'value');
 }
 
+function renderInterpretation(value, flag) {
+    let text = safeTextValue(value, '');
+    if (!String(text).trim()) return '';
+
+    let flagged = flag === true;
+    return '<span class="interpretation' + (flagged ? ' interpretation-alert' : '') + '">' +
+        escapeHtml(text) + '</span>';
+}
+
 function renderCardRowCell(cell) {
     if (isLabeledCardCell(cell)) {
+        // Cells with alert metadata contain plain text, never trusted HTML.
+        let value = Object.prototype.hasOwnProperty.call(cell, 'alert') ?
+            renderInterpretation(cell.value, cell.alert) : safeTextValue(cell.value, '');
         return '<div class="dataset-card-row-cell h-100">' +
             '<div class="dataset-card-row-label">' + escapeHtml(safeTextValue(cell.label, '')) + '</div>' +
-            '<div class="dataset-card-row-value p-3 h-100">' + safeTextValue(cell.value, '') + '</div>' +
+            '<div class="dataset-card-row-value p-3 h-100">' + value + '</div>' +
             '</div>';
     }
 
