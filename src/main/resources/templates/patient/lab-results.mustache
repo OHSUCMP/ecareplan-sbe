@@ -119,6 +119,12 @@
             ]);
         }
 
+        if (mostRecentData.interpretation) {
+            card.rows.push([
+                { label: 'Interpretation', value: mostRecentData.interpretation }
+            ]);
+        }
+
         let notes = Array.isArray(mostRecentData.notes) ? mostRecentData.notes : [];
         if (notes.length > 0) {
             card.rows.push({

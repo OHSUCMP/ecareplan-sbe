@@ -73,6 +73,18 @@
             });
         }
 
+        if (mostRecentData.referenceRange) {
+            card.rows.push([
+                { label: 'Reference Range', value: mostRecentData.referenceRange }
+            ]);
+        }
+
+        if (mostRecentData.interpretation) {
+            card.rows.push([
+                { label: 'Interpretation', value: mostRecentData.interpretation }
+            ]);
+        }
+
         if (notes.length > 0) {
             card.rows.push({
                 title: 'Notes',

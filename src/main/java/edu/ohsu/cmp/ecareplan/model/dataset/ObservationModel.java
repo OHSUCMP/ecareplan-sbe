@@ -16,10 +16,15 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
             new Coding("http://loinc.org", "72076-3", "Blood pressure home reading"),
             new Coding("http://loinc.org", "55284-4", "Blood pressure systolic and diastolic")
     );
-
+    private static final String SYSTOLIC = "Systolic";
+    private static final String DIASTOLIC = "Diastolic";
     private static final Coding SYSTOLIC_CODING = new Coding("http://loinc.org", "8480-6", "Systolic blood pressure");
     private static final Coding DIASTOLIC_CODING = new Coding("http://loinc.org", "8462-4", "Diastolic blood pressure");
     private static final String BP_UNIT = "mmHg";
+    private static final BigDecimal SYSTOLIC_MAX = new BigDecimal("180");
+    private static final BigDecimal SYSTOLIC_MIN = new BigDecimal("90");
+    private static final BigDecimal DIASTOLIC_MAX = new BigDecimal("120");
+    private static final BigDecimal DIASTOLIC_MIN = new BigDecimal("60");
 
     private String conceptName;
     private Date effectiveDate;
@@ -27,7 +32,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
     private ResultValue resultValue;
     private String resultUnits;
     private String referenceRange;
-    private String interpretation;      // complex; skip for now // todo : populate this
+    private String interpretation;
     private Boolean flag;
     private Set<String> performers;
     private List<String> notes;
@@ -52,7 +57,7 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
             effectiveDate = observation.getIssued();
         }
 
-        if (observation.hasComponent() && FhirUtil.hasCoding(observation.getCode(), BP_CODINGS) && observation.hasComponent()) {
+        if (isCompositeBloodPressureObservation(observation)) {
             Quantity systolic = getQuantityFromComponent(SYSTOLIC_CODING, observation.getComponent());
             Quantity diastolic = getQuantityFromComponent(DIASTOLIC_CODING, observation.getComponent());
             if (systolic != null && diastolic != null) {
@@ -61,8 +66,8 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
                         BP_UNIT;
                 resultText = systolic.getValue().toString() + "/" + diastolic.getValue().toString() + " " + unit;
 
-                ResultValue.Component systolicComponent = new ResultValue.Component("Systolic", systolic.getValue());
-                ResultValue.Component diastolicComponent = new ResultValue.Component("Diastolic", diastolic.getValue());
+                ResultValue.Component systolicComponent = new ResultValue.Component(SYSTOLIC, systolic.getValue());
+                ResultValue.Component diastolicComponent = new ResultValue.Component(DIASTOLIC, diastolic.getValue());
                 resultValue = new ResultValue(List.of(systolicComponent, diastolicComponent));
 
                 resultUnits = unit;
@@ -95,6 +100,18 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
             }
         }
 
+        if (observation.hasInterpretation()) {
+            interpretation = getConceptNameFromCodeableConcept(observation.getInterpretationFirstRep());
+        } else if (resultValue != null) {
+            if (isCompositeBloodPressureObservation(observation)) {
+                interpretation = interpretBloodPressure(resultValue);
+            } else if (referenceRangeLow != null && resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
+                interpretation = "Low";
+            } else if (referenceRangeHigh != null && resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
+                interpretation = "High";
+            }
+        }
+
         flag = false;
         if (resultValue != null && resultValue.isComparable() && referenceRangeLow != null) {
             if (resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
@@ -111,6 +128,27 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
         if (observation.hasNote()) {
             notes = buildNotes(observation.getNote());
         }
+    }
+
+    private boolean isCompositeBloodPressureObservation(Observation observation) {
+        return observation.hasComponent() && FhirUtil.hasCoding(observation.getCode(), BP_CODINGS) && observation.hasComponent();
+    }
+
+    private String interpretBloodPressure(ResultValue resultValue) {
+        if (resultValue != null && resultValue.getComponents().size() == 2) {
+            BigDecimal systolic = resultValue.getComponentByConceptName(SYSTOLIC);
+            BigDecimal diastolic = resultValue.getComponentByConceptName(DIASTOLIC);
+            if (systolic != null && systolic.compareTo(SYSTOLIC_MAX) > 0) {
+                return "Very High";
+            } else if (systolic != null && systolic.compareTo(SYSTOLIC_MIN) < 0) {
+                return "Very Low";
+            } else if (diastolic != null && diastolic.compareTo(DIASTOLIC_MAX) > 0) {
+                return "Very High";
+            } else if (diastolic != null && diastolic.compareTo(DIASTOLIC_MIN) < 0) {
+                return "Very Low";
+            }
+        }
+        return null;
     }
 
     public String getConceptName() {
