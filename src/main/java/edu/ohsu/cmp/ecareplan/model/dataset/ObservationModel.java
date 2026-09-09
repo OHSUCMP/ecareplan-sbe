@@ -26,6 +26,13 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
     private static final BigDecimal DIASTOLIC_MAX = new BigDecimal("120");
     private static final BigDecimal DIASTOLIC_MIN = new BigDecimal("60");
 
+    private static final Coding INTERPRETATION_NORMAL = new Coding("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "N", "Normal");
+    private static final Coding INTERPRETATION_ABNORMAL = new Coding("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "A", "Abnormal");
+    private static final Coding INTERPRETATION_HIGH = new Coding("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "H", "High");
+    private static final Coding INTERPRETATION_LOW = new Coding("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "L", "Low");
+    private static final Coding INTERPRETATION_HIGH_PANIC = new Coding("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "HH", "High Panic");
+    private static final Coding INTERPRETATION_LOW_PANIC = new Coding("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "LL", "Low Panic");
+
     private String conceptName;
     private Date effectiveDate;
     private String resultText;
@@ -102,14 +109,40 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
 
         flag = false;
         if (observation.hasInterpretation()) {
-            interpretation = getConceptNameFromCodeableConcept(observation.getInterpretationFirstRep());
+            if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_HIGH_PANIC)) {
+                interpretation = "High Panic";
+                flag = true;
+            } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_LOW_PANIC)) {
+                interpretation = "Low Panic";
+                flag = true;
+            } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_HIGH)) {
+                interpretation = "High";
+                flag = true;
+            } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_LOW)) {
+                interpretation = "Low";
+                flag = true;
+            } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_ABNORMAL)) {
+                interpretation = "Abnormal";
+                flag = true;
+            } else if (FhirUtil.hasCoding(observation.getInterpretation(), INTERPRETATION_NORMAL)) {
+                interpretation = "Normal";
+            } else {
+                interpretation = getConceptNameFromCodeableConcept(observation.getInterpretationFirstRep());
+                if (interpretation != null) {
+                    String check = interpretation.toLowerCase();
+                    flag = check.contains("low") || check.contains("high") || check.contains("abnormal");
+                }
+            }
+
         } else if (resultValue != null) {
             if (isCompositeBloodPressureObservation(observation)) {
                 interpretation = interpretBloodPressure(resultValue);
                 flag = interpretation != null;
+
             } else if (resultValue.isComparable() && referenceRangeLow != null && resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
                 interpretation = "Low";
                 flag = true;
+
             } else if (resultValue.isComparable() && referenceRangeHigh != null && resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
                 interpretation = "High";
                 flag = true;
