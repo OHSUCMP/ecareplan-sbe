@@ -108,6 +108,19 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
+    public List<EncounterModel> transformEncounters(Bundle bundle) {
+        if (bundle == null || bundle.getEntry() == null) return List.of();
+        List<EncounterModel> list = new ArrayList<>();
+        for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
+            if (entry.hasResource() && entry.getResource() instanceof Encounter encounter) {
+                list.add(new EncounterModel(encounter));
+            }
+        }
+        appendProvenance(list, bundle);
+        return list;
+    }
+
+    @Override
     public List<GoalModel> transformGoals(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
         List<GoalModel> list = new ArrayList<>();
@@ -134,12 +147,20 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
     }
 
     @Override
-    public List<EncounterModel> transformEncounters(Bundle bundle) {
+    public List<LabResultModel> transformLabResults(Bundle bundle) {
         if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<EncounterModel> list = new ArrayList<>();
+        List<LabResultModel> list = new ArrayList<>();
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
-            if (entry.hasResource() && entry.getResource() instanceof Encounter encounter) {
-                list.add(new EncounterModel(encounter));
+            if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
+                String commonName = null;
+                if (observation.hasCode()) {
+                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.LAB_RESULTS, observation.getCode());
+                    if (rc != null) {
+                        commonName = rc.getCommonName();
+                    }
+                }
+
+                list.add(new LabResultModel(observation, commonName));
             }
         }
         appendProvenance(list, bundle);
@@ -243,27 +264,6 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
         for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
                 list.add(new SurveyObservationModel(observation));
-            }
-        }
-        appendProvenance(list, bundle);
-        return list;
-    }
-
-    @Override
-    public List<LabResultModel> transformLabResults(Bundle bundle) {
-        if (bundle == null || bundle.getEntry() == null) return List.of();
-        List<LabResultModel> list = new ArrayList<>();
-        for (Bundle.BundleEntryComponent entry : bundle.getEntry()) {
-            if (entry.hasResource() && entry.getResource() instanceof Observation observation) {
-                String commonName = null;
-                if (observation.hasCode()) {
-                    ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.LAB_RESULTS, observation.getCode());
-                    if (rc != null) {
-                        commonName = rc.getCommonName();
-                    }
-                }
-
-                list.add(new LabResultModel(observation, commonName));
             }
         }
         appendProvenance(list, bundle);

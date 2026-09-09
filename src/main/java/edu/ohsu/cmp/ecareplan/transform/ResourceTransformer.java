@@ -13,15 +13,15 @@ public interface ResourceTransformer {
     List<ClinicalNoteModel> transformClinicalNotes(Bundle bundle);
     List<ConditionModel> transformConditions(Bundle bundle);
     List<DiagnosticReportModel> transformDiagnosticReports(Bundle bundle);
+    List<EncounterModel> transformEncounters(Bundle bundle);
     List<GoalModel> transformGoals(Bundle bundle);
     List<ImmunizationModel> transformImmunizations(Bundle bundle);
-    List<EncounterModel> transformEncounters(Bundle bundle);
+    List<LabResultModel> transformLabResults(Bundle bundle);
     List<MedicationModel> transformMedications(Bundle bundle);
     List<ProcedureModel> transformProcedures(Bundle bundle);
     List<QuestionnaireResponseModel> transformQuestionnaireResponses(Bundle bundle);
     List<ServiceRequestModel> transformServiceRequests(Bundle bundle);
     List<SocialHistoryModel> transformSocialHistories(Bundle bundle);
     List<SurveyObservationModel> transformSurveyObservations(Bundle bundle);
-    List<LabResultModel> transformLabResults(Bundle bundle);
     List<VitalsModel> transformVitals(Bundle bundle);
 }
