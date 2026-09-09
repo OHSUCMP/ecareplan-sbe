@@ -5,12 +5,16 @@ import edu.ohsu.cmp.ecareplan.model.dataset.*;
 import edu.ohsu.cmp.ecareplan.service.ResourceCategorizationService;
 import edu.ohsu.cmp.ecareplan.util.FhirUtil;
 import org.hl7.fhir.r4.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class GenericResourceTransformer extends BaseResourceTransformer {
-    private ResourceCategorizationService resourceCategorizationService;
+    private static final Logger logger = LoggerFactory.getLogger(GenericResourceTransformer.class);
+
+    private final ResourceCategorizationService resourceCategorizationService;
 
     public GenericResourceTransformer(ResourceCategorizationService rcs) {
         this.resourceCategorizationService = rcs;
@@ -84,6 +88,9 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                     if (rc != null) {
                         category = rc.getCategory();
                         commonName = rc.getCommonName();
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("found category={}, commonName={} for Condition {}", category, commonName, FhirUtil.toRelativeReference(condition.getId()));
+                        }
                     }
                 }
 
@@ -157,6 +164,9 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                     ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.LAB_RESULTS, observation.getCode());
                     if (rc != null) {
                         commonName = rc.getCommonName();
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("found commonName={} for Observation {}", commonName, FhirUtil.toRelativeReference(observation.getId()));
+                        }
                     }
                 }
 
@@ -190,6 +200,9 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                     ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.MEDICATIONS, cc);
                     if (rc != null) {
                         category = rc.getCategory();
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("found category={} for MedicationRequest {}", category, FhirUtil.toRelativeReference(mr.getId()));
+                        }
                     }
                 }
 
@@ -281,6 +294,9 @@ public class GenericResourceTransformer extends BaseResourceTransformer {
                     ResourceCategorization rc = resourceCategorizationService.getFirstCategorization(DataSet.VITALS, observation.getCode());
                     if (rc != null) {
                         commonName = rc.getCommonName();
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("found commonName={} for Observation {}", commonName, FhirUtil.toRelativeReference(observation.getId()));
+                        }
                     }
                 }
 
