@@ -100,23 +100,18 @@ public abstract class ObservationModel extends BaseDataSetModel<Observation> {
             }
         }
 
+        flag = false;
         if (observation.hasInterpretation()) {
             interpretation = getConceptNameFromCodeableConcept(observation.getInterpretationFirstRep());
         } else if (resultValue != null) {
             if (isCompositeBloodPressureObservation(observation)) {
                 interpretation = interpretBloodPressure(resultValue);
-            } else if (referenceRangeLow != null && resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
+                flag = interpretation != null;
+            } else if (resultValue.isComparable() && referenceRangeLow != null && resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
                 interpretation = "Low";
-            } else if (referenceRangeHigh != null && resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
-                interpretation = "High";
-            }
-        }
-
-        flag = false;
-        if (resultValue != null && resultValue.isComparable() && referenceRangeLow != null) {
-            if (resultValue.getValueForCompare().compareTo(referenceRangeLow) < 0) {
                 flag = true;
-            } else if (resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
+            } else if (resultValue.isComparable() && referenceRangeHigh != null && resultValue.getValueForCompare().compareTo(referenceRangeHigh) > 0) {
+                interpretation = "High";
                 flag = true;
             }
         }
