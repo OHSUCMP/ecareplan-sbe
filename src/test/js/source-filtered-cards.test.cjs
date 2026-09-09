@@ -57,6 +57,58 @@ function plain(value) {
 }
 
 for (const page of ['lab-results', 'vitals']) {
+    test(page + ': escapes current and historical interpretations and flags only boolean true', () => {
+        const context = loadPage(page);
+        const input = model();
+        const interpretation = '<img src=x onerror="alert(1)"> & \'high\'';
+        for (const flag of [true, false, undefined, null, 'false', 'true', 1]) {
+            for (const records of Object.values(input.allDataBySourceEndpointName)) {
+                for (const item of records) Object.assign(item, { interpretation, flag });
+            }
+            const card = context.buildCardData(input);
+            const current = card.rows.find(row => Array.isArray(row) && row[0].label === 'Interpretation');
+            const history = card.rows.find(row => row.title === 'Historical Data');
+            const currentHtml = context.renderCardRowCell(current[0]);
+            const historyHtml = context.renderDataTableRows('history', history.rows);
+            for (const html of [currentHtml, historyHtml]) {
+                assert.ok(html.includes('&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &#039;high&#039;'));
+                assert.equal(html.includes('<img'), false);
+                assert.equal(html.includes('interpretation-alert'), flag === true);
+                assert.equal(html.includes('Flagged: '), flag === true);
+            }
+            assert.equal(history.headers[2], 'Interpretation');
+            assert.equal(history.beginExpanded, flag === true);
+            const html = context.renderCardRows('card', [history]);
+            assert.ok(html.includes('aria-expanded="' + (flag === true) + '"'));
+        }
+    });
+
+    test(page + ': absent interpretations never produce empty alerts or expand history', () => {
+        const context = loadPage(page);
+        const input = model();
+        for (const interpretation of [undefined, null, '', '   ']) {
+            for (const records of Object.values(input.allDataBySourceEndpointName)) {
+                for (const item of records) Object.assign(item, { interpretation, flag: true });
+            }
+            const card = context.buildCardData(input);
+            assert.equal(context.renderCardRows('card', card.rows).includes('interpretation-alert'), false);
+            const history = card.rows.find(row => row.title === 'Historical Data');
+            assert.equal(history.beginExpanded, false);
+            assert.ok(history.rows.every(row => row.data[2] === ''));
+        }
+    });
+
+    test(page + ': hidden sources cannot trigger interpretation alerts or expand history', () => {
+        const context = loadPage(page);
+        const input = model();
+        input.allDataBySourceEndpointName.X.push({ ...record('X', 1), flag: true });
+        assert.equal(context.buildCardData(input).rows.find(row => row.title === 'Historical Data').beginExpanded, true);
+        context.setHidden('X');
+        const card = context.buildCardData(input);
+        assert.equal(card.rows.find(row => row.title === 'Historical Data').beginExpanded, false);
+        assert.equal(context.renderCardRows('card', card.rows).includes('interpretation-alert'), false);
+    });
+
     test(page + ': promotes Y, removes all X details, and restores X without mutating data', () => {
         const context = loadPage(page);
         const input = model();

@@ -19,6 +19,15 @@ public class ResultValue {
         return components;
     }
 
+    public BigDecimal getComponentByConceptName(String conceptName) {
+        for (Component component : components) {
+            if (component.conceptName.equals(conceptName)) {
+                return component.value;
+            }
+        }
+        return null;
+    }
+
     public boolean isComparable() {
         return components.size() == 1; // can't compare composite values, that just doesn't work
     }

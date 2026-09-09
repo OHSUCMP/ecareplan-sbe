@@ -691,6 +691,33 @@ display.progress > div {
     border-top-left-radius: 0.35rem;
 }
 
+/* Keep interpretations readable in narrow cards and history table cells. */
+.interpretation {
+    display: block;
+    max-width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.interpretation-alert {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #a12622;
+    border-left-width: 0.3rem;
+    border-radius: 0.35rem;
+    background-color: #fff1f0;
+    color: #861f1b;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+@media (forced-colors: active) {
+    .interpretation-alert {
+        border-color: CanvasText;
+        background-color: Canvas;
+        color: CanvasText;
+    }
+}
+
 .dataset-learn-more {
     color: #ffffff;
     font-size: 0.875rem;
