@@ -40,7 +40,7 @@ public class FHIRService {
     @Value("${fhir.search.count}")
     private int searchCount;
 
-    @Value("${retry.count:5}")
+    @Value("${fhir.retry.count:5}")
     private Integer maxRetries;
 
     @Value("${smart.backend.iss}")

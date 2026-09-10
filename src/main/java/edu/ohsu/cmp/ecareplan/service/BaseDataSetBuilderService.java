@@ -16,7 +16,7 @@ public abstract class BaseDataSetBuilderService extends BaseService {
     public static final int DEFAULT_POOL_MAX_PER_ROUTE = 100;
     public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = 60 * 1000;
 
-    @Value("${socket.timeout:" + DEFAULT_SOCKET_TIMEOUT + "}")
+    @Value("${fhir.socket.timeout:" + DEFAULT_SOCKET_TIMEOUT + "}")
     private int socketTimeout;
 
     @Value("${fhir.pool.maxTotal:" + DEFAULT_POOL_MAX_TOTAL + "}")
