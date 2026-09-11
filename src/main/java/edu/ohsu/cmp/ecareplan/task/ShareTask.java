@@ -87,7 +87,7 @@ public class ShareTask implements ITask<Void> {
                                 // backoff introduced to mitigate retry storms and facilitate interruption
                                 Thread.sleep(backoffMillis(attempt));
 
-                                logger.info("Re-attempting share of {} from {} for session {} ({}/{})",
+                                logger.info("Re-attempting share of {} from {} for session={} ({}/{})",
                                         id, endpoint.getName(), sessionId, attempt, maxAttempts);
                             }
 
@@ -140,13 +140,19 @@ public class ShareTask implements ITask<Void> {
                                     throw e;
                                 }
 
-                                logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
-                                        id, endpoint.getName(), sessionId, e.getMessage());
+                                if (attempt < maxAttempts) {
+                                    logger.warn("caught {} sharing {} from {} for session={} - {} (attempt {} of {}) - retrying -",
+                                            e.getClass().getSimpleName(), id, endpoint.getName(), sessionId, e.getMessage(), attempt, maxAttempts);
+                                } else {
+                                    logger.error("caught {} sharing {} from {} for session={} - {}", e.getClass().getSimpleName(),
+                                            id, endpoint.getName(), sessionId, e.getMessage());
+                                }
                                 logger.debug(e.getMessage(), e);
                             }
                         }
 
                         if ( ! success ) {
+                            logger.error("failed to share {} from {} for session={} after {} attempts", id, endpoint.getName(), sessionId, maxAttempts);
                             auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
                             progress.addError("Failed to share " + id);
                         }
