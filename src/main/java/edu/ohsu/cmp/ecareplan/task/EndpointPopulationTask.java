@@ -1,19 +1,20 @@
 package edu.ohsu.cmp.ecareplan.task;
 
+import edu.ohsu.cmp.ecareplan.entity.AuditData;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSetBuilderRequestConfiguration;
+import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.progress.EndpointReadProgressModel;
-import edu.ohsu.cmp.ecareplan.service.AuditService;
-import edu.ohsu.cmp.ecareplan.service.BackgroundTaskService;
-import edu.ohsu.cmp.ecareplan.service.EndpointService;
-import edu.ohsu.cmp.ecareplan.service.SDSService;
+import edu.ohsu.cmp.ecareplan.model.report.EndpointSyncReport;
+import edu.ohsu.cmp.ecareplan.service.*;
 import edu.ohsu.cmp.ecareplan.workspace.UserWorkspaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -34,12 +35,13 @@ public class EndpointPopulationTask implements ITask<Void> {
     private final SDSService sdsService;
     private final BackgroundTaskService backgroundTaskService;
     private final AuditService auditService;
+    private final ReportService reportService;
 
     public EndpointPopulationTask(String sessionId, boolean loadFromEndpoint, boolean doShareOperations,
                                   DataSetBuilderRequestConfiguration cfg,
                                   FHIRCredentials launchCredentials, EndpointReadProgressModel progress,
                                   UserWorkspaceService userWorkspaceService, EndpointService endpointService, SDSService sdsService,
-                                  BackgroundTaskService backgroundTaskService, AuditService auditService) {
+                                  BackgroundTaskService backgroundTaskService, AuditService auditService, ReportService reportService) {
 
         this.sessionId = sessionId;
         this.loadFromEndpoint = loadFromEndpoint;
@@ -52,6 +54,7 @@ public class EndpointPopulationTask implements ITask<Void> {
         this.sdsService = sdsService;
         this.backgroundTaskService = backgroundTaskService;
         this.auditService = auditService;
+        this.reportService = reportService;
     }
 
     @Override
@@ -82,7 +85,9 @@ public class EndpointPopulationTask implements ITask<Void> {
 
                     DataSetPopulationTask task = new DataSetPopulationTask(sessionId,
                             loadFromEndpoint, doShareOperations, dataSet, cfg, launchCredentials, progress,
-                            userWorkspaceService, endpointService, sdsService, auditService);
+                            userWorkspaceService, endpointService, sdsService, auditService
+                    );
+
                     Future<Void> future = backgroundTaskService.submit(task);
                     dataSetFutures.add(future);
                 }
@@ -130,10 +135,35 @@ public class EndpointPopulationTask implements ITask<Void> {
                     // user logged out during population, flush any accumulated progress data from the SDS service
                     sdsService.clearAllCompletedProgress(sessionId);
                 }
+
+                if (loadFromEndpoint && reportService.isEnabled()) {
+                    List<AuditData> auditData = auditService.getAuditDataForUser(cfg.userEndpoint().getUser(),
+                            List.of(DataSetPopulationTask.AUDIT_EVENT_CACHE_POPULATION, ShareTask.AUDIT_EVENT_SHARE),
+                            new Date(start), new Date());
+                    generateAndSendReport(auditData);
+                }
             }
 
             return null;
         };
+    }
+
+    private void generateAndSendReport(List<AuditData> auditData) {
+        if (reportService.isEnabled()) {
+            PatientModel patientModel = null;
+            try {
+                patientModel = sdsService.buildPatients(cfg).getFirst();  // there will be only one
+            } catch (Exception e) {
+                logger.warn("caught {} attempting to build patient model for user={}, endpoint={} from the SDS for session {} - {}",
+                        e.getClass().getSimpleName(), cfg.userEndpoint().getUser().getId(), cfg.userEndpoint().getEndpoint().getName(), sessionId,
+                        e.getMessage(), e);
+            }
+
+            // we still want to send the report if patientModel == null.  especially so, even, as auditData likely
+            // contains all sorts of important errors that should be reported immediately.
+
+            reportService.sendReport(new EndpointSyncReport(cfg.userEndpoint(), patientModel, auditData));
+        }
     }
 
     private void notifyEndpointPopulationStarted(Endpoint endpoint) {

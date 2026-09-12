@@ -353,10 +353,12 @@ public class UserWorkspace {
         String endpointPatientId = getPatientIdForEndpoint(endpoint);
         DataSetBuilderRequestConfiguration cfg = new DataSetBuilderRequestConfiguration(ue, credentials, endpointPatientId);
 
-        EndpointPopulationTask task = new EndpointPopulationTask(sessionId, loadFromEndpoint, sdsIsAvailable,
-                cfg, launchCredentials, endpointProgress,
+        EndpointPopulationTask task = new EndpointPopulationTask(sessionId,
+                loadFromEndpoint, sdsIsAvailable, cfg, launchCredentials, endpointProgress,
                 ctx.getBean(UserWorkspaceService.class),
-                endpointService, sdsService, backgroundTaskService, auditService);
+                endpointService, sdsService, backgroundTaskService, auditService,
+                ctx.getBean(ReportService.class)
+        );
 
         Future<Void> endpointFuture = backgroundTaskService.submit(task);
         endpointProgress.setFuture(endpointFuture);

@@ -23,6 +23,7 @@ public class ShareTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(ShareTask.class);
 
     public static final String AUDIT_EVENT_SHARE = "share to SDS";
+    public static final String AUDIT_DETAILS_CREATED_PREFIX = "created";
 
     private static final String PARTITION_HEADER = "X-Partition-Name";
 
@@ -107,7 +108,7 @@ public class ShareTask implements ITask<Void> {
                                 } else if (code == 201) {
                                     logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_EVENT_SHARE, "created " + id + " from " + endpoint.getName());
+                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_EVENT_SHARE, AUDIT_DETAILS_CREATED_PREFIX + " " + id + " from " + endpoint.getName());
 
                                     success = true;
 
