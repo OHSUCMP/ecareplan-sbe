@@ -28,6 +28,8 @@ import java.util.concurrent.*;
 public class DataSetPopulationTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(DataSetPopulationTask.class);
 
+    public static String AUDIT_EVENT_CACHE_POPULATION = "cache population";
+
     private final String sessionId;
     private final boolean loadFromEndpoint;
     private final boolean doShareOperations;
@@ -230,7 +232,7 @@ public class DataSetPopulationTask implements ITask<Void> {
             }
 
             if (dataSetBuilder instanceof EndpointService) {
-                auditService.doAudit(userEndpoint.getUser(), AuditSeverity.INFO, "cache population", "got " + list.size() +
+                auditService.doAudit(userEndpoint.getUser(), AuditSeverity.INFO, AUDIT_EVENT_CACHE_POPULATION, "got " + list.size() +
                         " resource(s) for dataSet=" + dataSet.getName() + " from " + userEndpoint.getEndpoint().getName() +
                         " (took " + (System.currentTimeMillis() - start) + "ms)");
             }
@@ -249,7 +251,7 @@ public class DataSetPopulationTask implements ITask<Void> {
                     throw foe;
 
                 } else {
-                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
+                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, AUDIT_EVENT_CACHE_POPULATION, "retrieving " + dataSet.getName() +
                             " from " + endpointNameForLogging + " was forbidden");
                     progress.addError(dataSet, foe.getMessage());
                 }
@@ -263,7 +265,7 @@ public class DataSetPopulationTask implements ITask<Void> {
                     throw ire;
 
                 } else {
-                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
+                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, AUDIT_EVENT_CACHE_POPULATION, "invalid request retrieving " +
                             dataSet.getName() + " from " + endpointNameForLogging);
                     progress.addError(dataSet, e.getMessage());
                 }
