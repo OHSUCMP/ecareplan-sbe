@@ -53,8 +53,8 @@ public class EndpointSyncReport implements IReport {
     }
 
     @Override
-    public String getTitle(boolean redact) {
-        String identifier = ! redact && patientModel != null ?
+    public String getTitle() {
+        String identifier = patientModel != null ?
                 patientModel.getName() + " (User #" + userEndpoint.getUser().getId() + ")" :
                 "User #" + userEndpoint.getUser().getId();
 
@@ -63,7 +63,7 @@ public class EndpointSyncReport implements IReport {
 
 
     @Override
-    public String getBody(boolean redact) {
+    public String getBody() {
         StringBuilder sb = new StringBuilder();
 
         // todo : ideally this would be in HTML, with a plaintext fallback if the appropriate MIME type isn't supported
@@ -71,7 +71,7 @@ public class EndpointSyncReport implements IReport {
         sb.append("<h1>Endpoint Sync Report (generated ").append(DATE_FORMAT.format(new Date())).append(")</h1>\n");
 
         sb.append("<p>User: <strong>").append(userEndpoint.getUser().getId()).append("</strong></p>\n");
-        if ( ! redact && patientModel != null) {
+        if (patientModel != null) {
             sb.append("<p>Name: <strong>").append(patientModel.getName()).append("</strong></p>\n");
         }
         sb.append("<p>Source: <strong>").append(userEndpoint.getEndpoint().getName()).append("</strong></p>\n");
@@ -86,13 +86,13 @@ public class EndpointSyncReport implements IReport {
             sb.append("</ul></p>\n");
         }
 
-        if ( ! redact ) {
-            // todo : this should really be in a table
-
-            sb.append("<br/><p>Audit Log:\n<ul>");
+        if (errorCount > 0) {
+            sb.append("<br/><p>Errors encountered:\n<ul>");
             for (AuditData ad : auditDataList) {
-                sb.append("<li>[").append(ad.getId()).append("] ").append(ad.getSeverity()).append(": ").append(ad.getEvent()).append(": ")
-                        .append(ad.getDetails()).append(" (" + DATE_FORMAT.format(ad.getCreated()) + ")</li>\n");
+                if (ad.getSeverity().equals(AuditSeverity.ERROR)) {
+                    sb.append("<li>[").append(ad.getId()).append("] ").append(ad.getSeverity()).append(": ").append(ad.getEvent()).append(": ")
+                            .append(ad.getDetails()).append(" (").append(DATE_FORMAT.format(ad.getCreated())).append(")</li>\n");
+                }
             }
             sb.append("</ul></p>\n");
         }
