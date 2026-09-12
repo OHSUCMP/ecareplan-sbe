@@ -22,8 +22,9 @@ import java.util.concurrent.Callable;
 public class ShareTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(ShareTask.class);
 
+    public static final String AUDIT_EVENT_SHARE = "share to SDS";
+
     private static final String PARTITION_HEADER = "X-Partition-Name";
-    private static final String AUDIT_ACTION_SHARE = "share to SDS";
 
     // deliberately short: backoff is applied per resource, so a dataset where every resource
     // fails pays this on all of them.  enough to stop hammering the SDS and to give interruption
@@ -106,7 +107,7 @@ public class ShareTask implements ITask<Void> {
                                 } else if (code == 201) {
                                     logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_ACTION_SHARE, "created " + id + " from " + endpoint.getName());
+                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_EVENT_SHARE, "created " + id + " from " + endpoint.getName());
 
                                     success = true;
 
@@ -118,7 +119,7 @@ public class ShareTask implements ITask<Void> {
                                 } else {
                                     logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
+                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_EVENT_SHARE, "received unexpected response code " + code +
                                             " sharing " + id + " from " + endpoint.getName());
 
                                     success = (code > 201 && code < 300);
@@ -153,7 +154,7 @@ public class ShareTask implements ITask<Void> {
 
                         if ( ! success ) {
                             logger.error("failed to share {} from {} for session={} after {} attempts", id, endpoint.getName(), sessionId, maxAttempts);
-                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_EVENT_SHARE, "failed to share " + id + " from " + endpoint.getName());
                             progress.addError("Failed to share " + id);
                         }
 
@@ -168,7 +169,7 @@ public class ShareTask implements ITask<Void> {
                                 id, endpoint.getName(), sessionId, e.getMessage());
                         logger.debug(e.getMessage(), e);
 
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE,
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_EVENT_SHARE,
                                 "caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
 
                         progress.addError("caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
