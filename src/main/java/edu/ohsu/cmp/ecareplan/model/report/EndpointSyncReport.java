@@ -8,6 +8,9 @@ import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.task.DataSetPopulationTask;
 import edu.ohsu.cmp.ecareplan.task.ShareTask;
 import jakarta.annotation.Nullable;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -19,6 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EndpointSyncReport implements IReport {
+    private static final Logger logger = LoggerFactory.getLogger(EndpointSyncReport.class);
+
     private static final Pattern COUNT_DATASET_FROM_GOT_DETAILS_PATTERN = Pattern.compile("got ([0-9]+) resource\\(s\\) for dataSet=([A-Z_]+)\\s.+");
     private static final Pattern RESOURCE_FROM_CREATED_DETAILS_PATTERN = Pattern.compile("created ([A-Za-z]+)/.+");
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
@@ -32,6 +37,7 @@ public class EndpointSyncReport implements IReport {
     private Integer readCount;
     private Integer creationCount;
     private Integer errorCount;
+    private String duration;
 
     public EndpointSyncReport(UserEndpoint userEndpoint, @Nullable PatientModel patientModel, List<AuditData> auditDataList) {
         this.userEndpoint = userEndpoint;
@@ -44,13 +50,22 @@ public class EndpointSyncReport implements IReport {
         readCount = 0;
         creationCount = 0;
         errorCount = 0;
+        Date start = null;
+        Date end = null;
         for (AuditData ad : auditDataList) {
+            if (start == null || ad.getCreated().before(start)) {
+                start = ad.getCreated();
+            }
+            if (end == null || ad.getCreated().after(end)) {
+                end = ad.getCreated();
+            }
             if (ad.getEvent().equals(DataSetPopulationTask.AUDIT_EVENT_CACHE_POPULATION) && ad.getSeverity().equals(AuditSeverity.INFO) &&
                     ad.getDetails().startsWith(DataSetPopulationTask.AUDIT_DETAILS_GOT_PREFIX)) {
                 Matcher matcher = COUNT_DATASET_FROM_GOT_DETAILS_PATTERN.matcher(ad.getDetails());
                 if (matcher.find()) {
                     int count = Integer.parseInt(matcher.group(1));
                     DataSet<?> dataSet = DataSet.getDataSet(matcher.group(2));
+                    logger.debug("identified: got {} resources for {} from audit_data:{} '{}'", count, dataSet.getDisplay(), ad.getId(), ad.getDetails());
                     dataSetReadCountMap.put(dataSet.getDisplay(), count);
                     readCount += count;
                 }
@@ -67,6 +82,9 @@ public class EndpointSyncReport implements IReport {
             if (ad.getSeverity().equals(AuditSeverity.ERROR)) {
                 errorCount++;
             }
+        }
+        if (start != null && end != null) {
+            duration = DurationFormatUtils.formatDurationWords(end.getTime() - start.getTime(), true, true);
         }
     }
 
@@ -103,6 +121,7 @@ public class EndpointSyncReport implements IReport {
                 "<span style='color: red;'>" + errorCount + "</span>" :
                 String.valueOf(errorCount);
         sb.append("# of errors encountered: <span style='font-weight: bold;'>").append(errorCountDisplay).append("</span><br/>");
+        sb.append("Total execution time: <span style='font-weight: bold;'>").append(duration).append("</span>");
         sb.append("</p>");
 
         if (readCount > 0) {
