@@ -28,8 +28,10 @@ public class SessionService extends BaseService {
     }
 
     public void forceExpiration(String sessionId) {
-        logger.info("expiring credentials for session {}", sessionId);
-        auditService.doAudit(sessionId, AuditSeverity.INFO, "session expired", sessionId);
-        userWorkspaceService.shutdown(sessionId);
+        if (userWorkspaceService.exists(sessionId)) {
+            logger.info("expiring credentials for session {}", sessionId);
+            auditService.doAudit(sessionId, AuditSeverity.INFO, "session expired", sessionId);
+            userWorkspaceService.shutdown(sessionId);
+        }
     }
 }
