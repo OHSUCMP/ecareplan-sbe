@@ -21,10 +21,6 @@ import java.util.concurrent.Callable;
 
 public class ShareTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(ShareTask.class);
-
-    public static final String AUDIT_EVENT_SHARE = "share to SDS";
-    public static final String AUDIT_DETAILS_CREATED_PREFIX = "created";
-
     private static final String PARTITION_HEADER = "X-Partition-Name";
 
     // deliberately short: backoff is applied per resource, so a dataset where every resource
@@ -32,6 +28,9 @@ public class ShareTask implements ITask<Void> {
     // a gap to land in, without turning one bad dataset into hours of sleeping
     private static final long BACKOFF_BASE_MILLIS = 100L;
     private static final long BACKOFF_MAX_MILLIS = 400L;
+
+    public static final String AUDIT_EVENT_SHARE = "share to SDS";
+    public static final String AUDIT_DETAILS_CREATED_PREFIX = "created";
 
     private final String sessionId;
     private final DataSet<?> dataSet;
@@ -94,6 +93,7 @@ public class ShareTask implements ITask<Void> {
                             }
 
                             try {
+                                long st = System.currentTimeMillis();
                                 MethodOutcome outcome = client.update()
                                         .resource(resource)
                                         .withId(id)
@@ -102,13 +102,19 @@ public class ShareTask implements ITask<Void> {
 
                                 int code = outcome.getResponseStatusCode();
                                 if (code == 200) {
-                                    logger.debug("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+                                    logger.debug("Successfully shared {} from {} for session={} (code={}) (took {} ms)", id,
+                                            endpoint.getName(), sessionId, code, System.currentTimeMillis() - st);
                                     success = true;
 
                                 } else if (code == 201) {
-                                    logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+                                    logger.info("Successfully shared {} from {} for session={} (code={}) (took {} ms)", id,
+                                            endpoint.getName(), sessionId, code, System.currentTimeMillis() - st);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_EVENT_SHARE, AUDIT_DETAILS_CREATED_PREFIX + " " + id + " from " + endpoint.getName());
+                                    // NOTE: this audit record will be parsed by EndpointSyncReport - if you change how this
+                                    //       audit record is phrased, ensure that EndpointSyncReport is updated accordingly.
+
+                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_EVENT_SHARE, AUDIT_DETAILS_CREATED_PREFIX +
+                                            " " + id + " from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - st) + " ms)");
 
                                     success = true;
 

@@ -28,7 +28,8 @@ import java.util.concurrent.*;
 public class DataSetPopulationTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(DataSetPopulationTask.class);
 
-    public static String AUDIT_EVENT_CACHE_POPULATION = "cache population";
+    public static final String AUDIT_EVENT_CACHE_POPULATION = "cache population";
+    public static final String AUDIT_DETAILS_GOT_PREFIX = "got";
 
     private final String sessionId;
     private final boolean loadFromEndpoint;
@@ -232,9 +233,13 @@ public class DataSetPopulationTask implements ITask<Void> {
             }
 
             if (dataSetBuilder instanceof EndpointService) {
-                auditService.doAudit(userEndpoint.getUser(), AuditSeverity.INFO, AUDIT_EVENT_CACHE_POPULATION, "got " + list.size() +
-                        " resource(s) for dataSet=" + dataSet.getName() + " from " + userEndpoint.getEndpoint().getName() +
-                        " (took " + (System.currentTimeMillis() - start) + "ms)");
+
+                // NOTE: this audit record will be parsed by EndpointSyncReport - if you change how this
+                //       audit record is phrased, ensure that EndpointSyncReport is updated accordingly.
+
+                auditService.doAudit(userEndpoint.getUser(), AuditSeverity.INFO, AUDIT_EVENT_CACHE_POPULATION,
+                        AUDIT_DETAILS_GOT_PREFIX + " " + list.size() + " resource(s) for dataSet=" + dataSet.getName() + " from " +
+                        userEndpoint.getEndpoint().getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
             }
 
         } catch (Exception e) {
