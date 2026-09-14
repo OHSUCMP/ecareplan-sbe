@@ -121,8 +121,6 @@ public class EndpointSyncReport implements IReport {
     public String getContent() {
         StringBuilder sb = new StringBuilder();
 
-        // todo : ideally this would be in HTML, with a plaintext fallback if the appropriate MIME type isn't supported
-
         sb.append("<h1 style='text-decoration: underline;'>Endpoint Sync Report</h1>");
         sb.append("<p style='font-style:italic;'>Generated ").append(DATE_FORMAT.format(new Date())).append("</p>");
 
