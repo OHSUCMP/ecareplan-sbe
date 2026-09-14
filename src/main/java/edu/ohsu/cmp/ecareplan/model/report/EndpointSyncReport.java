@@ -93,6 +93,11 @@ public class EndpointSyncReport implements IReport {
     }
 
     @Override
+    public boolean shouldSend() {
+        return creationCount > 0 || errorCount > 0 || ! sdsIsAvailable;
+    }
+
+    @Override
     public String getName() {
         return "Endpoint Sync Report";
     }
@@ -123,7 +128,7 @@ public class EndpointSyncReport implements IReport {
 
         sb.append("<h2 style='text-decoration: underline;'>Summary</h2>");
         sb.append("<p>");
-        sb.append("User: <span style='font-weight: bold;'>").append(userEndpoint.getUser().getId()).append("</span><br/>");
+        sb.append("User ID: <span style='font-weight: bold;'>").append(userEndpoint.getUser().getId()).append("</span><br/>");
         if (patientModel != null) {
             sb.append("Name: <span style='font-weight: bold;'>").append(patientModel.getName()).append("</span><br/>");
         }

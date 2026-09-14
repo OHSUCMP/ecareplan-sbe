@@ -137,9 +137,14 @@ public class EndpointPopulationTask implements ITask<Void> {
                 }
 
                 if (loadFromEndpoint && reportService.isEnabled()) {
+                    Thread.sleep(1000L);    // sleep for 1 second before grabbing audit data to allow any would-be race
+                                            // conditions to resolve.  this is probably not the most elegant way to sort
+                                            // this, but it is almost certainly the simplest.  does that make it elegant?
+
                     List<AuditData> auditData = auditService.getAuditDataForUser(cfg.userEndpoint().getUser(),
                             List.of(DataSetPopulationTask.AUDIT_EVENT_CACHE_POPULATION, ShareTask.AUDIT_EVENT_SHARE),
                             new Date(start), new Date());
+
                     generateAndSendReport(auditData);
                 }
             }
