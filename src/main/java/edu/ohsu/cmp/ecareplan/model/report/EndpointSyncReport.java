@@ -5,10 +5,8 @@ import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
-import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.task.DataSetPopulationTask;
 import edu.ohsu.cmp.ecareplan.task.ShareTask;
-import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.text.DateFormat;
@@ -26,7 +24,6 @@ public class EndpointSyncReport implements IReport {
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 
     private final UserEndpoint userEndpoint;
-    private final PatientModel patientModel;
     private final List<AuditData> auditDataList;
     private final boolean sdsIsAvailable;
     private final Map<String, Integer> dataSetReadCountMap;
@@ -37,10 +34,8 @@ public class EndpointSyncReport implements IReport {
     private Integer errorCount;
     private String duration;
 
-    public EndpointSyncReport(UserEndpoint userEndpoint, @Nullable PatientModel patientModel, List<AuditData> auditDataList,
-                              boolean sdsIsAvailable) {
+    public EndpointSyncReport(UserEndpoint userEndpoint, List<AuditData> auditDataList, boolean sdsIsAvailable) {
         this.userEndpoint = userEndpoint;
-        this.patientModel = patientModel;
         this.auditDataList = auditDataList;
         this.sdsIsAvailable = sdsIsAvailable;
 
@@ -104,11 +99,8 @@ public class EndpointSyncReport implements IReport {
 
     @Override
     public String getSubject() {
-        String identifier = patientModel != null ?
-                patientModel.getName() + " (User #" + userEndpoint.getUser().getId() + ")" :
-                "User #" + userEndpoint.getUser().getId();
-
-        return "Endpoint Sync Report for " + identifier + " from " + userEndpoint.getEndpoint().getName();
+        return "Endpoint Sync Report for User #" + userEndpoint.getUser().getId() + " from " +
+                userEndpoint.getEndpoint().getName();
     }
 
 
@@ -122,9 +114,6 @@ public class EndpointSyncReport implements IReport {
         sb.append("<h2 style='text-decoration: underline;'>Summary</h2>");
         sb.append("<p>");
         sb.append("User ID: <span style='font-weight: bold;'>").append(userEndpoint.getUser().getId()).append("</span><br/>");
-        if (patientModel != null) {
-            sb.append("Name: <span style='font-weight: bold;'>").append(patientModel.getName()).append("</span><br/>");
-        }
         sb.append("Source: <span style='font-weight: bold;'>").append(userEndpoint.getEndpoint().getName()).append("</span><br/>");
         sb.append("# of resources read: <span style='font-weight: bold;'>").append(readCount).append("</span><br/>");
 
