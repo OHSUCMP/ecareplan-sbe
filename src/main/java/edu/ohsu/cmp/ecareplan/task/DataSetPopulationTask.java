@@ -33,7 +33,7 @@ public class DataSetPopulationTask implements ITask<Void> {
 
     private final String sessionId;
     private final boolean loadFromEndpoint;
-    private final boolean doShareOperations;
+    private final boolean sdsIsAvailable;
     private final DataSet<?> dataSet;
     private final DataSetBuilderRequestConfiguration cfg;
     private final FHIRCredentials launchCredentials;
@@ -43,14 +43,15 @@ public class DataSetPopulationTask implements ITask<Void> {
     private final SDSService sdsService;
     private final AuditService auditService;
 
-    public DataSetPopulationTask(String sessionId, boolean loadFromEndpoint, boolean doShareOperations,
+    public DataSetPopulationTask(String sessionId, boolean loadFromEndpoint, boolean sdsIsAvailable,
                                  DataSet<?> dataSet, DataSetBuilderRequestConfiguration cfg,
                                  FHIRCredentials launchCredentials, EndpointReadProgressModel progress,
-                                 UserWorkspaceService userWorkspaceService, EndpointService endpointService, SDSService sdsService, AuditService auditService) {
+                                 UserWorkspaceService userWorkspaceService, EndpointService endpointService,
+                                 SDSService sdsService, AuditService auditService) {
 
         this.sessionId = sessionId;
         this.loadFromEndpoint = loadFromEndpoint;
-        this.doShareOperations = doShareOperations;
+        this.sdsIsAvailable = sdsIsAvailable;
         this.dataSet = dataSet;
         this.cfg = cfg;
         this.launchCredentials = launchCredentials;
@@ -68,7 +69,7 @@ public class DataSetPopulationTask implements ITask<Void> {
                 ", dataSet=" + dataSet.getName() +
                 ", endpoint=" + cfg.userEndpoint().getEndpoint().getName() +
                 ", loadFromEndpoint=" + loadFromEndpoint +
-                ", doShareOperations=" + doShareOperations +
+                ", sdsIsAvailable=" + sdsIsAvailable +
                 ")";
     }
 
@@ -92,7 +93,7 @@ public class DataSetPopulationTask implements ITask<Void> {
 
                     if (loadFromEndpoint) {
                         resources = getDataSetModelsForEndpoint(dataSet, cfg, endpointService);
-                        if (doShareOperations) {
+                        if (sdsIsAvailable) {
                             checkInterrupted();
                             sdsFuture = sdsService.shareToSDS(sessionId, dataSet, endpoint, launchCredentials, resources);
                         }

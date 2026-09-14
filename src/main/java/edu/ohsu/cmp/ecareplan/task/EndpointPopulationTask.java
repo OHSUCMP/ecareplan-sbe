@@ -26,7 +26,7 @@ public class EndpointPopulationTask implements ITask<Void> {
 
     private final String sessionId;
     private final boolean loadFromEndpoint;
-    private final boolean doShareOperations;
+    private final boolean sdsIsAvailable;
     private final DataSetBuilderRequestConfiguration cfg;
     private final FHIRCredentials launchCredentials;
     private final EndpointReadProgressModel progress;
@@ -37,7 +37,7 @@ public class EndpointPopulationTask implements ITask<Void> {
     private final AuditService auditService;
     private final ReportService reportService;
 
-    public EndpointPopulationTask(String sessionId, boolean loadFromEndpoint, boolean doShareOperations,
+    public EndpointPopulationTask(String sessionId, boolean loadFromEndpoint, boolean sdsIsAvailable,
                                   DataSetBuilderRequestConfiguration cfg,
                                   FHIRCredentials launchCredentials, EndpointReadProgressModel progress,
                                   UserWorkspaceService userWorkspaceService, EndpointService endpointService, SDSService sdsService,
@@ -45,7 +45,7 @@ public class EndpointPopulationTask implements ITask<Void> {
 
         this.sessionId = sessionId;
         this.loadFromEndpoint = loadFromEndpoint;
-        this.doShareOperations = doShareOperations;
+        this.sdsIsAvailable = sdsIsAvailable;
         this.cfg = cfg;
         this.launchCredentials = launchCredentials;
         this.progress = progress;
@@ -63,7 +63,7 @@ public class EndpointPopulationTask implements ITask<Void> {
                 ", userId=" + cfg.userEndpoint().getUser().getId() +
                 ", endpoint=" + cfg.userEndpoint().getEndpoint().getName() +
                 ", loadFromEndpoint=" + loadFromEndpoint + "," +
-                ", doShareOperations=" + doShareOperations + ")";
+                ", sdsIsAvailable=" + sdsIsAvailable + ")";
     }
 
     @Override
@@ -84,7 +84,7 @@ public class EndpointPopulationTask implements ITask<Void> {
                     }
 
                     DataSetPopulationTask task = new DataSetPopulationTask(sessionId,
-                            loadFromEndpoint, doShareOperations, dataSet, cfg, launchCredentials, progress,
+                            loadFromEndpoint, sdsIsAvailable, dataSet, cfg, launchCredentials, progress,
                             userWorkspaceService, endpointService, sdsService, auditService
                     );
 
@@ -162,7 +162,7 @@ public class EndpointPopulationTask implements ITask<Void> {
             // we still want to send the report if patientModel == null.  especially so, even, as auditData likely
             // contains all sorts of important errors that should be reported immediately.
 
-            reportService.sendReport(new EndpointSyncReport(cfg.userEndpoint(), patientModel, auditData));
+            reportService.sendReport(new EndpointSyncReport(cfg.userEndpoint(), patientModel, auditData, sdsIsAvailable));
         }
     }
 

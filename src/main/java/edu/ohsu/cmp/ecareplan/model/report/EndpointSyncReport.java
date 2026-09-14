@@ -31,6 +31,7 @@ public class EndpointSyncReport implements IReport {
     private final UserEndpoint userEndpoint;
     private final PatientModel patientModel;
     private final List<AuditData> auditDataList;
+    private final boolean sdsIsAvailable;
     private final Map<String, Integer> dataSetReadCountMap;
     private final Map<String, Integer> resourceCreationCountMap;
 
@@ -39,10 +40,12 @@ public class EndpointSyncReport implements IReport {
     private Integer errorCount;
     private String duration;
 
-    public EndpointSyncReport(UserEndpoint userEndpoint, @Nullable PatientModel patientModel, List<AuditData> auditDataList) {
+    public EndpointSyncReport(UserEndpoint userEndpoint, @Nullable PatientModel patientModel, List<AuditData> auditDataList,
+                              boolean sdsIsAvailable) {
         this.userEndpoint = userEndpoint;
         this.patientModel = patientModel;
         this.auditDataList = auditDataList;
+        this.sdsIsAvailable = sdsIsAvailable;
 
         dataSetReadCountMap = new TreeMap<>();
         resourceCreationCountMap = new TreeMap<>();
@@ -115,7 +118,12 @@ public class EndpointSyncReport implements IReport {
         }
         sb.append("Source: <span style='font-weight: bold;'>").append(userEndpoint.getEndpoint().getName()).append("</span><br/>");
         sb.append("# of resources read: <span style='font-weight: bold;'>").append(readCount).append("</span><br/>");
-        sb.append("# of resources created in the SDS: <span style='font-weight: bold;'>").append(creationCount).append("</span><br/>");
+
+        sb.append("# of resources created in the SDS: <span style='font-weight: bold;'>").append(creationCount).append("</span>");
+        if ( ! sdsIsAvailable ) {
+            sb.append(" <span style='font-weight: bold; color: red;'>*** ALERT *** The SDS was not available during this synchronization attempt!</span>");
+        }
+        sb.append("<br/>");
 
         String errorCountDisplay = errorCount > 0 ?
                 "<span style='color: red;'>" + errorCount + "</span>" :
