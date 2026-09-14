@@ -4,7 +4,6 @@ import edu.ohsu.cmp.ecareplan.entity.AuditData;
 import edu.ohsu.cmp.ecareplan.entity.Endpoint;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSetBuilderRequestConfiguration;
-import edu.ohsu.cmp.ecareplan.model.dataset.PatientModel;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRCredentials;
 import edu.ohsu.cmp.ecareplan.model.progress.EndpointReadProgressModel;
 import edu.ohsu.cmp.ecareplan.model.report.EndpointSyncReport;
@@ -145,32 +144,12 @@ public class EndpointPopulationTask implements ITask<Void> {
                             List.of(DataSetPopulationTask.AUDIT_EVENT_CACHE_POPULATION, ShareTask.AUDIT_EVENT_SHARE),
                             new Date(start), new Date());
 
-                    generateAndSendReport(auditData);
+                    reportService.sendReport(new EndpointSyncReport(cfg.userEndpoint(), auditData, sdsIsAvailable));
                 }
             }
 
             return null;
         };
-    }
-
-    private void generateAndSendReport(List<AuditData> auditData) {
-        if (reportService.isEnabled()) {
-            PatientModel patientModel = null;
-            if (sdsIsAvailable) {
-                try {
-                    patientModel = sdsService.buildPatients(cfg).getFirst();  // there will be only one
-                } catch (Exception e) {
-                    logger.warn("caught {} attempting to build patient model for user={}, endpoint={} from the SDS for session {} - {}",
-                            e.getClass().getSimpleName(), cfg.userEndpoint().getUser().getId(), cfg.userEndpoint().getEndpoint().getName(), sessionId,
-                            e.getMessage(), e);
-                }
-            }
-
-            // we still want to send the report if patientModel == null.  especially so, even, as auditData likely
-            // contains all sorts of important errors that should be reported immediately.
-
-            reportService.sendReport(new EndpointSyncReport(cfg.userEndpoint(), patientModel, auditData, sdsIsAvailable));
-        }
     }
 
     private void notifyEndpointPopulationStarted(Endpoint endpoint) {
