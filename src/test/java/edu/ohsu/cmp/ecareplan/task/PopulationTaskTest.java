@@ -42,6 +42,7 @@ class PopulationTaskTest {
     private final SDSService sds = mock(SDSService.class);
     private final UserWorkspaceService workspaces = mock(UserWorkspaceService.class);
     private final AuditService audit = mock(AuditService.class);
+    private final ReportService report = mock(ReportService.class);
     private DataSetBuilderRequestConfiguration cfg;
     private EndpointReadProgressModel progress;
 
@@ -184,7 +185,7 @@ class PopulationTaskTest {
 
     private EndpointPopulationTask endpointTask(BackgroundTaskService service) {
         return new EndpointPopulationTask("session", true, true, cfg, credentials, progress,
-                workspaces, endpoints, sds, service, audit);
+                workspaces, endpoints, sds, service, audit, report);
     }
 
     private DataSetPopulationTask datasetTask() {

@@ -28,9 +28,12 @@ import java.util.concurrent.*;
 public class DataSetPopulationTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(DataSetPopulationTask.class);
 
+    public static final String AUDIT_EVENT_CACHE_POPULATION = "cache population";
+    public static final String AUDIT_DETAILS_GOT_PREFIX = "got";
+
     private final String sessionId;
     private final boolean loadFromEndpoint;
-    private final boolean doShareOperations;
+    private final boolean sdsIsAvailable;
     private final DataSet<?> dataSet;
     private final DataSetBuilderRequestConfiguration cfg;
     private final FHIRCredentials launchCredentials;
@@ -40,14 +43,15 @@ public class DataSetPopulationTask implements ITask<Void> {
     private final SDSService sdsService;
     private final AuditService auditService;
 
-    public DataSetPopulationTask(String sessionId, boolean loadFromEndpoint, boolean doShareOperations,
+    public DataSetPopulationTask(String sessionId, boolean loadFromEndpoint, boolean sdsIsAvailable,
                                  DataSet<?> dataSet, DataSetBuilderRequestConfiguration cfg,
                                  FHIRCredentials launchCredentials, EndpointReadProgressModel progress,
-                                 UserWorkspaceService userWorkspaceService, EndpointService endpointService, SDSService sdsService, AuditService auditService) {
+                                 UserWorkspaceService userWorkspaceService, EndpointService endpointService,
+                                 SDSService sdsService, AuditService auditService) {
 
         this.sessionId = sessionId;
         this.loadFromEndpoint = loadFromEndpoint;
-        this.doShareOperations = doShareOperations;
+        this.sdsIsAvailable = sdsIsAvailable;
         this.dataSet = dataSet;
         this.cfg = cfg;
         this.launchCredentials = launchCredentials;
@@ -65,7 +69,7 @@ public class DataSetPopulationTask implements ITask<Void> {
                 ", dataSet=" + dataSet.getName() +
                 ", endpoint=" + cfg.userEndpoint().getEndpoint().getName() +
                 ", loadFromEndpoint=" + loadFromEndpoint +
-                ", doShareOperations=" + doShareOperations +
+                ", sdsIsAvailable=" + sdsIsAvailable +
                 ")";
     }
 
@@ -89,7 +93,7 @@ public class DataSetPopulationTask implements ITask<Void> {
 
                     if (loadFromEndpoint) {
                         resources = getDataSetModelsForEndpoint(dataSet, cfg, endpointService);
-                        if (doShareOperations) {
+                        if (sdsIsAvailable) {
                             checkInterrupted();
                             sdsFuture = sdsService.shareToSDS(sessionId, dataSet, endpoint, launchCredentials, resources);
                         }
@@ -230,9 +234,13 @@ public class DataSetPopulationTask implements ITask<Void> {
             }
 
             if (dataSetBuilder instanceof EndpointService) {
-                auditService.doAudit(userEndpoint.getUser(), AuditSeverity.INFO, "cache population", "got " + list.size() +
-                        " resource(s) for dataSet=" + dataSet.getName() + " from " + userEndpoint.getEndpoint().getName() +
-                        " (took " + (System.currentTimeMillis() - start) + "ms)");
+
+                // NOTE: this audit record will be parsed by EndpointSyncReport - if you change how this
+                //       audit record is phrased, ensure that EndpointSyncReport is updated accordingly.
+
+                auditService.doAudit(userEndpoint.getUser(), AuditSeverity.INFO, AUDIT_EVENT_CACHE_POPULATION,
+                        AUDIT_DETAILS_GOT_PREFIX + " " + list.size() + " resource(s) for dataSet=" + dataSet.getName() + " from " +
+                        userEndpoint.getEndpoint().getName() + " (took " + (System.currentTimeMillis() - start) + "ms)");
             }
 
         } catch (Exception e) {
@@ -249,7 +257,7 @@ public class DataSetPopulationTask implements ITask<Void> {
                     throw foe;
 
                 } else {
-                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, "cache population", "retrieving " + dataSet.getName() +
+                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, AUDIT_EVENT_CACHE_POPULATION, "retrieving " + dataSet.getName() +
                             " from " + endpointNameForLogging + " was forbidden");
                     progress.addError(dataSet, foe.getMessage());
                 }
@@ -263,7 +271,7 @@ public class DataSetPopulationTask implements ITask<Void> {
                     throw ire;
 
                 } else {
-                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, "cache population", "invalid request retrieving " +
+                    auditService.doAudit(userEndpoint.getUser(), AuditSeverity.ERROR, AUDIT_EVENT_CACHE_POPULATION, "invalid request retrieving " +
                             dataSet.getName() + " from " + endpointNameForLogging);
                     progress.addError(dataSet, e.getMessage());
                 }

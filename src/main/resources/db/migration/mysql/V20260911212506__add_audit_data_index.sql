@@ -1,0 +1,1 @@
+create index idxUserIdEventCreated on audit_data(userId, event, created);

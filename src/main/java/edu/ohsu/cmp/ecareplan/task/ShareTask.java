@@ -21,15 +21,16 @@ import java.util.concurrent.Callable;
 
 public class ShareTask implements ITask<Void> {
     private static final Logger logger = LoggerFactory.getLogger(ShareTask.class);
-
     private static final String PARTITION_HEADER = "X-Partition-Name";
-    private static final String AUDIT_ACTION_SHARE = "share to SDS";
 
     // deliberately short: backoff is applied per resource, so a dataset where every resource
     // fails pays this on all of them.  enough to stop hammering the SDS and to give interruption
     // a gap to land in, without turning one bad dataset into hours of sleeping
     private static final long BACKOFF_BASE_MILLIS = 100L;
     private static final long BACKOFF_MAX_MILLIS = 400L;
+
+    public static final String AUDIT_EVENT_SHARE = "share to SDS";
+    public static final String AUDIT_DETAILS_CREATED_PREFIX = "created";
 
     private final String sessionId;
     private final DataSet<?> dataSet;
@@ -92,6 +93,7 @@ public class ShareTask implements ITask<Void> {
                             }
 
                             try {
+                                long st = System.currentTimeMillis();
                                 MethodOutcome outcome = client.update()
                                         .resource(resource)
                                         .withId(id)
@@ -100,13 +102,19 @@ public class ShareTask implements ITask<Void> {
 
                                 int code = outcome.getResponseStatusCode();
                                 if (code == 200) {
-                                    logger.debug("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+                                    logger.debug("Successfully shared {} from {} for session={} (code={}) (took {} ms)", id,
+                                            endpoint.getName(), sessionId, code, System.currentTimeMillis() - st);
                                     success = true;
 
                                 } else if (code == 201) {
-                                    logger.info("Successfully shared {} from {} for session={} (code={})", id, endpoint.getName(), sessionId, code);
+                                    logger.info("Successfully shared {} from {} for session={} (code={}) (took {} ms)", id,
+                                            endpoint.getName(), sessionId, code, System.currentTimeMillis() - st);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_ACTION_SHARE, "created " + id + " from " + endpoint.getName());
+                                    // NOTE: this audit record will be parsed by EndpointSyncReport - if you change how this
+                                    //       audit record is phrased, ensure that EndpointSyncReport is updated accordingly.
+
+                                    auditService.doAudit(sessionId, AuditSeverity.INFO, AUDIT_EVENT_SHARE, AUDIT_DETAILS_CREATED_PREFIX +
+                                            " " + id + " from " + endpoint.getName() + " (took " + (System.currentTimeMillis() - st) + " ms)");
 
                                     success = true;
 
@@ -118,7 +126,7 @@ public class ShareTask implements ITask<Void> {
                                 } else {
                                     logger.warn("Received unexpected response code {} sharing {} from {} for session={}", code, id, endpoint.getName(), sessionId);
 
-                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_ACTION_SHARE, "received unexpected response code " + code +
+                                    auditService.doAudit(sessionId, AuditSeverity.WARN, AUDIT_EVENT_SHARE, "received unexpected response code " + code +
                                             " sharing " + id + " from " + endpoint.getName());
 
                                     success = (code > 201 && code < 300);
@@ -153,7 +161,7 @@ public class ShareTask implements ITask<Void> {
 
                         if ( ! success ) {
                             logger.error("failed to share {} from {} for session={} after {} attempts", id, endpoint.getName(), sessionId, maxAttempts);
-                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE, "failed to share " + id + " from " + endpoint.getName());
+                            auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_EVENT_SHARE, "failed to share " + id + " from " + endpoint.getName());
                             progress.addError("Failed to share " + id);
                         }
 
@@ -168,7 +176,7 @@ public class ShareTask implements ITask<Void> {
                                 id, endpoint.getName(), sessionId, e.getMessage());
                         logger.debug(e.getMessage(), e);
 
-                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_ACTION_SHARE,
+                        auditService.doAudit(sessionId, AuditSeverity.ERROR, AUDIT_EVENT_SHARE,
                                 "caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
 
                         progress.addError("caught " + e.getClass().getSimpleName() + " sharing " + id + " from " + endpoint.getName());
