@@ -1,6 +1,7 @@
 package edu.ohsu.cmp.ecareplan.model.report;
 
 import edu.ohsu.cmp.ecareplan.entity.AuditData;
+import edu.ohsu.cmp.ecareplan.entity.User;
 import edu.ohsu.cmp.ecareplan.entity.UserEndpoint;
 import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
@@ -92,7 +93,17 @@ public class EndpointSyncReport implements IReport {
     }
 
     @Override
-    public String getTitle() {
+    public String getName() {
+        return "Endpoint Sync Report";
+    }
+
+    @Override
+    public User getUser() {
+        return userEndpoint.getUser();
+    }
+
+    @Override
+    public String getSubject() {
         String identifier = patientModel != null ?
                 patientModel.getName() + " (User #" + userEndpoint.getUser().getId() + ")" :
                 "User #" + userEndpoint.getUser().getId();
@@ -102,7 +113,7 @@ public class EndpointSyncReport implements IReport {
 
 
     @Override
-    public String getBody() {
+    public String getContent() {
         StringBuilder sb = new StringBuilder();
 
         // todo : ideally this would be in HTML, with a plaintext fallback if the appropriate MIME type isn't supported

@@ -151,12 +151,14 @@ public class EndpointPopulationTask implements ITask<Void> {
     private void generateAndSendReport(List<AuditData> auditData) {
         if (reportService.isEnabled()) {
             PatientModel patientModel = null;
-            try {
-                patientModel = sdsService.buildPatients(cfg).getFirst();  // there will be only one
-            } catch (Exception e) {
-                logger.warn("caught {} attempting to build patient model for user={}, endpoint={} from the SDS for session {} - {}",
-                        e.getClass().getSimpleName(), cfg.userEndpoint().getUser().getId(), cfg.userEndpoint().getEndpoint().getName(), sessionId,
-                        e.getMessage(), e);
+            if (sdsIsAvailable) {
+                try {
+                    patientModel = sdsService.buildPatients(cfg).getFirst();  // there will be only one
+                } catch (Exception e) {
+                    logger.warn("caught {} attempting to build patient model for user={}, endpoint={} from the SDS for session {} - {}",
+                            e.getClass().getSimpleName(), cfg.userEndpoint().getUser().getId(), cfg.userEndpoint().getEndpoint().getName(), sessionId,
+                            e.getMessage(), e);
+                }
             }
 
             // we still want to send the report if patientModel == null.  especially so, even, as auditData likely

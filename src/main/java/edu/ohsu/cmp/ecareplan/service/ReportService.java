@@ -1,5 +1,6 @@
 package edu.ohsu.cmp.ecareplan.service;
 
+import edu.ohsu.cmp.ecareplan.model.AuditSeverity;
 import edu.ohsu.cmp.ecareplan.model.report.IReport;
 import jakarta.annotation.PostConstruct;
 import jakarta.mail.Address;
@@ -78,13 +79,17 @@ public class ReportService extends BaseService {
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
                 mimeMessage.setFrom(fromAddress);
                 mimeMessage.setRecipients(MimeMessage.RecipientType.TO, recipients);
-                mimeMessage.setSubject(subjectPrefix + " " + report.getTitle());
-                mimeMessage.setContent(bodyHeader + report.getBody(), "text/html");
+                mimeMessage.setSubject(subjectPrefix + " " + report.getSubject());
+                mimeMessage.setContent(bodyHeader + report.getContent(), "text/html");
 
                 mailSender.send(mimeMessage);
 
+                logger.info("successfully sent '{}'", report.getName());
+
             } catch (Exception e) {
-                logger.error("Failed to send report", e);
+                logger.error("caught {} sending report '{}' - {}", e.getClass().getSimpleName(), report.getName(), e.getMessage(), e);
+                auditService.doAudit(report.getUser(), AuditSeverity.ERROR, "sending report", "report=" + report.getName() +
+                        ", error=" + e.getClass().getSimpleName() + ", message=" + e.getMessage());
             }
         }
     }
