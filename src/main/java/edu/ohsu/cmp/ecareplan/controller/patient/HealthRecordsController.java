@@ -72,7 +72,7 @@ public class HealthRecordsController extends BasePatientController {
                                                @RequestParam Long endpointId) {
 
         if (sessionService.exists(session.getId())) {
-            logger.info("reporting launch for endpointId={}", endpointId);
+            logger.info("reporting launch for endpointId={} for session={}", endpointId, session.getId());
 
             try {
                 UserWorkspace workspace = userWorkspaceService.get(session.getId());
