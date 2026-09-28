@@ -12,4 +12,9 @@ public class BackwardCompatibilityController {
     public String launch() {
         return "redirect:/patient/launch";
     }
+
+    @GetMapping("index.html")
+    public String smartCallback() {
+        return "redirect:/patient/smart-callback";
+    }
 }
