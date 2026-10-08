@@ -74,7 +74,7 @@
             return false;
         }
 
-        if (normalizedLine.indexOf('/js/fhir-client-') !== -1) {
+        if (normalizedLine.indexOf('/js/client-js/') !== -1) {
             return false;
         }
 
