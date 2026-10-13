@@ -86,10 +86,14 @@ $(document).on('click', '#loginButton', function() {
         }
 
         reportLaunch(endpointId, function() {
+
+            // see https://docs.smarthealthit.org/client-js/api.html
+
             let clientId = el.data('client-id');
             let scope = el.data('scope');
             let redirectUri = el.data('redirect-uri');
             let iss = el.data('iss');
+            let pkceMode = el.data('pkce-mode') || 'ifSupported';
 
             if (!window.FHIR || !FHIR.oauth2 || typeof FHIR.oauth2.authorize !== 'function') {
                 throw new Error('FHIR OAuth client is not available.');
@@ -99,7 +103,8 @@ $(document).on('click', '#loginButton', function() {
                 "client_id": clientId,
                 "scope": scope,
                 "redirect_uri": redirectUri,
-                "iss": iss
+                "iss": iss,
+                "pkceMode": pkceMode
             });
         });
     } catch (error) {

@@ -79,7 +79,7 @@
                     <select id="endpointSelect" class="form-select health-records-select">
                         <option value="" selected disabled hidden>Choose a health record provider</option>
                         {{#thirdPartyEndpointModels}}
-                            <option value="{{id}}" data-client-id="{{clientId}}" data-scope="{{scope}}" data-redirect-uri="{{redirectUri}}" data-iss="{{iss}}">
+                            <option value="{{id}}" data-client-id="{{clientId}}" data-scope="{{scope}}" data-redirect-uri="{{redirectUri}}" data-iss="{{iss}}"{{#pkceMode}} data-pkce-mode="{{pkceMode}}"{{/pkceMode}}>
                                 {{name}}
                             </option>
                         {{/thirdPartyEndpointModels}}
