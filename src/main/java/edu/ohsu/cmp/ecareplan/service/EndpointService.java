@@ -145,7 +145,7 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
         //        read the Patient resource directly by reference.  this is so standard that we're able to safely hardcode it
 
         PatientModel patientModel = rt.transformPatient(
-                fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Patient.class, "Patient/" + fcc.getCredentials().getPatientId())
+                fhirService.readByReference(fcc, FHIRStrategy.PATIENT, Patient.class, "Patient/" + fcc.getCredentials().patientId())
         );
 
         patientModel.setSourceEndpointName(ue.getEndpoint().getName());
@@ -636,7 +636,7 @@ public class EndpointService extends BaseDataSetBuilderService implements IDataS
 ///
 
     private FHIRCredentialsWithClient buildCredentialsWithClient(FHIRCredentials fc) {
-        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fhirContext, fc.getServerURL(), fc.getBearerToken()));
+        return new FHIRCredentialsWithClient(fc, FhirUtil.buildClient(fhirContext, fc.serverURL(), fc.bearerToken()));
     }
 
     private static final DateFormat FHIR_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");

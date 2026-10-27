@@ -665,7 +665,7 @@ public class SDSService extends BaseDataSetBuilderService implements IDataSetBui
 ///
 
     private IGenericClient buildClient(FHIRCredentials fc) {
-        return FhirUtil.buildClient(fhirContext, sdsFhirEndpointUrl, fc.getBearerToken());
+        return FhirUtil.buildClient(fhirContext, sdsFhirEndpointUrl, fc.bearerToken());
     }
 
     private String doTokenReplacements(String patientId, String fhirQuery) {

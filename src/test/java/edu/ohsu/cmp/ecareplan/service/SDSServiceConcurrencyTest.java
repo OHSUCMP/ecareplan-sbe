@@ -36,7 +36,7 @@ class SDSServiceConcurrencyTest {
         endpoint.setId(1L);
         endpoint.setName("test endpoint");
         endpoint.setIss("https://example.test/fhir");
-        when(credentials.getBearerToken()).thenReturn("test-token");
+        when(credentials.bearerToken()).thenReturn("test-token");
         ReflectionTestUtils.setField(service, "backgroundTaskService", background);
         ReflectionTestUtils.setField(service, "sdsFhirEndpointUrl", "https://sds.example.test/fhir");
 
