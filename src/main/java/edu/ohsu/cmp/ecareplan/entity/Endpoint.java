@@ -15,6 +15,7 @@ public class Endpoint {
     private String clientSecret;
     private String redirectUri;
     private String scope;
+    private String pkceMode;
 
     @Enumerated(EnumType.STRING)
     private EndpointProviderType providerType;
@@ -73,6 +74,14 @@ public class Endpoint {
 
     public void setScope(String scope) {
         this.scope = scope;
+    }
+
+    public String getPkceMode() {
+        return pkceMode;
+    }
+
+    public void setPkceMode(String pkceMode) {
+        this.pkceMode = pkceMode;
     }
 
     public EndpointProviderType getProviderType() {

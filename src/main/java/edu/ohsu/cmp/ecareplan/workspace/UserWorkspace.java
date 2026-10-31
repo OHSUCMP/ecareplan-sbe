@@ -80,7 +80,7 @@ public class UserWorkspace {
 
         UserService userService = ctx.getBean(UserService.class);
         user = userService.getUser(
-                launchCredentials.getPatientId()
+                launchCredentials.patientId()
         );
 
         // generate a secret key that can be used to encrypt and decrypt sensitive database assets
@@ -90,7 +90,7 @@ public class UserWorkspace {
         // doesn't need to set and manage a separate password.  I think this is probably secure enough?
         try {
             secretKey = CryptoUtil.generateSecretKey(
-                    launchCredentials.getPatientId().toCharArray(),
+                    launchCredentials.patientId().toCharArray(),
                     Base64.getDecoder().decode(user.getSaltB64())
             );
         } catch (Exception e) {
@@ -100,7 +100,7 @@ public class UserWorkspace {
         userEndpointCredentialsMap = new LinkedHashMap<>();
 
         Endpoint launcherEndpoint = getLauncherEndpoint();
-        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint, launchCredentials.getPatientId());
+        UserEndpoint launchUserEndpoint = getOrCreateUserEndpoint(launcherEndpoint, launchCredentials.patientId());
         configureUserEndpointCredentials(launchUserEndpoint, launchCredentials);
 
         endpointReadProgressMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -286,14 +286,14 @@ public class UserWorkspace {
     public void configureUserEndpointCredentials(UserEndpoint userEndpoint, FHIRCredentials credentials) {
         IGenericClient client = FhirUtil.buildClient(
                 endpointService.getFhirContext(),
-                credentials.getServerURL(),
-                credentials.getBearerToken()
+                credentials.serverURL(),
+                credentials.bearerToken()
         );
         FHIRCredentialsWithClient fcc = new FHIRCredentialsWithClient(credentials, client);
 
         Date expiresAt;
         try {
-            expiresAt = parseExpiresAt(credentials.getBearerToken());
+            expiresAt = parseExpiresAt(credentials.bearerToken());
 
         } catch (Exception e) {
             logger.warn("couldn't parse token for session={} - will auto-expire token in 1 hour", sessionId);
@@ -415,7 +415,7 @@ public class UserWorkspace {
 
         Date shutdownTimestamp;
         try {
-            shutdownTimestamp = parseExpiresAt(launchCredentials.getBearerToken());
+            shutdownTimestamp = parseExpiresAt(launchCredentials.bearerToken());
 
         } catch (JWTDecodeException e) {
             logger.warn("couldn't parse token for session={} - will auto-shutdown workspace after 1 day", sessionId);

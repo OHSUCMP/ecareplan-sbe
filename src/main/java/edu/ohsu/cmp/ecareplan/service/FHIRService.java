@@ -192,7 +192,7 @@ public class FHIRService {
 
         IGenericClient client = buildClient(fcc, strategy);
 
-        return search(client, fcc.getCredentials().getServerURL(), fhirQuery, headers, validityFunction, supplementalResourcesFunction);
+        return search(client, fcc.getCredentials().serverURL(), fhirQuery, headers, validityFunction, supplementalResourcesFunction);
     }
 
     public Bundle search(IGenericClient client, String fhirServerURL, String fhirQuery) throws DataException, ConfigurationException, IOException {
@@ -451,7 +451,7 @@ public class FHIRService {
     private String getBackendServerURL(FHIRCredentialsWithClient fcc) {
         return StringUtils.isNotBlank(backendIss) ?
                 backendIss :
-                fcc.getCredentials().getServerURL();
+                fcc.getCredentials().serverURL();
     }
 
     private IGenericClient buildClient(FHIRCredentialsWithClient fcc, FHIRStrategy strategy) throws DataException, ConfigurationException, IOException {

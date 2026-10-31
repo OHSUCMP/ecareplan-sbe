@@ -196,7 +196,7 @@ public class AccessTokenService {
     private String getBackendServerURL(FHIRCredentialsWithClient fcc) {
         return StringUtils.isNotBlank(backendIss) ?
                 backendIss :
-                fcc.getCredentials().getServerURL();
+                fcc.getCredentials().serverURL();
     }
 
     private String createJWT(String tokenAuthUrl) throws ConfigurationException {

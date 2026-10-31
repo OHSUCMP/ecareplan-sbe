@@ -6,9 +6,9 @@ import edu.ohsu.cmp.ecareplan.model.dataset.DataSet;
 import edu.ohsu.cmp.ecareplan.model.fhir.FHIRStrategy;
 
 public class QueryModel {
-    private DataSet<?> dataSet;
-    private String query;
-    private FHIRStrategy strategy;
+    private final DataSet<?> dataSet;
+    private final String query;
+    private final FHIRStrategy strategy;
 
     public QueryModel(DefaultQuery defaultQuery) {
         this.dataSet = DataSet.getDataSet(defaultQuery.getDataSetName());
