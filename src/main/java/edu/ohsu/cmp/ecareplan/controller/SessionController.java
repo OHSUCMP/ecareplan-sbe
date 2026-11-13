@@ -75,11 +75,18 @@ public class SessionController extends BaseController {
 
     @PostMapping("clear-session")
     public ResponseEntity<?> clearSession(HttpSession session) {
-        if (userWorkspaceService.exists(session.getId())) {
-            sessionService.forceExpiration(session.getId());
-            return ResponseEntity.ok("session cleared");
+        String sessionId = session.getId();
+        boolean sessionExists = userWorkspaceService.exists(sessionId);
+
+        if (sessionExists) {
+            sessionService.forceExpiration(sessionId);
         }
-        return ResponseEntity.ok("no session");
+
+        session.invalidate();
+
+        return sessionExists ?
+                ResponseEntity.ok("session cleared") :
+                ResponseEntity.ok("no session");
     }
 
     @PostMapping("refresh")
