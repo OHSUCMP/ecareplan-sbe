@@ -159,6 +159,10 @@
             let xhr = new XMLHttpRequest();
             xhr.open('POST', buildFrontEndExceptionAuditUrl(), true);
             xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+            let csrfToken = getCookie('XSRF-TOKEN');
+            if (csrfToken) {
+                xhr.setRequestHeader('X-XSRF-TOKEN', csrfToken);
+            }
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     reportingFrontEndException = false;
@@ -205,6 +209,32 @@
         window.handleFrontEndException(event.reason || 'Unhandled promise rejection');
     });
 })();
+
+function getCookie(name) {
+    let nameEq = name + "=";
+    let cookies = document.cookie.split(';');
+
+    for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i].trim();
+        if (cookie.indexOf(nameEq) === 0) {
+            return decodeURIComponent(cookie.substring(nameEq.length));
+        }
+    }
+
+    return null;
+}
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        let method = settings.type || settings.method || "GET";
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(method)) {
+            let csrfToken = getCookie("XSRF-TOKEN");
+            if (csrfToken) {
+                xhr.setRequestHeader("X-XSRF-TOKEN", csrfToken);
+            }
+        }
+    }
+});
 
 function exists(el) {
     // see https://learn.jquery.com/using-jquery-core/faq/how-do-i-test-whether-an-element-exists/
